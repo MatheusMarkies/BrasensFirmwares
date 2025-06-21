@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<section name="Workbench">
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog">
+		<item key="wrap" value="true"/>
+		<item key="casesensitive" value="false"/>
+		<item key="wholeword" value="false"/>
+		<item key="incremental" value="false"/>
+		<item key="isRegEx" value="false"/>
+		<item key="selection" value="BEHAVIOR_Reorganize_FRAM"/>
+		<list key="findhistory">
+			<item value="BEHAVIOR_Reorganize_FRAM"/>
+			<item value="BEHAVIOR_REMOVE_First_Item_From_DataIndices"/>
+			<item value="BEHAVIOR_GET_Next_Send_Item"/>
+			<item value="READ_MSP_Serial_Commands"/>
+			<item value="HAL_UART_Transmit_IT"/>
+			<item value="Setup.."/>
+			<item value="address"/>
+			<item value="HAL_G"/>
+			<item value="GSM"/>
+			<item value="400"/>
+			<item value="data_sender_period"/>
+			<item value="loop"/>
+			<item value="HAL_TIM_PeriodElapsedCallback"/>
+			<item value="TIM2_Init"/>
+			<item value="TIM"/>
+		</list>
+		<list key="replacehistory">
+			<item value=""/>
+		</list>
+	</section>
+	<section name="org.eclipse.ui.texteditor.FindReplaceDialog_dialogBounds">
+		<item key="DIALOG_X_ORIGIN" value="1385"/>
+		<item key="DIALOG_Y_ORIGIN" value="318"/>
+		<item key="DIALOG_WIDTH" value="322"/>
+		<item key="DIALOG_HEIGHT" value="391"/>
+		<item key="DIALOG_FONT_NAME" value="1|Segoe UI|9.0|0|WINDOWS|1|-12|0|0|0|400|0|0|0|1|0|0|0|0|Segoe UI"/>
+	</section>
+</section>

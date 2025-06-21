@@ -1,0 +1,9 @@
+../Core/Src/main.c:72:5:__io_putchar	1
+../Core/Src/main.c:82:5:main	1
+../Core/Src/main.c:131:6:SystemClock_Config	4
+../Core/Src/main.c:181:13:MX_USART1_UART_Init	2
+../Core/Src/main.c:216:13:MX_USART2_UART_Init	2
+../Core/Src/main.c:251:13:MX_GPIO_Init	1
+../Core/Src/main.c:276:6:KX122_Init	2
+../Core/Src/main.c:302:6:KX122_ReadAccel	1
+../Core/Src/main.c:320:6:Error_Handler	1

@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;Mainboard MonoChip/Core/Inc/Sim800_StatsD.h&apos; to &apos;GSM_AT.h&apos;" description="Rename resource &apos;Sim800_StatsD.h&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="Core/Inc/Sim800_StatsD.h" name="GSM_AT.h" stamp="1722461741748" updateReferences="true"/>
+</session>

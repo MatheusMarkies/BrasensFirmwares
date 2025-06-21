@@ -1,0 +1,1295 @@
+/* USER CODE BEGIN Header */
+/**
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2024 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include "math.h"
+#include "string.h"
+#include "stdio.h"
+#include "LoRa.h"
+#include "FRAM.h"
+#include "MCP9808.h"
+#include "MAX17048.h"
+#include "BrasensFirmware.h"
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+#define ACC_DATA_RATE 25800
+
+#define KX122_DEVICE_ADDRESS_1E   (0x1E)    // 7bit Address
+#define KX122_DEVICE_ADDRESS_1F   (0x1F)    // 7bit Address
+#define KX122_WAI_VAL             (0x1B)
+
+#define KX122_XOUT_L              (0x06)
+#define KX122_WHO_AM_I            (0x0F)
+#define KX122_CNTL1               (0x18)
+#define KX122_ODCNTL              (0x1B)
+
+#define KX122_CNTL1_TPE           (1 << 0)
+#define KX122_CNTL1_WUFE          (1 << 1)
+#define KX122_CNTL1_TDTE          (1 << 2)
+#define KX122_CNTL1_GSELMASK      (0x18)
+#define KX122_CNTL1_GSEL_2G       (0x00)
+#define KX122_CNTL1_GSEL_4G       (0x08)
+#define KX122_CNTL1_GSEL_8G       (0x10)
+#define KX122_CNTL1_DRDYE         (1 << 5)
+#define KX122_CNTL1_RES           (1 << 6)
+#define KX122_CNTL1_PC1           (1 << 7)
+
+#define KX122_ODCNTL_OSA_50HZ     (2)
+#define KX122_ODCNTL_LPRO         (1 << 6)
+#define KX122_IIR_BYPASS          (1 << 7)
+
+#define KX122_CNTL1_VAL           (KX122_CNTL1_RES | KX122_CNTL1_GSEL_8G)
+#define KX122_ODCNTL_VAL          (0x0F)
+
+#define BUF_CNTL1 0x3A
+#define BUF_CNTL2 0x3B
+#define BUF_STATUS_1 0x3C
+#define BUF_STATUS_2 0x3D
+#define BUF_CLEAR 0x3E
+#define BUF_READ 0x3F
+
+#define KX122_CS_PORT GPIOB
+#define KX122_CS_PIN GPIO_PIN_12
+
+unsigned short _g_sens;
+
+typedef struct {
+	float x;
+	float y;
+	float z;
+} Vibration;
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+const char SENSOR_KEY[7] = "1111A";
+
+TIM_HandleTypeDef htim21;
+IWDG_HandleTypeDef hiwdg;
+TIM_HandleTypeDef htim2;
+TIM_HandleTypeDef htim1;
+
+LoRa myLoRa;
+
+typedef enum {
+	STATE_IDLE,
+	STATE_SAMPLING,
+	STATE_PROCESSING,
+	STATE_TRANSMITTING_VP,
+	STATE_TRANSMITTING_DATA,
+	STATE_DEEPSLEEP
+} SensorState;
+
+#define ACCEL_BUFFER_SIZE 64
+
+volatile Vibration accel_buffer[ACCEL_BUFFER_SIZE];
+volatile uint16_t buffer_head = 0;
+volatile uint16_t buffer_tail = 0;
+
+volatile uint16_t total_samples_processed = 0;
+
+volatile SensorState current_state = STATE_IDLE;
+
+uint32_t last_cycle_start_timestamp = 0;
+const uint32_t CYCLE_INTERVAL_MS = 15 * 60 * 1000;
+
+int current_package_to_send = 0;
+volatile bool ack_received = false;
+
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+static HAL_StatusTypeDef KX122_WriteRegister(SPI_HandleTypeDef *hspi,
+		uint8_t reg, uint8_t value);
+static HAL_StatusTypeDef KX122_ReadRegister(SPI_HandleTypeDef *hspi,
+		uint8_t reg, uint8_t *data);
+static HAL_StatusTypeDef KX122_ReadRegisters(SPI_HandleTypeDef *hspi,
+		uint8_t reg, uint8_t *data, uint16_t length);
+static HAL_StatusTypeDef KX122_ReadBuffer(SPI_HandleTypeDef *hspi,
+		uint8_t *buffer, uint16_t size);
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+I2C_HandleTypeDef hi2c1;
+I2C_HandleTypeDef hi2c2;
+
+SPI_HandleTypeDef hspi1;
+SPI_HandleTypeDef hspi2;
+
+UART_HandleTypeDef huart1;
+
+/* USER CODE BEGIN PV */
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+Transmission_Data data;
+Transmission_VibrationPackage vibrationPackage;
+FRAM_Metadata metadata;
+
+uint32_t sampling_period_us;
+uint32_t data_sender_period;
+
+uint32_t package_factor = 0;
+uint32_t acc_sample_factor = 0;
+
+uint32_t sizeInBytes = 0;
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_USART1_UART_Init(void);
+static void MX_I2C1_Init(void);
+static void MX_SPI1_Init(void);
+static void MX_SPI2_Init(void);
+static void MX_I2C2_Init(void);
+static void MX_TIM2_Init(void);
+
+bool send_package_and_wait_for_ack(void*, uint8_t);
+
+void My_Timer_Callback(void);
+void loop(void);
+void setup(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
+
+void DEBUG_PRINT(const char *msg) {
+	static char final_msg[256];
+	snprintf(final_msg, sizeof(final_msg), "[S] %s", msg);
+	HAL_UART_Transmit(&huart1, (uint8_t*) final_msg, strlen(final_msg), 100); // Timeout menor
+}
+
+/**
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
+
+	/* USER CODE BEGIN 1 */
+
+	/* USER CODE END 1 */
+
+	/* MCU Configuration--------------------------------------------------------*/
+
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
+
+	/* USER CODE BEGIN Init */
+
+	/* USER CODE END Init */
+
+	/* Configure the system clock */
+	SystemClock_Config();
+
+	/* USER CODE BEGIN SysInit */
+
+	/* USER CODE END SysInit */
+
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_USART1_UART_Init();
+	MX_I2C1_Init();
+	MX_SPI1_Init();
+	MX_SPI2_Init();
+	MX_I2C2_Init();
+	/* USER CODE BEGIN 2 */
+	setup();
+	HAL_TIM_Base_Start_IT(&htim2);
+	/* USER CODE END 2 */
+
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
+	while (1) {
+		/* Enviar string "hello world" pelo UART1 */
+		loop();
+		/* USER CODE END WHILE */
+
+		/* USER CODE BEGIN 3 */
+	}
+	/* USER CODE END 3 */
+}
+
+/**
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
+	RCC_PeriphCLKInitTypeDef PeriphClkInit = { 0 };
+
+	/** Configure the main internal regulator output voltage
+	 */
+	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.HSICalibrationValue = 25;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLLMUL_4;
+	RCC_OscInitStruct.PLL.PLLDIV = RCC_PLLDIV_2;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+		Error_Handler();
+	}
+
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) {
+		Error_Handler();
+	}
+	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1
+			| RCC_PERIPHCLK_I2C1;
+	PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+	PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+		Error_Handler();
+	}
+}
+
+/**
+ * @brief I2C1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_I2C1_Init(void) {
+
+	/* USER CODE BEGIN I2C1_Init 0 */
+
+	/* USER CODE END I2C1_Init 0 */
+
+	/* USER CODE BEGIN I2C1_Init 1 */
+
+	/* USER CODE END I2C1_Init 1 */
+	hi2c1.Instance = I2C1;
+	hi2c1.Init.Timing = 0x00100413;
+	hi2c1.Init.OwnAddress1 = 0;
+	hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+	hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+	hi2c1.Init.OwnAddress2 = 0;
+	hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+	hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+	hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+	if (HAL_I2C_Init(&hi2c1) != HAL_OK) {
+		Error_Handler();
+	}
+
+	/** Configure Analogue filter
+	 */
+	if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+
+	/** Configure Digital filter
+	 */
+	if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK) {
+		Error_Handler();
+	}
+
+	/** I2C Fast mode Plus enable
+	 */
+	HAL_I2CEx_EnableFastModePlus(I2C_FASTMODEPLUS_I2C1);
+	/* USER CODE BEGIN I2C1_Init 2 */
+
+	/* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+ * @brief I2C2 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_I2C2_Init(void) {
+
+	/* USER CODE BEGIN I2C2_Init 0 */
+
+	/* USER CODE END I2C2_Init 0 */
+
+	/* USER CODE BEGIN I2C2_Init 1 */
+
+	/* USER CODE END I2C2_Init 1 */
+	hi2c2.Instance = I2C2;
+	hi2c2.Init.Timing = 0x00100413;
+	hi2c2.Init.OwnAddress1 = 0;
+	hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+	hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+	hi2c2.Init.OwnAddress2 = 0;
+	hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+	hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+	hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+	if (HAL_I2C_Init(&hi2c2) != HAL_OK) {
+		Error_Handler();
+	}
+
+	/** Configure Analogue filter
+	 */
+	if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+
+	/** Configure Digital filter
+	 */
+	if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK) {
+		Error_Handler();
+	}
+
+	/** I2C Fast mode Plus enable
+	 */
+	HAL_I2CEx_EnableFastModePlus(I2C_FASTMODEPLUS_I2C2);
+	/* USER CODE BEGIN I2C2_Init 2 */
+
+	/* USER CODE END I2C2_Init 2 */
+
+}
+
+/**
+ * @brief SPI1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_SPI1_Init(void) {
+
+	/* USER CODE BEGIN SPI1_Init 0 */
+
+	/* USER CODE END SPI1_Init 0 */
+
+	/* USER CODE BEGIN SPI1_Init 1 */
+
+	/* USER CODE END SPI1_Init 1 */
+	/* SPI1 parameter configuration*/
+	hspi1.Instance = SPI1;
+	hspi1.Init.Mode = SPI_MODE_MASTER;
+	hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+	hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+	hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+	hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+	hspi1.Init.NSS = SPI_NSS_SOFT;
+	hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+	hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+	hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+	hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+	hspi1.Init.CRCPolynomial = 7;
+	if (HAL_SPI_Init(&hspi1) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN SPI1_Init 2 */
+
+	/* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
+ * @brief SPI2 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_SPI2_Init(void) {
+
+	/* USER CODE BEGIN SPI2_Init 0 */
+
+	/* USER CODE END SPI2_Init 0 */
+
+	/* USER CODE BEGIN SPI2_Init 1 */
+
+	/* USER CODE END SPI2_Init 1 */
+	/* SPI2 parameter configuration*/
+	hspi2.Instance = SPI2;
+	hspi2.Init.Mode = SPI_MODE_MASTER;
+	hspi2.Init.Direction = SPI_DIRECTION_2LINES;
+	hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+	hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+	hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+	hspi2.Init.NSS = SPI_NSS_SOFT;
+	hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+	hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+	hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+	hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+	hspi2.Init.CRCPolynomial = 7;
+	if (HAL_SPI_Init(&hspi2) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN SPI2_Init 2 */
+
+	/* USER CODE END SPI2_Init 2 */
+
+}
+
+/**
+ * @brief USART1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_USART1_UART_Init(void) {
+
+	/* USER CODE BEGIN USART1_Init 0 */
+
+	/* USER CODE END USART1_Init 0 */
+
+	/* USER CODE BEGIN USART1_Init 1 */
+
+	/* USER CODE END USART1_Init 1 */
+	huart1.Instance = USART1;
+	huart1.Init.BaudRate = 115200;
+	huart1.Init.WordLength = UART_WORDLENGTH_8B;
+	huart1.Init.StopBits = UART_STOPBITS_1;
+	huart1.Init.Parity = UART_PARITY_NONE;
+	huart1.Init.Mode = UART_MODE_TX_RX;
+	huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+	huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+	huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+	if (HAL_UART_Init(&huart1) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN USART1_Init 2 */
+
+	/* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_GPIO_Init(void) {
+	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+	/* USER CODE BEGIN MX_GPIO_Init_1 */
+	/* USER CODE END MX_GPIO_Init_1 */
+
+	/* GPIO Ports Clock Enable */
+	__HAL_RCC_GPIOH_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(TRIG_GPIO_Port, TRIG_Pin, GPIO_PIN_RESET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(NSS_GPIO_Port, NSS_Pin, GPIO_PIN_SET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(LoRa_RST_GPIO_Port, LoRa_RST_Pin, GPIO_PIN_SET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOB, SPI2_CS_Pin | GPIO_PIN_3, GPIO_PIN_RESET);
+
+	/*Configure GPIO pins : ACC_INT1_Pin TEMP_ALERT_Pin BAT_ALERT_Pin */
+	GPIO_InitStruct.Pin = ACC_INT1_Pin | TEMP_ALERT_Pin | BAT_ALERT_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : DIO_Pin */
+	GPIO_InitStruct.Pin = DIO_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(DIO_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : TRIG_Pin NSS_Pin */
+	GPIO_InitStruct.Pin = TRIG_Pin | NSS_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : LoRa_RST_Pin SPI2_CS_Pin PB3 */
+	GPIO_InitStruct.Pin = LoRa_RST_Pin | SPI2_CS_Pin | GPIO_PIN_3;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+	/* USER CODE BEGIN MX_GPIO_Init_2 */
+	/* USER CODE END MX_GPIO_Init_2 */
+}
+
+/* USER CODE BEGIN 4 */
+
+/*
+ * KX122.c
+ *
+ *  Created on: Jun 7, 2024
+ *      Author: Matheus Markies
+ */
+HAL_StatusTypeDef KX122_Init(SPI_HandleTypeDef *hspi) {
+	HAL_StatusTypeDef rc;
+	unsigned char reg;
+	unsigned char gsel;
+	int i;
+
+	rc = KX122_ReadRegister(hspi, KX122_WHO_AM_I, &reg);
+	if (rc != HAL_OK) {
+		DEBUG_PRINT("Can't access KX122 \r\n");
+		return (rc);
+	}
+
+	DEBUG_PRINT("KX122_WHO_AMI Register Value = 0x \r\n");
+	DEBUG_PRINT_REGISTER(KX122_WHO_AM_I, reg);
+
+	if (reg != KX122_WAI_VAL) {
+		DEBUG_PRINT("Can't find KX122 \r\n");
+		return HAL_ERROR;
+	}
+
+	reg = KX122_CNTL1_VAL;
+	rc = KX122_WriteRegister(hspi, KX122_CNTL1, KX122_CNTL1_VAL);
+	if (rc != HAL_OK) {
+		DEBUG_PRINT("Can't write KX122 CNTL1 register at first \r\n");
+		return (rc);
+	}
+
+	reg = KX122_ODCNTL_VAL;
+	rc = KX122_WriteRegister(hspi, KX122_ODCNTL, KX122_ODCNTL_VAL);
+	if (rc != HAL_OK) {
+		DEBUG_PRINT("Can't write KX122 ODCNTL register \r\n");
+		return (rc);
+	}
+
+	rc = KX122_ReadRegister(hspi, KX122_CNTL1, &reg);
+	if (rc != HAL_OK) {
+		DEBUG_PRINT("Can't read KX122 CNTL1 register \r\n");
+		return (rc);
+	}
+	gsel = reg & KX122_CNTL1_GSELMASK;
+
+	reg |= KX122_CNTL1_PC1;
+	rc = KX122_WriteRegister(hspi, KX122_CNTL1, reg);
+	if (rc != HAL_OK) {
+		DEBUG_PRINT("Can't write KX122 CNTL1 register at second \r\n");
+		return (rc);
+	}
+
+	switch (gsel) {
+	case KX122_CNTL1_GSEL_2G:
+		_g_sens = 16384;
+		break;
+	case KX122_CNTL1_GSEL_4G:
+		_g_sens = 8192;
+		break;
+	case KX122_CNTL1_GSEL_8G:
+		_g_sens = 4096;
+		break;
+	default:
+		break;
+	}
+
+	return HAL_OK;
+}
+
+HAL_StatusTypeDef KX122_StartBuffer(SPI_HandleTypeDef *hspi) {
+	HAL_StatusTypeDef rc;
+	int8_t cntlreg;
+	int8_t reg;
+
+	rc = KX122_ReadRegister(hspi, KX122_CNTL1, &cntlreg);
+	if (rc != HAL_OK) {
+		DEBUG_PRINT("Can't read KX122 CNTL1 register \r\n");
+		return (rc);
+	}
+
+	DEBUG_PRINT_REGISTER(KX122_CNTL1, cntlreg);
+
+	reg = 0x00;
+	rc = KX122_WriteRegister(hspi, KX122_CNTL1, reg);
+	if (rc != HAL_OK) {
+		DEBUG_PRINT("Can't write KX122 CNTL1 register \r\n");
+		return (rc);
+	}
+
+	if (KX122_WriteRegister(hspi, BUF_CNTL2, 0xC0) != HAL_OK)
+		return HAL_ERROR; // 16 bits FILO
+	if (KX122_WriteRegister(hspi, BUF_CLEAR, 0x80) != HAL_OK)
+		return HAL_ERROR; // Clear buffer
+
+	//rc = KX122_WriteRegister(&hi2c1, BUF_CNTL1, 681);  // Set watermark level to 681 samples (3 axes per sample)
+
+	rc = KX122_WriteRegister(hspi, KX122_CNTL1, cntlreg);
+	if (rc != HAL_OK) {
+		DEBUG_PRINT("Can't write KX122 CNTL1 register \r\n");
+		return (rc);
+	}
+
+	DEBUG_PRINT("Start buffer! \r\n");
+	return HAL_OK;
+}
+
+HAL_StatusTypeDef KX122_GetBufferSize(I2C_HandleTypeDef *hi2c, uint8_t *data) {
+	HAL_StatusTypeDef rc;
+
+	rc = KX122_ReadRegister(hi2c, BUF_STATUS_1, &data);
+	if (rc != HAL_OK) {
+		DEBUG_PRINT("Can't read KX122 BUF_STATUS_1 register \r\n");
+		return (rc);
+	}
+}
+
+HAL_StatusTypeDef KX122_ReadBufferData(SPI_HandleTypeDef *hspi, float *data,
+		int index) {
+	HAL_StatusTypeDef rc;
+	int8_t bufferSize = 0;
+	KX122_GetBufferSize(&hi2c1, &bufferSize);
+	int8_t val[8];
+	signed short acc[3];
+
+	rc = KX122_ReadRegisters(hspi, BUF_READ, &val, sizeof(val));
+	if (rc != HAL_OK) {
+		DEBUG_PRINT("Can't get KX122 accel value \r\n");
+	}
+
+	acc[0] = ((int16_t) val[index + 1] << 8) | (val[index]);
+	acc[1] = ((int16_t) val[index + 3] << 8) | (val[index + 2]);
+	acc[2] = ((int16_t) val[index + 5] << 8) | (val[index + 4]);
+
+	// Convert LSB to g
+	data[0] = (float) acc[0] / _g_sens;
+	data[1] = (float) acc[1] / _g_sens;
+	data[2] = (float) acc[2] / _g_sens;
+
+	//printFloat(data[0]);
+	//printFloat(data[1]);
+	//printFloat(data[2]);
+
+	return (rc);
+}
+
+#define MAX_FIFO_SAMPLES 681
+#define TOTAL_SAMPLES 2048
+
+HAL_StatusTypeDef KX122_ReadFIFOData(SPI_HandleTypeDef *hspi, float *data,
+		uint16_t samples) {
+	HAL_StatusTypeDef rc;
+	int8_t val[MAX_FIFO_SAMPLES * 6];
+	uint16_t samples_to_read;
+	uint16_t total_samples_read = 0;
+	uint16_t index = 0;
+
+	while (total_samples_read < samples) {
+		samples_to_read =
+				(samples - total_samples_read > MAX_FIFO_SAMPLES) ?
+						MAX_FIFO_SAMPLES : (samples - total_samples_read);
+		rc = KX122_ReadRegisters(hspi, BUF_READ, val, samples_to_read * 6);
+		if (rc != HAL_OK) {
+			DEBUG_PRINT("Can't get KX122 FIFO buffer value \r\n");
+			return rc;
+		}
+
+		for (uint16_t i = 0; i < samples_to_read; i++) {
+			int16_t acc_x = (int16_t) (val[i * 6 + 1] << 8 | val[i * 6]);
+			int16_t acc_y = (int16_t) (val[i * 6 + 3] << 8 | val[i * 6 + 2]);
+			int16_t acc_z = (int16_t) (val[i * 6 + 5] << 8 | val[i * 6 + 4]);
+
+			data[index++] = (float) acc_x / _g_sens;
+			data[index++] = (float) acc_y / _g_sens;
+			data[index++] = (float) acc_z / _g_sens;
+		}
+
+		total_samples_read += samples_to_read;
+	}
+	return HAL_OK;
+}
+
+HAL_StatusTypeDef KX122_ReadAccelData(SPI_HandleTypeDef *hspi, float *data,
+		Vibration *vib) {
+	HAL_StatusTypeDef rc;
+	uint8_t val[6];
+	signed short acc[3];
+
+	rc = KX122_ReadRegisters(hspi, KX122_XOUT_L, val, sizeof(val));
+	if (rc != HAL_OK) {
+		DEBUG_PRINT("Can't get KX122 accel value \r\n");
+	}
+
+	acc[0] = ((int16_t) val[1] << 8) | (val[0]);
+	acc[1] = ((int16_t) val[3] << 8) | (val[2]);
+	acc[2] = ((int16_t) val[5] << 8) | (val[4]);
+
+	// Convert LSB to g
+	data[0] = (float) acc[0] / _g_sens;
+	data[1] = (float) acc[1] / _g_sens;
+	data[2] = (float) acc[2] / _g_sens;
+
+	vib->x = data[0];
+	vib->y = data[1];
+	vib->z = data[2];
+
+	return (rc);
+}
+
+void DEBUG_PRINT_REGISTER(uint8_t reg, uint8_t data) {
+	char buffer[50];
+	snprintf(buffer, sizeof(buffer), "Register 0x%02X: 0x%02X \r\n", reg, data);
+	DEBUG_PRINT(buffer);
+}
+
+void printInt16AsFloat(int16_t value) {
+	float floatValue = (float) value;
+	printFloat(floatValue);
+}
+
+HAL_StatusTypeDef KX122_CheckCommunication(SPI_HandleTypeDef *hspi) {
+	uint8_t who_am_i;
+	if (KX122_ReadRegister(hspi, 0x0F, &who_am_i) != HAL_OK) {
+		return HAL_ERROR;
+	}
+	if (who_am_i != 0x1B) { // Assuming 0x1B is the correct response for WHO_AM_I
+		return HAL_ERROR;
+	}
+	return HAL_OK;
+}
+
+HAL_StatusTypeDef KX122_ReadRegisters(SPI_HandleTypeDef *hspi, uint8_t reg,
+		uint8_t *data, uint16_t length) {
+	HAL_StatusTypeDef status;
+	uint8_t regAddr = reg | 0x80;
+
+	HAL_GPIO_WritePin(KX122_CS_PORT, KX122_CS_PIN, GPIO_PIN_RESET);
+
+	status = HAL_SPI_Transmit(hspi, &regAddr, 1, 200);
+	if (status != HAL_OK) {
+		HAL_GPIO_WritePin(KX122_CS_PORT, KX122_CS_PIN, GPIO_PIN_SET);
+		return status;
+	}
+
+	status = HAL_SPI_Receive(hspi, data, length, 200);
+
+	HAL_GPIO_WritePin(KX122_CS_PORT, KX122_CS_PIN, GPIO_PIN_SET);
+
+	return status;
+}
+
+static HAL_StatusTypeDef KX122_WriteRegister(SPI_HandleTypeDef *hspi,
+		uint8_t reg, uint8_t value) {
+	HAL_StatusTypeDef status;
+	uint8_t data[2] = { reg & 0x7F, value }; // Clear MSB to indicate write operation
+
+	HAL_GPIO_WritePin(KX122_CS_PORT, KX122_CS_PIN, GPIO_PIN_RESET);
+
+	status = HAL_SPI_Transmit(hspi, data, 2, 200);
+
+	HAL_GPIO_WritePin(KX122_CS_PORT, KX122_CS_PIN, GPIO_PIN_SET);
+
+	return status;
+}
+
+static HAL_StatusTypeDef KX122_ReadRegister(SPI_HandleTypeDef *hspi,
+		uint8_t reg, uint8_t *data) {
+	HAL_StatusTypeDef status;
+	uint8_t regAddr = reg | 0x80;
+
+	HAL_GPIO_WritePin(KX122_CS_PORT, KX122_CS_PIN, GPIO_PIN_RESET);
+	status = HAL_SPI_Transmit(hspi, &regAddr, 1, 200);
+	if (status != HAL_OK) {
+		HAL_GPIO_WritePin(KX122_CS_PORT, KX122_CS_PIN, GPIO_PIN_SET);
+		return status;
+	}
+
+	status = HAL_SPI_Receive(hspi, data, 1, 200);
+
+	HAL_GPIO_WritePin(KX122_CS_PORT, KX122_CS_PIN, GPIO_PIN_SET);
+
+	return status;
+}
+
+void readTemperature(I2C_HandleTypeDef *hi2c, double *temperature) {
+	MCP9808_Wake(hi2c);
+	MCP9808_ReadTemperature(hi2c, temperature);
+	MCP9808_Shutdown(hi2c);
+}
+
+void TIM2_Init(void) {
+	__HAL_RCC_TIM2_CLK_ENABLE();
+
+	htim2.Instance = TIM2;
+	htim2.Init.Prescaler = (uint32_t) (HAL_RCC_GetPCLK1Freq() / 1000000) - 1;
+	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
+	htim2.Init.Period = 0xFFFFFFFF;
+	htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
+	if (HAL_TIM_Base_Init(&htim2) != HAL_OK) {
+		Error_Handler();
+	}
+	if (HAL_TIM_Base_Start(&htim2) != HAL_OK) {
+		Error_Handler();
+	}
+}
+
+uint32_t micros() {
+	return __HAL_TIM_GET_COUNTER(&htim2);
+}
+
+void delayMicroseconds(uint32_t us) {
+	uint32_t start = micros();
+	while ((micros() - start) < us) {
+		__NOP(); // Prevents optimization that might remove the loop
+	}
+}
+
+void printFloat(double value) {
+	char buffer[50];
+	snprintf(buffer, sizeof(buffer), "%.2f\r\n", value);
+	DEBUG_PRINT(buffer);
+}
+
+uint16_t address = 0;
+
+unsigned long writeMicroseconds;
+int current_sample = 0;
+
+// Em main.c ou stm32l0xx_it.c
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef *htim) {
+	if (htim->Instance == TIM21) {
+		if (total_samples_processed < SAMPLES) {
+
+			uint16_t next_head = (buffer_head + 1) % ACCEL_BUFFER_SIZE;
+			if (next_head != buffer_tail) {
+				KX122_ReadAccelData(&hspi2, (float*) &accel_buffer[buffer_head],
+						NULL);
+				buffer_head = next_head;
+			}
+		} else {
+			HAL_TIM_Base_Stop_IT(&htim21);
+			current_state = STATE_PROCESSING;
+		}
+	}
+}
+
+void reset_FRAM_and_start_processing() {
+	FRAM_Format(&hi2c1, &metadata);
+
+	float accel[3];
+	data.rms_accel[0] = 0.0;
+	data.rms_accel[1] = 0.0;
+	data.rms_accel[2] = 0.0;
+
+	data.rms_vel[0] = 0.0;
+	data.rms_vel[1] = 0.0;
+	data.rms_vel[2] = 0.0;
+
+	data.rms_accel[0] = sqrt(data.rms_accel[0] / SAMPLES);
+	data.rms_accel[1] = sqrt(data.rms_accel[1] / SAMPLES);
+	data.rms_accel[2] = sqrt(data.rms_accel[2] / SAMPLES);
+
+	data.rms_vel[0] = sqrt((data.rms_vel[0] * 1000) / SAMPLES);
+	data.rms_vel[1] = sqrt((data.rms_vel[1] * 1000) / SAMPLES);
+	data.rms_vel[2] = sqrt((data.rms_vel[2] * 1000) / SAMPLES);
+
+	char buffer[256];
+	snprintf(buffer, sizeof(buffer),
+			"RMS Accel: %.2f, %.2f, %.2f\r\nRMS Vel: %.4f, %.4f, %.4f\r\n",
+			data.rms_accel[0], data.rms_accel[1], data.rms_accel[2],
+			data.rms_vel[0], data.rms_vel[1], data.rms_vel[2]);
+	DEBUG_PRINT(buffer);
+}
+
+void I2C_Scan() {
+	char msg[64];
+	HAL_StatusTypeDef result;
+	uint8_t i;
+
+	DEBUG_PRINT("Scanning I2C bus:\r\n");
+
+	for (i = 1; i < 128; i++) {
+
+		result = HAL_I2C_IsDeviceReady(&hi2c1, (uint16_t) (i << 1), 1, 10);
+		if (result == HAL_OK) {
+			snprintf(msg, sizeof(msg), "Device found at 0x%02X\r\n", i);
+			DEBUG_PRINT(msg);
+		} else {
+
+		}
+	}
+	DEBUG_PRINT("I2C scan completed.\r\n");
+}
+
+uint32_t readMilliseconds = 0;
+
+void setup() {
+	DEBUG_PRINT("Setup...\r\n");
+
+	//hiwdg.Instance = IWDG;
+	//hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+	//hiwdg.Init.Reload = 4095;
+	//if (HAL_IWDG_Init(&hiwdg) != HAL_OK) {
+	//	Error_Handler();
+	//}
+
+	 //I2C_Scan();
+	//DEBUG_PRINT("\r\n");
+
+	myLoRa = newLoRa();
+
+	myLoRa.CS_port = NSS_GPIO_Port;
+	myLoRa.CS_pin = NSS_Pin;
+	myLoRa.reset_port = LoRa_RST_GPIO_Port;
+	myLoRa.reset_pin = LoRa_RST_Pin;
+	myLoRa.DIO0_port = DIO_GPIO_Port;
+	myLoRa.DIO0_pin = DIO_Pin;
+	myLoRa.hSPIx = &hspi1;
+
+	myLoRa.frequency = 915;
+	myLoRa.spredingFactor = SF_7;
+	myLoRa.bandWidth = BW_125KHz;
+	myLoRa.crcRate = CR_4_5;
+	myLoRa.power = POWER_20db;
+	myLoRa.overCurrentProtection = 100;
+	myLoRa.preamble = 8;
+
+	if (LoRa_init(&myLoRa) == LORA_OK) {
+		DEBUG_PRINT("LoRa Ready\r\n");
+	} else {
+		DEBUG_PRINT("Error in LoRa connection\r\n");
+		//Error_Handler();
+	}
+
+	if (KX122_Init(&hspi2) != HAL_ERROR) {
+		DEBUG_PRINT("KX122 Ready\r\n");
+	} else {
+		DEBUG_PRINT("Error in KX122 connection\r\n");
+		//Error_Handler();
+	}
+
+	if (MCP9808_Init(&hi2c1) != HAL_ERROR)
+		DEBUG_PRINT("MCP9808 Ready\r\n");
+	else
+		DEBUG_PRINT("Error in MCP9808 connection\r\n");
+
+	if (MAX17048_Init(&hi2c1) != HAL_ERROR)
+		DEBUG_PRINT("MAX17048 Ready\r\n");
+	else
+		DEBUG_PRINT("Error in MAX17048 connection\r\n");
+
+	if (FRAM_Init(&hi2c1) != HAL_ERROR)
+		DEBUG_PRINT("FRAM Ready\r\n");
+	else
+		DEBUG_PRINT("Error in FRAM connection\r\n");
+
+	DEBUG_PRINT("Ready!\r\n");
+
+	if (KX122_CheckCommunication(&hi2c1) != HAL_ERROR)
+		DEBUG_PRINT("WHO I AM KX122 Ready\r\n");
+
+	FRAM_InitMetadata(&metadata);
+
+	package_factor = 1
+			* ceil((float) (SAMPLES) / (float) TRANSMISSION_DATA_PACKAGE);
+
+	data_sender_period =
+			round(
+					1000000
+							* ((float) DATA_TRANSMISSION_PERIOD
+									/ (float) package_factor));
+
+	acc_sample_factor = floor((float) ACC_DATA_RATE / (float) SAMPLES);
+	sampling_period_us = round(1000000 * (1.0 / (float) SAMPLES)); //488.28
+
+	DEBUG_PRINT("package_factor:\r\n");
+	printFloat(package_factor);
+	DEBUG_PRINT("data_sender_period:\r\n");
+	printFloat(data_sender_period);
+	DEBUG_PRINT("sampling_period_us:\r\n");
+	printFloat(sampling_period_us);
+	DEBUG_PRINT("acc_sample_factor:\r\n");
+	printFloat(acc_sample_factor);
+	DEBUG_PRINT("\r\n");
+
+	TIM2_Init();
+
+	sizeInBytes = FRAM_MEMORY_SIZE;
+
+	current_state = STATE_IDLE;
+
+	readMilliseconds = -data_sender_period;
+}
+
+int current_package = 0;
+int axis = 0;
+
+int trySending = 0;
+int tryCount = 0;
+void readAndSendFRAMData() {
+	LoRa_gotoMode(&myLoRa, TRANSMIT_MODE);
+	if (current_package >= (2 * package_factor / 3))
+		axis = 2;
+	else if (current_package >= (package_factor / 3))
+		axis = 1;
+	else
+		axis = 0;
+
+	axis = 0;
+
+	int start = TRANSMISSION_DATA_PACKAGE * current_package
+			- TRANSMISSION_DATA_PACKAGE * axis * package_factor / 3;
+
+	int end = (start + TRANSMISSION_DATA_PACKAGE);
+	int realEnd = MIN(end, SAMPLES);
+
+	if (current_package > 0)
+		start += 1;
+
+	for (int i = (start); i <= (end); i++) {
+		uint16_t address = i * sizeof(float) + SAMPLES * axis * sizeof(float);
+
+		float value = 0.0;
+
+		if (i <= realEnd)
+			if (address < metadata.nextFreeAddress) {
+				FRAM_ReadFloat(&hi2c1, address, &value);
+			}
+
+		vibrationPackage.dataPackage[(i - start)] = value;
+	}
+
+	strncpy(vibrationPackage.key, SENSOR_KEY, sizeof(vibrationPackage.key));
+
+	vibrationPackage.type = 'P';
+
+	vibrationPackage.axis = axis;
+
+	vibrationPackage.start = start;
+	vibrationPackage.end = realEnd;
+	trySending = 1;
+
+	while (trySending == 1) {
+		char msg[64];
+		LoRa_gotoMode(&myLoRa, TRANSMIT_MODE);
+		if (LoRa_transmit(&myLoRa, (uint8_t*) &vibrationPackage,
+				sizeof(vibrationPackage), 100) == 1) {
+			DEBUG_PRINT("Sucess Transmitting Package!\r\n");
+			current_package++;
+			trySending = 0;
+			break;
+		} else {
+			DEBUG_PRINT("Fail Transmitting Package!\r\n");
+			tryCount++;
+		}
+
+		if (tryCount >= 20) {
+			trySending = 0;
+			//EXECUTAR OPERAÇÕES DE SALVAR BATERIAL JA QUE NÃO EXISTE NENHUM GATEWAY POR PERTO
+			current_state = STATE_DEEPSLEEP;
+			break;
+		}
+
+		readMilliseconds = micros();
+		HAL_Delay(300);
+	}
+
+	//}
+	//LoRa_gotoMode(&myLoRa, SLEEP_MODE);
+
+	//LoRa_gotoMode(&myLoRa, SLEEP_MODE);
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == DIO_Pin) {
+		uint8_t rxBuffer[32];
+		uint8_t packet_size = LoRa_receive(&myLoRa, rxBuffer, sizeof(rxBuffer));
+
+		extern const char SENSOR_KEY[7];
+
+		if (packet_size == strlen(SENSOR_KEY)) {
+			rxBuffer[packet_size] = '\0';
+
+			DEBUG_PRINT("ACK recebido, verificando chave...\r\n");
+			//DEBUG_PRINT("Chave recebida: %s\r\n", (char*)rxBuffer);
+
+			if (strcmp((char*) rxBuffer, SENSOR_KEY) == 0) {
+				ack_received = true;
+				current_package++;
+			} else {
+				DEBUG_PRINT("ACK com chave incorreta!\r\n");
+			}
+		} else {
+			DEBUG_PRINT("Pacote de ACK com tamanho inválido recebido.\r\n");
+		}
+	}
+}
+
+void loop() {
+	HAL_IWDG_Refresh(&hiwdg);
+
+	switch (current_state) {
+
+	case STATE_IDLE:
+		//if (HAL_GetTick() - last_cycle_start_timestamp >= CYCLE_INTERVAL_MS) {
+			//last_cycle_start_timestamp = HAL_GetTick();
+			DEBUG_PRINT("Iniciando ciclo de medição...\r\n");
+
+			char dbg_msg[64];
+            snprintf(dbg_msg, sizeof(dbg_msg), "Iniciando novo ciclo no tempo: %lu ms\r\n", last_cycle_start_timestamp);
+			DEBUG_PRINT(dbg_msg);
+
+			buffer_head = 0;
+			buffer_tail = 0;
+			total_samples_processed = 0;
+
+			FRAM_Format(&hi2c1, &metadata);
+
+			HAL_TIM_Base_Start_IT(&htim21);
+
+			DEBUG_PRINT("Mudando para estado: SAMPLING\r\n");
+			current_state = STATE_SAMPLING;
+		//}
+		break;
+
+	case STATE_SAMPLING:
+			if (buffer_head != buffer_tail) {
+				Vibration sample = accel_buffer[buffer_tail];
+				FRAM_WriteFloat(&hi2c1, &metadata, metadata.nextFreeAddress,
+						sqrt(sample.x * sample.x + sample.y * sample.y + sample.z * sample.z));
+
+
+				buffer_tail = (buffer_tail + 1) % ACCEL_BUFFER_SIZE;
+				total_samples_processed++;
+
+	            if ((total_samples_processed % 256) == 0) {
+	                char dbg_msg[64];
+	                snprintf(dbg_msg, sizeof(dbg_msg), "... Amostras processadas: %d / %d\r\n", total_samples_processed, SAMPLES);
+	                DEBUG_PRINT(dbg_msg);
+	            }
+			}
+
+			if (total_samples_processed >= SAMPLES) {
+	            // --- DEBUG ---
+	            DEBUG_PRINT("Amostragem concluída.\r\n");
+				current_state = STATE_PROCESSING;
+	            // --- DEBUG ---
+	            DEBUG_PRINT("Mudando para estado: PROCESSING\r\n");
+			}
+			break;
+
+	case STATE_PROCESSING:
+		DEBUG_PRINT(
+				"Gravação na FRAM concluída. Finalizando processamento...\r\n");
+
+		current_package_to_send = 0;
+		current_state = STATE_TRANSMITTING_VP;
+		break;
+
+	case STATE_TRANSMITTING_VP:
+		if (current_package >= package_factor) {
+			DEBUG_PRINT("Envio de pacotes VP concluído.\r\n");
+			DEBUG_PRINT("Mudando para estado: TRANSMITTING_DATA\r\n");
+			current_state = STATE_TRANSMITTING_DATA;
+		} else{
+			 char dbg_msg[64];
+			        snprintf(dbg_msg, sizeof(dbg_msg), "Enviando Pacote VP #%d...\r\n", current_package_to_send);
+			        DEBUG_PRINT(dbg_msg);
+			        readAndSendFRAMData();
+		}
+
+		break;
+
+	case STATE_TRANSMITTING_DATA:
+		char msg[64];
+		DEBUG_PRINT("Enviando pacote de dados final (D)...\r\n");
+		double temp = 0.0;
+		readTemperature(&hi2c1, &temp);
+		DEBUG_PRINT("Temp:\r\n");
+		printFloat(temp);
+
+		data.temperature = temp;
+		strncpy(data.key, SENSOR_KEY, sizeof(data.key));
+
+		data.type = 'D';
+
+		DEBUG_PRINT("Size: ");
+		snprintf(msg, sizeof(msg), "%d\r\n", sizeof(data));
+		DEBUG_PRINT(msg);
+
+		int trycount = 0;
+		while (1) {
+			if (LoRa_transmit(&myLoRa, (uint8_t*) &data, sizeof(data), 100)
+					== 1) {
+				DEBUG_PRINT("Pacote final enviado com sucesso.\r\n");
+				current_state = STATE_IDLE;
+				current_package = 0;
+				break;
+			} else {
+				DEBUG_PRINT("Falha ao enviar pacote final.\r\n");
+				trycount++;
+			}
+			if (trycount > 20)
+				break;
+		}
+		break;
+	case STATE_DEEPSLEEP:
+
+		break;
+	}
+}
+
+/* USER CODE END 4 */
+
+/**
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+	/* USER CODE BEGIN Error_Handler_Debug */
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	NVIC_SystemReset();
+	while (1) {
+	}
+	/* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */

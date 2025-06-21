@@ -1,0 +1,12 @@
+../Core/Src/LORA.c:3:6:LoRa_WriteReg	1
+../Core/Src/LORA.c:10:9:LoRa_ReadReg	1
+../Core/Src/LORA.c:20:6:LoRa_Reset	1
+../Core/Src/LORA.c:67:6:LoRa_SetFrequency	1
+../Core/Src/LORA.c:74:6:LoRa_SetTxPower	2
+../Core/Src/LORA.c:80:6:LoRa_SetSyncWord	1
+../Core/Src/LORA.c:84:6:LoRa_Sleep	1
+../Core/Src/LORA.c:88:6:LoRa_Idle	1
+../Core/Src/LORA.c:27:19:LoRa_Init	2
+../Core/Src/LORA.c:92:6:LoRa_Transmit	3
+../Core/Src/LORA.c:103:9:LoRa_Receive	3
+../Core/Src/LORA.c:115:9:LoRa_IsDataAvailable	1

@@ -1,0 +1,10 @@
+19:04:33 **** Incremental Build of configuration Debug for project Freelancer_1 ****
+make -j12 all 
+arm-none-eabi-size  Freelancer_1.elf 
+   text	   data	    bss	    dec	    hex	filename
+  12084	     12	   2460	  14556	   38dc	Freelancer_1.elf
+Finished building: default.size.stdout
+ 
+
+19:04:33 Build Finished. 0 errors, 0 warnings. (took 245ms)
+

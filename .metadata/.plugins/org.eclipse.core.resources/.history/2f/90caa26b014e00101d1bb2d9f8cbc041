@@ -1,0 +1,1465 @@
+/* USER CODE BEGIN Header */
+/**
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2024 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+#include "math.h"
+#include "string.h"
+#include "stdio.h"
+#include <stdlib.h>
+#include "LoRa.h"
+#include "FRAM.h"
+#include "BrasensFirmware.h"
+#include <cJSON.h>
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+typedef struct {
+	float x;
+	float y;
+	float z;
+} Vibration;
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+I2C_HandleTypeDef hi2c1;
+
+SPI_HandleTypeDef hspi1;
+
+UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_I2C1_Init(void);
+static void MX_SPI1_Init(void);
+static void MX_USART1_UART_Init(void);
+static void MX_USART2_UART_Init(void);
+void setup(void);
+void loop(void);
+
+char* generateTransmissionDataJSON(Transmission_Data*);
+char* generateTransmissionVibrationPackageJSON(
+		Transmission_VibrationPackage *package);
+
+/* BEHAVIOR */
+void BEHAVIOR_Initialize_DataIndices(uint16_t);
+char BEHAVIOR_GET_Next_Send_Item();
+void BEHAVIOR_ADD_Item_To_DataIndices(char item);
+void BEHAVIOR_REMOVE_First_Item_From_DataIndices();
+uint16_t BEHAVIOR_Send_Next_Struct_In_FRAM(char next);
+uint16_t BEHAVIOR_Calculate_FRAM_Address();
+void BEHAVIOR_Reorganize_FRAM();
+void sendReady(void);
+
+void CHAR_NOT_FOUND_EXCEPTION();
+
+void READ_MSP_Serial_Commands();
+/* BEHAVIOR */
+cJSON* transmission_vibrationpackage_to_json(
+		const Transmission_VibrationPackage*);
+cJSON* transmission_data_to_json(const Transmission_Data*);
+/* GSM */
+uint8_t sendAT(char*, char*);
+
+void GSM_RX_Callback(void);
+void GSM_TX_Callback(void);
+
+void resetBuffers(void);
+
+uint8_t GSM_Setup_PDP_Context(char*, char*, char*);
+uint8_t isGprsConnected();
+void GSM_PDP_Context_Activate(char*, char*, char*);
+uint8_t GSM_Connect_TCP(char*, char*, char*);
+uint8_t GSM_Disconnect_TCP();
+uint8_t GSM_Modem_Connect(char*, uint16_t);
+uint8_t GSM_Modem_Send(char*);
+char* GSM_Modem_Read(size_t);
+size_t GMS_GET_MODEM_AVAILABLE_SIZE();
+uint8_t isModemConnected();
+uint8_t GSM_HTTP_Send(char*);
+
+char* GSM_Send_HTTP_GET(void);
+char* GSM_Send_HTTP_POST(char*);
+/* GSM */
+
+/* USER CODE BEGIN PFP */
+#define COM_PRINT(msg) HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), HAL_MAX_DELAY)
+
+LoRa myLoRa;
+uint8_t rxBuffer[120];
+Transmission_Data data;
+Transmission_VibrationPackage vibrationPackage;
+FRAM_Metadata metadata;
+
+char apn[] = "zap.vivo.com.br";
+char user[] = "vivo";
+char pwd[] = "vivo";
+
+/* BEHAVIOR */
+#define MAX_DATA_INDICES 300
+
+char dataIndices[MAX_DATA_INDICES];
+uint16_t dataIndicesSize = 0;
+uint16_t reorganizeStartAddress = 0;
+typedef enum {
+	FREE_STATUS = 0, RECEIVING = 1
+} MSPStatus;
+
+uint8_t MSP_RX_Buffer[500];
+uint8_t MSP_RX_Stream_Data = 0;
+int MSP_Stream_Index = 0;
+uint16_t lastMSPRxTick = 0;
+
+MSPStatus mspStatus = FREE_STATUS;
+/* BEHAVIOR */
+
+/* GSM */
+typedef enum {
+	//STARTING
+	FREE = 0,
+	WAITING = 1,
+	RX = 2,
+	PROCESSING = 3,
+} GSMStatus;
+
+uint8_t GSM_RX_Buffer[500];
+uint8_t GSM_RX_Stream_Data = 0;
+int GSM_Stream_Index = 0;
+
+uint16_t lastRxTick = 0;
+
+GSMStatus gsmStatus = FREE;
+/* GSM */
+
+int started = 0;
+
+const char server[] = "ec2-54-212-246-25.us-west-2.compute.amazonaws.com";
+const uint16_t port = 8080;
+const char resource[] = "/data/register";
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+
+/* USER CODE END 0 */
+
+char* add_prefix(const char *prefix, const char *msg) {
+	size_t size = strlen(prefix) + strlen(msg) + 1;
+
+	char *new_msg = (char*) malloc(size);
+
+	if (new_msg == NULL) {
+		perror("Falha ao alocar memória");
+		return NULL;
+	}
+
+	strcpy(new_msg, prefix);
+	strcat(new_msg, msg);
+
+	return new_msg;
+}
+
+void DEBUG_PRINT(char *msg) {
+	char *final_msg = add_prefix("[G] ", msg);
+	HAL_UART_Transmit(&huart1, (uint8_t*) final_msg, strlen(final_msg),
+			HAL_MAX_DELAY);
+}
+
+/**
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
+
+	/* USER CODE BEGIN 1 */
+
+	/* USER CODE END 1 */
+
+	/* MCU Configuration--------------------------------------------------------*/
+
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
+
+	/* USER CODE BEGIN Init */
+
+	/* USER CODE END Init */
+
+	/* Configure the system clock */
+	SystemClock_Config();
+
+	/* USER CODE BEGIN SysInit */
+
+	/* USER CODE END SysInit */
+
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_I2C1_Init();
+	MX_SPI1_Init();
+	MX_USART1_UART_Init();
+	MX_USART2_UART_Init();
+	/* USER CODE BEGIN 2 */
+	setup();
+	/* USER CODE END 2 */
+
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
+	while (1) {
+		/* USER CODE END WHILE */
+		loop();
+		/* USER CODE BEGIN 3 */
+	}
+	/* USER CODE END 3 */
+}
+
+/**
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
+	RCC_PeriphCLKInitTypeDef PeriphClkInit = { 0 };
+
+	/** Configure the main internal regulator output voltage
+	 */
+	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI;
+	RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+	RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_ON;
+	RCC_OscInitStruct.PLL.PLLSource = RCC_PLLSOURCE_HSI;
+	RCC_OscInitStruct.PLL.PLLMUL = RCC_PLLMUL_4;
+	RCC_OscInitStruct.PLL.PLLDIV = RCC_PLLDIV_2;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+		Error_Handler();
+	}
+
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_1) != HAL_OK) {
+		Error_Handler();
+	}
+	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1
+			| RCC_PERIPHCLK_USART2 | RCC_PERIPHCLK_I2C1;
+	PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+	PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
+	PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+		Error_Handler();
+	}
+}
+
+/**
+ * @brief I2C1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_I2C1_Init(void) {
+
+	/* USER CODE BEGIN I2C1_Init 0 */
+
+	/* USER CODE END I2C1_Init 0 */
+
+	/* USER CODE BEGIN I2C1_Init 1 */
+
+	/* USER CODE END I2C1_Init 1 */
+	hi2c1.Instance = I2C1;
+	hi2c1.Init.Timing = 0x00100413;
+	hi2c1.Init.OwnAddress1 = 0;
+	hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+	hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+	hi2c1.Init.OwnAddress2 = 0;
+	hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+	hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+	hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+	if (HAL_I2C_Init(&hi2c1) != HAL_OK) {
+		Error_Handler();
+	}
+
+	/** Configure Analogue filter
+	 */
+	if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+
+	/** Configure Digital filter
+	 */
+	if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK) {
+		Error_Handler();
+	}
+
+	/** I2C Fast mode Plus enable
+	 */
+	HAL_I2CEx_EnableFastModePlus(I2C_FASTMODEPLUS_I2C1);
+	/* USER CODE BEGIN I2C1_Init 2 */
+
+	/* USER CODE END I2C1_Init 2 */
+
+}
+
+/**
+ * @brief SPI1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_SPI1_Init(void) {
+
+	/* USER CODE BEGIN SPI1_Init 0 */
+
+	/* USER CODE END SPI1_Init 0 */
+
+	/* USER CODE BEGIN SPI1_Init 1 */
+
+	/* USER CODE END SPI1_Init 1 */
+	/* SPI1 parameter configuration*/
+	hspi1.Instance = SPI1;
+	hspi1.Init.Mode = SPI_MODE_MASTER;
+	hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+	hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+	hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+	hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+	hspi1.Init.NSS = SPI_NSS_SOFT;
+	hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_4;
+	hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+	hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+	hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+	hspi1.Init.CRCPolynomial = 7;
+	if (HAL_SPI_Init(&hspi1) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN SPI1_Init 2 */
+
+	/* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
+ * @brief USART1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_USART1_UART_Init(void) {
+
+	/* USER CODE BEGIN USART1_Init 0 */
+
+	/* USER CODE END USART1_Init 0 */
+
+	/* USER CODE BEGIN USART1_Init 1 */
+
+	/* USER CODE END USART1_Init 1 */
+	huart1.Instance = USART1;
+	huart1.Init.BaudRate = 115200;
+	huart1.Init.WordLength = UART_WORDLENGTH_8B;
+	huart1.Init.StopBits = UART_STOPBITS_1;
+	huart1.Init.Parity = UART_PARITY_NONE;
+	huart1.Init.Mode = UART_MODE_TX_RX;
+	huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+	huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+	huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+	if (HAL_UART_Init(&huart1) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN USART1_Init 2 */
+
+	/* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+ * @brief USART2 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_USART2_UART_Init(void) {
+
+	/* USER CODE BEGIN USART2_Init 0 */
+
+	/* USER CODE END USART2_Init 0 */
+
+	/* USER CODE BEGIN USART2_Init 1 */
+
+	/* USER CODE END USART2_Init 1 */
+	huart2.Instance = USART2;
+	huart2.Init.BaudRate = 115200;
+	huart2.Init.WordLength = UART_WORDLENGTH_8B;
+	huart2.Init.StopBits = UART_STOPBITS_1;
+	huart2.Init.Parity = UART_PARITY_NONE;
+	huart2.Init.Mode = UART_MODE_TX_RX;
+	huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+	huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+	huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+	if (HAL_UART_Init(&huart2) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN USART2_Init 2 */
+
+	/* USER CODE END USART2_Init 2 */
+
+}
+
+/**
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_GPIO_Init(void) {
+	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+	/* USER CODE BEGIN MX_GPIO_Init_1 */
+	/* USER CODE END MX_GPIO_Init_1 */
+
+	/* GPIO Ports Clock Enable */
+	__HAL_RCC_GPIOH_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
+	__HAL_RCC_GPIOB_CLK_ENABLE();
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(NSS_GPIO_Port, NSS_Pin, GPIO_PIN_SET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(LORA_RST_GPIO_Port, LORA_RST_Pin, GPIO_PIN_SET);
+
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(GPIOB, K_Pin | DEBUG_LED_Pin, GPIO_PIN_RESET);
+
+	/*Configure GPIO pin : DIO_Pin */
+	GPIO_InitStruct.Pin = DIO_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(DIO_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pin : NSS_Pin */
+	GPIO_InitStruct.Pin = NSS_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(NSS_GPIO_Port, &GPIO_InitStruct);
+
+	/*Configure GPIO pins : LORA_RST_Pin K_Pin DEBUG_LED_Pin */
+	GPIO_InitStruct.Pin = LORA_RST_Pin | K_Pin | DEBUG_LED_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+	/* EXTI interrupt init*/
+	HAL_NVIC_SetPriority(EXTI0_1_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);
+
+	/* USER CODE BEGIN MX_GPIO_Init_2 */
+	/* USER CODE END MX_GPIO_Init_2 */
+}
+
+/* USER CODE BEGIN 4 */
+
+void I2C_Scan() {
+	char msg[64];
+	HAL_StatusTypeDef result;
+	uint8_t i;
+
+	DEBUG_PRINT("Scanning I2C bus:\r\n");
+
+	for (i = 1; i < 128; i++) {
+
+		result = HAL_I2C_IsDeviceReady(&hi2c1, (uint16_t) (i << 1), 1, 10);
+		if (result == HAL_OK) {
+			snprintf(msg, sizeof(msg), "Device found at 0x%02X\r\n", i);
+			DEBUG_PRINT(msg);
+		} else {
+
+		}
+	}
+	DEBUG_PRINT("I2C scan completed.\r\n");
+}
+
+void INIT_GSM_K() {
+	HAL_GPIO_WritePin(K_GPIO_Port, K_Pin, GPIO_PIN_RESET);
+	HAL_Delay(100);
+	HAL_GPIO_WritePin(K_GPIO_Port, K_Pin, GPIO_PIN_SET);
+	HAL_Delay(1000);
+	HAL_GPIO_WritePin(K_GPIO_Port, K_Pin, GPIO_PIN_RESET);
+}
+
+void setup() {
+	DEBUG_PRINT("Starting...\r\n");
+
+	// SX1276 compatible module connected to SPI1, NSS pin connected to GPIO with label LORA_NSS
+	myLoRa = newLoRa();
+
+	myLoRa.CS_port = NSS_GPIO_Port;
+	myLoRa.CS_pin = NSS_Pin;
+	myLoRa.reset_port = LORA_RST_GPIO_Port;
+	myLoRa.reset_pin = LORA_RST_Pin;
+	myLoRa.DIO0_port = DIO_GPIO_Port;
+	myLoRa.DIO0_pin = DIO_Pin;
+	myLoRa.hSPIx = &hspi1;
+
+	myLoRa.frequency = 915;
+	myLoRa.spredingFactor = SF_7;
+	myLoRa.bandWidth = BW_125KHz;
+	myLoRa.crcRate = CR_4_5;
+	myLoRa.power = POWER_20db;
+	myLoRa.overCurrentProtection = 100;
+	myLoRa.preamble = 8;
+
+	if (LoRa_init(&myLoRa) == LORA_OK) {
+		DEBUG_PRINT("LoRa Ready\r\n");
+	} else
+		DEBUG_PRINT("Error in LoRa connection\r\n");
+
+	if (FRAM_Init(&hi2c1) != HAL_ERROR)
+		DEBUG_PRINT("FRAM Ready\r\n");
+	else
+		DEBUG_PRINT("Error in FRAM connection\r\n");
+
+	LoRa_startReceiving(&myLoRa);
+
+	FRAM_Format(&hi2c1, &metadata);
+
+	HAL_GPIO_WritePin(DEBUG_LED_GPIO_Port, DEBUG_LED_Pin, GPIO_PIN_SET);
+	I2C_Scan();
+
+	//INIT_GSM_K();
+
+	BEHAVIOR_Initialize_DataIndices(0);
+
+	//sendAT("AT+CRESET\r\n", "OK");
+	//sendAT("AT+HTTPTERM\r\n", "OK");
+	HAL_Delay(2000);
+
+	//sendAT("AT+CMEE=2\r\n", "OK");
+	//GSM_PDP_Context_Activate(apn, user, pwd);
+
+	HAL_Delay(2000);
+	HAL_GPIO_WritePin(DEBUG_LED_GPIO_Port, DEBUG_LED_Pin, GPIO_PIN_RESET);
+
+	started = 1;
+	DEBUG_PRINT("Started!\r\n");
+}
+uint8_t nextScript = 0;
+uint16_t resetCounter = 0;
+void loop() {
+	//char *vibrationJSON = generateTransmissionVibrationPackageJSON(
+	//		&vibrationPackage);
+	//GSM_Send_HTTP_POST(vibrationJSON);
+
+	//READ_MSP_Serial_Commands();
+
+	if (dataIndicesSize > 0 && gsmStatus == FREE) {
+		nextScript = 0;
+		resetCounter = 0;
+		reorganizeStartAddress = BEHAVIOR_Send_Next_Struct_In_FRAM(
+				BEHAVIOR_GET_Next_Send_Item());
+		if (nextScript) {
+			BEHAVIOR_REMOVE_First_Item_From_DataIndices();
+			BEHAVIOR_Reorganize_FRAM();
+		}
+	} else {
+		if (resetCounter >= 400)
+			NVIC_SystemReset();
+
+		resetCounter++;
+	}
+	HAL_Delay(1500);
+}
+
+/* HANDLE BEHAVIOR */
+
+void BEHAVIOR_Initialize_DataIndices(uint16_t size) {
+	dataIndicesSize = (size <= MAX_DATA_INDICES) ? size : MAX_DATA_INDICES;
+	memset(dataIndices, 0, dataIndicesSize);
+}
+
+char BEHAVIOR_GET_Next_Send_Item() {
+	if (dataIndicesSize > 0) {
+		return dataIndices[0];
+	}
+	return '\0';
+}
+
+void BEHAVIOR_ADD_Item_To_DataIndices(char item) {
+	if (dataIndicesSize < MAX_DATA_INDICES) {
+		dataIndices[dataIndicesSize] = item;
+		dataIndicesSize++;
+	} else {
+		DEBUG_PRINT("Buffer overflow: cannot add more items\r\n");
+	}
+}
+
+void BEHAVIOR_REMOVE_First_Item_From_DataIndices() {
+	if (dataIndicesSize > 0) {
+		memmove(dataIndices, dataIndices + 1,
+				(dataIndicesSize - 1) * sizeof(char));
+		dataIndicesSize--;
+	}
+}
+
+char jsonDataBuffer[200];
+char jsonVPBuffer[180];
+uint16_t BEHAVIOR_Send_Next_Struct_In_FRAM(char next) {
+	uint16_t address = 0;
+
+	if (next == 'D') {
+		DEBUG_PRINT("Data\r\n");
+		Transmission_Data data = defaultTransmissionData();
+		if (FRAM_ReadStruct(&hi2c1, 0, &data, sizeof(Transmission_Data))
+				== HAL_OK) {
+			address = sizeof(Transmission_Data);
+
+			cJSON *data_json = transmission_data_to_json(&data);
+
+			if (cJSON_PrintPreallocated(data_json, jsonDataBuffer, 200, 0)) {
+				GSM_Send_HTTP_POST(jsonDataBuffer);
+			} else {
+				DEBUG_PRINT("JSON Buffer Overflow\r\n");
+			}
+
+			cJSON_Delete(data_json);
+			nextScript = 1;
+		} else {
+			DEBUG_PRINT("MEM EXCEPTION D\r\n");
+		}
+	} else if (next == 'P') {
+		DEBUG_PRINT("Vp\r\n");
+		Transmission_VibrationPackage vibrationPackage =
+				defaultTransmissionVibrationPackage();
+		if (FRAM_ReadStruct(&hi2c1, 0, &vibrationPackage,
+				sizeof(Transmission_VibrationPackage)) == HAL_OK) {
+			DEBUG_PRINT("Vp Read\r\n");
+			address = sizeof(Transmission_VibrationPackage);
+
+			cJSON *vib_data_json = transmission_vibrationpackage_to_json(
+					&vibrationPackage);
+
+			if (cJSON_PrintPreallocated(vib_data_json, jsonVPBuffer, 160, 0)) {
+				GSM_Send_HTTP_POST(jsonVPBuffer);
+			} else {
+				DEBUG_PRINT("JSON Buffer Overflow\r\n");
+			}
+
+			cJSON_Delete(vib_data_json);
+			nextScript = 1;
+		} else {
+			DEBUG_PRINT("MEM EXCEPTION VP\r\n");
+		}
+	} else {
+		DEBUG_PRINT("CHAR_NOT_FOUND_EXCEPTION\r\n");
+		CHAR_NOT_FOUND_EXCEPTION();
+	}
+
+	return address;
+}
+
+uint16_t BEHAVIOR_Calculate_FRAM_Address() {
+	uint16_t nextAddress = 0;
+
+	for (int i = 0; i < dataIndicesSize; i++) {
+		if (dataIndices[i] == 'D') {
+			nextAddress += sizeof(Transmission_Data);
+		} else if (dataIndices[i] == 'P') {
+			nextAddress += sizeof(Transmission_VibrationPackage);
+		} else {
+			CHAR_NOT_FOUND_EXCEPTION();
+		}
+	}
+
+	return nextAddress;
+}
+
+void BEHAVIOR_Reorganize_FRAM() {
+	uint16_t nextAddress = reorganizeStartAddress;
+	uint16_t oldAddress = 0;
+
+	if (dataIndicesSize > 1) {
+		for (int i = 0; i < dataIndicesSize; i++) {
+			if (dataIndices[i] == 'D') {
+				Transmission_Data data;
+				FRAM_ReadStruct(&hi2c1, nextAddress, &data,
+						sizeof(Transmission_Data));
+				FRAM_WriteStruct(&hi2c1, &metadata, oldAddress, &data,
+						sizeof(Transmission_Data));
+
+				nextAddress += sizeof(Transmission_Data);
+				oldAddress += sizeof(Transmission_Data);
+			} else if (dataIndices[i] == 'P') {
+				Transmission_VibrationPackage vibrationPackage;
+				FRAM_ReadStruct(&hi2c1, nextAddress, &vibrationPackage,
+						sizeof(Transmission_VibrationPackage));
+				FRAM_WriteStruct(&hi2c1, &metadata, oldAddress,
+						&vibrationPackage,
+						sizeof(Transmission_VibrationPackage));
+
+				nextAddress += sizeof(Transmission_VibrationPackage);
+				oldAddress += sizeof(Transmission_VibrationPackage);
+			} else {
+				CHAR_NOT_FOUND_EXCEPTION();
+			}
+		}
+	} else
+		FRAM_Format(&hi2c1, &metadata);
+}
+
+void CHAR_NOT_FOUND_EXCEPTION() {
+	DEBUG_PRINT("Char not found\r\n");
+	BEHAVIOR_REMOVE_First_Item_From_DataIndices();
+}
+
+//Mainboard Serial Protocol
+void MSP_RX_Callback() {
+	MSP_RX_Buffer[MSP_Stream_Index++] = MSP_RX_Stream_Data;
+	lastMSPRxTick = HAL_GetTick();
+	mspStatus = RECEIVING;
+	HAL_UART_Receive_IT(&huart2, &MSP_RX_Stream_Data, 1);
+}
+
+void resetMSPBuffers() {
+	MSP_RX_Stream_Data = 0;
+	MSP_Stream_Index = 0;
+	memset(MSP_RX_Buffer, 0, sizeof(MSP_RX_Buffer));
+}
+
+const uint32_t msp_timeOut = 30000;
+
+void READ_MSP_Serial_Commands() {
+	if (mspStatus == FREE_STATUS)
+		resetMSPBuffers();
+
+	HAL_UART_Receive_IT(&huart1, &MSP_RX_Stream_Data, 1);
+
+	if (mspStatus == RECEIVING) {
+		uint32_t previousTick = HAL_GetTick();
+		while (previousTick + msp_timeOut > HAL_GetTick()) {
+			if (strstr((char*) MSP_RX_Buffer, "OK")) {
+
+				BEHAVIOR_REMOVE_First_Item_From_DataIndices();
+				BEHAVIOR_Reorganize_FRAM();
+
+				if (dataIndicesSize > 0)
+					sendReady();
+				break;
+			} else if (strstr((char*) MSP_RX_Buffer, "NX")) {
+				reorganizeStartAddress = BEHAVIOR_Send_Next_Struct_In_FRAM(
+						BEHAVIOR_GET_Next_Send_Item());
+				break;
+			} else if (strstr((char*) MSP_RX_Buffer, "RD")) {
+				sendReady();
+				break;
+			}
+
+			HAL_Delay(20);
+		}
+		mspStatus = FREE_STATUS;
+	}
+}
+
+void sendReady() {
+	char *cmd = "RD";
+	HAL_UART_Transmit_IT(&huart2, &cmd, sizeof(&cmd));
+}
+
+/* HANDLE BEHAVIOR */
+
+/* HANDLE JSON */
+
+char* float_to_two_char_string(float value) {
+	static char buffer[10];
+	snprintf(buffer, sizeof(buffer), "%.2g", value);
+	return buffer;
+}
+
+cJSON* transmission_data_to_json(const Transmission_Data *data) {
+	cJSON *json = cJSON_CreateObject();
+
+	if (json != NULL) {
+		cJSON_AddStringToObject(json, "type", "D");
+		cJSON_AddStringToObject(json, "key", data->key);
+
+		cJSON *rms_accel = cJSON_CreateArray();
+		for (int i = 0; i < 3; i++) {
+			cJSON_AddItemToArray(rms_accel,
+					cJSON_CreateString(
+							float_to_two_char_string(data->rms_accel[i])));
+		}
+		cJSON_AddItemToObject(json, "rms_accel", rms_accel);
+
+		cJSON *rms_vel = cJSON_CreateArray();
+		for (int i = 0; i < 3; i++) {
+			cJSON_AddItemToArray(rms_vel,
+					cJSON_CreateString(
+							float_to_two_char_string(data->rms_vel[i])));
+		}
+		cJSON_AddItemToObject(json, "rms_vel", rms_vel);
+
+		cJSON_AddNumberToObject(json, "temperature", data->temperature);
+		cJSON_AddNumberToObject(json, "battery", data->battery);
+	}
+
+	return json;
+}
+
+cJSON* transmission_vibrationpackage_to_json(
+		const Transmission_VibrationPackage *data) {
+	cJSON *json = cJSON_CreateObject();
+
+	if (json != NULL) {
+		cJSON_AddStringToObject(json, "type", "P");
+		cJSON_AddStringToObject(json, "key", data->key);
+		cJSON_AddNumberToObject(json, "axis", data->axis);
+
+		cJSON *dataPackage = cJSON_CreateArray();
+		for (int i = 0; i < TRANSMISSION_DATA_PACKAGE; i++) {
+			cJSON_AddItemToArray(dataPackage,
+					cJSON_CreateString(
+							float_to_two_char_string(data->dataPackage[i])));
+		}
+		cJSON_AddItemToObject(json, "dataPackage", dataPackage);
+
+		cJSON_AddNumberToObject(json, "start", data->start);
+		cJSON_AddNumberToObject(json, "end", data->end);
+	}
+
+	return json;
+}
+
+char* generateTransmissionDataJSON(Transmission_Data *data) {
+	char *json = (char*) malloc(256 * sizeof(char));
+
+	snprintf(json, 256,
+			"{\"type\":\"%s\",\"key\":\"%s\",\"rmsAccel\":[%.2f,%.2f,%.2f],\"rmsVel\":[%.2f,%.2f,%.2f],\"temperature\":%.2f,\"battery\":%.2f}",
+			data->type, data->key, data->rms_accel[0], data->rms_accel[1],
+			data->rms_accel[2], data->rms_vel[0], data->rms_vel[1],
+			data->rms_vel[2], data->temperature, data->battery);
+
+	return json;
+}
+/* HANDLE JSON */
+
+/* HANDLE GSM */
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
+	if (huart->Instance == huart1.Instance) {
+		MSP_RX_Callback();
+	}
+	if (huart->Instance == huart2.Instance) {
+		GSM_RX_Callback();
+	}
+}
+
+uint16_t sendTick = 0;
+void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
+	if (huart->Instance == huart1.Instance) {
+
+	}
+	if (huart->Instance == huart2.Instance) {
+		GSM_TX_Callback();
+	}
+}
+
+void GSM_RX_Callback() {
+	GSM_RX_Buffer[GSM_Stream_Index++] = GSM_RX_Stream_Data;
+	lastRxTick = HAL_GetTick();
+	gsmStatus = RX;
+	HAL_UART_Receive_IT(&huart2, &GSM_RX_Stream_Data, 1);
+}
+
+void GSM_TX_Callback() {
+	if (gsmStatus == FREE) {
+		gsmStatus = WAITING;
+		sendTick = HAL_GetTick();
+	}
+}
+
+void resetBuffers() {
+	GSM_RX_Stream_Data = 0;
+	GSM_Stream_Index = 0;
+	memset(GSM_RX_Buffer, 0, sizeof(GSM_RX_Buffer));
+}
+
+const uint32_t timeOut = 30000;
+
+uint8_t sendAT(char command[], char answer[]) {
+	uint8_t ATisOK = 0;
+	sendTick = HAL_GetTick();
+
+	resetBuffers();
+
+	HAL_UART_Receive_IT(&huart2, &GSM_RX_Stream_Data, 1);
+
+	uint8_t commandBuffer[200] = { 0 };
+	memcpy(commandBuffer, (uint8_t*) command, strlen(command) + 1);
+
+	DEBUG_PRINT("Sending AT Command: \r\n");
+	DEBUG_PRINT(command);
+
+	uint32_t previousTick = HAL_GetTick();
+	while (!ATisOK && previousTick + timeOut > HAL_GetTick()) {
+		if (gsmStatus == FREE) {
+			HAL_UART_Transmit_IT(&huart2, commandBuffer, sizeof(commandBuffer));
+		}
+
+		if (gsmStatus >= WAITING) {
+			if (gsmStatus == RX) {
+				if (strstr((char*) GSM_RX_Buffer, answer)) {
+					ATisOK = 1;
+				}
+			}
+		}
+		HAL_Delay(50);
+	}
+
+	gsmStatus = FREE;
+
+	if (!ATisOK) {
+		DEBUG_PRINT((char*) GSM_RX_Buffer);
+		DEBUG_PRINT("CMD Timeout...\r\n");
+	}
+	return ATisOK;
+}
+
+void directTransmit(char *cmd) {
+	resetBuffers();
+	HAL_UART_Transmit(&huart2, (uint8_t*) cmd, strlen(cmd), 1000);
+	HAL_UART_Receive(&huart2, GSM_RX_Buffer, sizeof(GSM_RX_Buffer), 1000);
+
+	gsmStatus = FREE;
+}
+
+uint8_t GSM_Setup_PDP_Context(char *apn, char *user, char *pwd) {
+	char command[200];
+
+	snprintf(command, sizeof(command), "AT+CGAUTH=1,1,\"%s\",\"%s\"\r\n", user,
+			pwd);
+	sendAT(command, "OK");
+	memset(command, 0, sizeof(command));
+
+	snprintf(command, sizeof(command), "AT+CGDCONT=1,\"IP\",\"%s\"\r\n", apn);
+
+	if (sendAT(command, "OK")) {
+		DEBUG_PRINT("CGDCONT is OK\r\n");
+		return 1;
+
+	}
+	memset(command, 0, sizeof(command));
+
+	return 0;
+}
+
+uint8_t isGprsConnected() {
+	if (!sendAT("AT+NETOPEN?\r\n", "+NETOPEN: 1")) {
+		return 0;
+	}
+
+	HAL_Delay(100);
+
+	if (!sendAT("AT+IPADDR\r\n", "OK")) {
+		return 0;
+	}
+
+	// Alternatively, use this command to show PDP address
+	// if (!sendAT("AT+CGPADDR=1\r\n", "OK")) {
+	//    return false;
+	// }
+
+	return 1;
+}
+
+void GSM_PDP_Context_Activate(char *apn, char *user, char *pwd) {
+	uint8_t ATisOK = 0;
+	uint8_t CGREGisOK = 0;
+	uint8_t CGDCONTisOK = 0;
+	uint8_t CGACTisOK = 0;
+
+	if (sendAT("AT\r\n", "OK")) {
+		ATisOK = 1;
+		DEBUG_PRINT("AT is OK\r\n");
+	}
+
+	if (ATisOK) {
+
+		GSM_Disconnect_TCP();
+
+		sendAT("AT+CPIN?\r\n", "OK");
+		DEBUG_PRINT((char*) GSM_RX_Buffer);
+
+		sendAT("AT+CSQ\r\n", "OK");
+		DEBUG_PRINT((char*) GSM_RX_Buffer);
+
+		if (sendAT("AT+CGREG?\r\n", "+CGREG: 0,1")) {
+			CGREGisOK = 1;
+			DEBUG_PRINT("CGREG is OK\r\n");
+		}
+	}
+
+	sendAT("AT+CPSI?\r\n", "OK");
+	DEBUG_PRINT((char*) GSM_RX_Buffer);
+
+	if (ATisOK && CGREGisOK) {
+		CGDCONTisOK = GSM_Setup_PDP_Context(apn, user, pwd);
+	}
+
+	if (ATisOK && CGREGisOK && CGDCONTisOK) {
+		directTransmit("AT+CGATT=1\r\n");
+		directTransmit("AT+CGACT=1,1\r\n");
+
+		if (sendAT("AT+CGACT=?\r\n", "OK")) {
+			CGACTisOK = 1;
+			DEBUG_PRINT("CGACT is OK\r\n");
+		}
+		sendAT("AT+CGACT=?\r\n", "OK");
+		DEBUG_PRINT((char*) GSM_RX_Buffer);
+	}
+}
+
+uint8_t GSM_Connect_TCP(char *apn, char *user, char *pwd) {
+	GSM_Disconnect_TCP();
+
+	if (!GSM_Setup_PDP_Context(apn, user, pwd))
+		return 0;
+
+	if (!sendAT("AT+CIPMODE=0\r\n", "OK"))
+		return 0;
+
+	if (!sendAT("AT+CIPSENDMODE=0\r\n", "OK"))
+		return 0;
+
+	if (!sendAT("AT+CIPCCFG=10,0,0,0,1,0,75000\r\n", "OK"))
+		return 0;
+
+	if (!sendAT("AT+CIPTIMEOUT=75000,15000,15000\r\n", "OK"))
+		return 0;
+
+	if (!sendAT("AT+NETOPEN\r\n", "+NETOPEN: 0"))
+		return 0;
+
+	return 1;
+}
+
+uint8_t GSM_Disconnect_TCP() {
+	if (!sendAT("AT+NETCLOSE\r\n", "+NETCLOSE: 0")) {
+		return 0;
+	}
+
+	return 1;
+}
+
+uint8_t GSM_Modem_Connect(char *host, uint16_t port) {
+	if (!sendAT("AT+CIPRXGET=1\r\n", "OK")) {
+		return 0;
+	}
+
+	// Estabelecer uma conexão em modo multi-socket
+	char cmd[128];
+	snprintf(cmd, sizeof(cmd), "AT+CIPOPEN=1,\"TCP\",\"%s\",%d\r\n", host,
+			port);
+	if (sendAT(cmd, "OK")) {
+		DEBUG_PRINT("CIPOPEN!...");
+		return 1;
+	}
+
+	return 0;
+}
+
+// Função para enviar dados via modem
+uint8_t GSM_Modem_Send(char *buff) {
+	char cmd[64];
+	snprintf(cmd, sizeof(cmd), "AT+CIPSEND=1,%d\r\n", (uint16_t) strlen(buff));
+	directTransmit(cmd);
+	directTransmit(buff);
+
+	DEBUG_PRINT((char*) GSM_RX_Buffer);
+
+	uint32_t sendTick = HAL_GetTick();
+	while (sendTick + timeOut > HAL_GetTick()) {
+		if (strstr((char*) GSM_RX_Buffer, "OK")) {
+			DEBUG_PRINT("OK\r\n");
+			return 1;
+		}
+	}
+	return 0;
+}
+
+// Função para ler dados do modem
+char* GSM_Modem_Read(size_t size) {
+	char *readReturn = malloc(size);
+
+	char cmd[64];
+	snprintf(cmd, sizeof(cmd), "AT+CIPRXGET=2,1,%d\r\n", (uint16_t) size);
+	if (!sendAT(cmd, "OK")) {
+		return 0;
+	}
+
+	strcpy(readReturn, (char*) GSM_RX_Buffer);
+	return readReturn;
+}
+
+// Função para obter a quantidade de dados disponíveis no modem
+size_t GMS_GET_MODEM_AVAILABLE_SIZE() {
+	char cmd[64];
+	snprintf(cmd, sizeof(cmd), "AT+CIPRXGET=4,1\r\n");
+
+	size_t result = 0;
+
+	if (sendAT(cmd, "OK")) {
+		//result = stream_get_int_before('\n');
+	}
+
+	return result;
+}
+
+// Função para verificar se o modem está conectado
+uint8_t isModemConnected() {
+	if (sendAT("AT+CIPCLOSE?\r\n", "OK"))
+		return 1;
+	return 0;
+}
+
+// Função para realizar POST request
+uint8_t GSM_Modem_HTTP_Post(char *host, uint16_t port, char *path,
+		char *json_data) {
+	if (!GSM_Modem_Connect(host, port)) {
+		return 0;
+	}
+
+	char header[256];
+	snprintf(header, sizeof(header), "POST %s HTTP/1.1\r\n"
+			"Host: %s:%d\r\n"
+			"Content-Type: application/json\r\n"
+			"Content-Length: %d\r\n\r\n", path, host, port, strlen(json_data));
+
+	if (GSM_Modem_Send(header) == 0) {
+		return 0;
+	}
+
+	if (GSM_Modem_Send(json_data) == 0) {
+		return 0;
+	}
+
+	size_t response_size = GMS_GET_MODEM_AVAILABLE_SIZE();
+	if (response_size > 0) {
+		char response[response_size + 1];
+		GSM_Modem_Read(response_size);
+		response[response_size] = '\0';
+	}
+
+	return 1;
+}
+
+// Função para enviar dados via modem
+uint8_t GSM_HTTP_Send(char *buff) {
+	char command[200];
+	sprintf(command, "AT+HTTPDATA=%d,1000\r\n", strlen(buff));
+
+	DEBUG_PRINT(command);
+
+	//directTransmit(command);
+	sendAT(command, "\r\n");
+	//directTransmit(buff);
+	sendAT(buff, "\r\n");
+
+	//uint32_t previousTick = HAL_GetTick();
+	//while (previousTick + timeOut > HAL_GetTick()) {
+	//if (strstr((char*) GSM_RX_Buffer, "OK")) {
+	//return 1;
+	//}
+	//}
+	return 0;
+}
+
+char* GSM_Send_HTTP_GET() {
+	static char read[100];
+	uint8_t httpINITisOK = 0;
+
+	if (sendAT("AT+HTTPINIT\r\n", "OK")) {
+		httpINITisOK = 1;
+		DEBUG_PRINT("HTTP Init!\r\n");
+	}
+
+	if (httpINITisOK) {
+		sendAT(
+				"AT+HTTPPARA=\"URL\",\"http://ec2-54-212-246-25.us-west-2.compute.amazonaws.com:8080/data/test\"\r\n",
+				"OK");
+		sendAT("AT+HTTPACTION=0\r\n", "OK");
+
+		sendAT("AT+HTTPHEAD\r\n", "OK");
+
+		sendAT("AT+HTTPREAD\r\n", "OK");
+		DEBUG_PRINT((char*) GSM_RX_Buffer);
+
+		strncpy(read, (char*) GSM_RX_Buffer, sizeof(read) - 1);
+		read[sizeof(read) - 1] = '\0';
+
+		sendAT("AT+HTTPTERM\r\n", "OK");
+	}
+
+	return read;
+}
+
+char* GSM_Send_HTTP_POST(char *json) {
+	uint8_t httpINITisOK = 0;
+
+	// Inicializa HTTP
+	if (sendAT("AT+HTTPINIT\r\n", "OK")) {
+		httpINITisOK = 1;
+		DEBUG_PRINT("HTTP Init!\r\n");
+	}
+
+	if (httpINITisOK) {
+		// Define o URL para o POST
+		sendAT(
+				"AT+HTTPPARA=\"URL\",\"http://ec2-54-212-246-25.us-west-2.compute.amazonaws.com:8080/data/register\"\r\n",
+				"OK");
+
+		// Define o tipo de conteúdo como JSON
+		sendAT("AT+HTTPPARA=\"CONTENT\",\"application/json\"\r\n", "OK");
+
+		HAL_Delay(50);
+
+		// Envia o conteúdo JSON
+		GSM_HTTP_Send(json);
+
+		// Executa o POST HTTP
+		sendAT("AT+HTTPACTION=1\r\n", "OK");
+		DEBUG_PRINT((char*) GSM_RX_Buffer);
+
+		// Lê o cabeçalho de resposta HTTP
+		sendAT("AT+HTTPHEAD\r\n", "OK");
+		DEBUG_PRINT((char*) GSM_RX_Buffer);
+
+		// Finaliza a sessão HTTP
+		sendAT("AT+HTTPTERM\r\n", "OK");
+	}
+
+	return "";
+}
+
+/* HANDLE GSM */
+void SENDING_ACK(char *ack_key) {
+    int tryCount = 0;
+    const int MAX_TRIES = 10;
+    while(tryCount < MAX_TRIES){
+        DEBUG_PRINT("Enviando ACK para a chave: ");
+        DEBUG_PRINT(ack_key);
+
+        uint8_t key_length = strlen(ack_key);
+
+        if (LoRa_transmit(&myLoRa, (uint8_t*)ack_key, key_length, 200) == 1) {
+            DEBUG_PRINT("... Sucesso no envio do ACK!\r\n");
+            LoRa_startReceiving(&myLoRa);
+            return;
+        } else {
+            DEBUG_PRINT("... Falha no envio do ACK!\r\n");
+            tryCount++;
+        }
+        HAL_Delay(100);
+    }
+
+    DEBUG_PRINT("Falha ao enviar o ACK após várias tentativas. Desistindo.\r\n");
+    LoRa_startReceiving(&myLoRa);
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+    if (GPIO_Pin == DIO_Pin) {
+        uint8_t rxBuffer[250];
+        uint8_t packet_size = LoRa_receive(&myLoRa, rxBuffer, sizeof(rxBuffer));
+
+        if (packet_size > 0 && started >= 1) {
+            char package_type = rxBuffer[0];
+
+            if (package_type == 'P') {
+                Transmission_VibrationPackage receivedPackage;
+                if (packet_size == sizeof(Transmission_VibrationPackage)) {
+                    memcpy(&receivedPackage, rxBuffer, sizeof(Transmission_VibrationPackage));
+                    DEBUG_PRINT("Pacote de Vibração (P) recebido.\r\n");
+                    //SENDING_ACK(receivedPackage.key);
+                } else {
+                    DEBUG_PRINT("Recebido pacote tipo 'V' com tamanho incorreto.\r\n");
+                }
+
+            	HAL_GPIO_WritePin(DEBUG_LED_GPIO_Port, DEBUG_LED_Pin, GPIO_PIN_SET);
+            	HAL_Delay(150);
+            	HAL_GPIO_WritePin(DEBUG_LED_GPIO_Port, DEBUG_LED_Pin, GPIO_PIN_RESET);
+
+            } else if (package_type == 'D') {
+
+                Transmission_Data receivedData;
+                if (packet_size == sizeof(Transmission_Data)) {
+                    memcpy(&receivedData, rxBuffer, sizeof(Transmission_Data));
+                    DEBUG_PRINT("Pacote de Dados (D) recebido.\r\n");
+                    //SENDING_ACK(receivedData.key);
+                } else {
+                     DEBUG_PRINT("Recebido pacote tipo 'D' com tamanho incorreto.\r\n");
+                }
+
+            	HAL_GPIO_WritePin(DEBUG_LED_GPIO_Port, DEBUG_LED_Pin, GPIO_PIN_SET);
+            	HAL_Delay(150);
+            	HAL_GPIO_WritePin(DEBUG_LED_GPIO_Port, DEBUG_LED_Pin, GPIO_PIN_RESET);
+
+
+            } else {
+                DEBUG_PRINT("Pacote com tipo desconhecido recebido.\r\n");
+            }
+        }
+    }
+}
+
+/*
+ int trySending = 0;
+int tryCount = 0;
+void SENDING_ACK(char *ack) {
+	LoRa_gotoMode(&myLoRa, TRANSMIT_MODE);
+	trySending = 1;
+	tryCount = 0;
+
+	while(trySending == 1){
+		DEBUG_PRINT("SENDING_ACK \r\n");
+		DEBUG_PRINT(ack);
+		if (LoRa_transmit(&myLoRa, (uint8_t*)ack, sizeof(ack), 100) == 1) {
+			DEBUG_PRINT("Success!\r\n");
+			LoRa_startReceiving(&myLoRa);
+			break;
+		} else {
+			DEBUG_PRINT("Fail!\r\n");
+			tryCount+=1;
+		}
+		if(tryCount >= 30)
+		{
+			trySending = 0;
+			LoRa_startReceiving(&myLoRa);
+			break;
+		}
+
+		HAL_Delay(300);
+	}
+
+}
+
+void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
+	if (GPIO_Pin == DIO_Pin) {
+		char msg[256];
+		uint8_t rxBuffer[250];
+		uint8_t packet_size = LoRa_receive(&myLoRa, rxBuffer, sizeof(rxBuffer));
+
+		//snprintf(msg, sizeof(msg), "%d\r\n", packet_size);
+
+		if (started >= 1) {
+			if (rxBuffer[0] == 'P') {
+				Transmission_VibrationPackage receivedPackage;
+				memcpy(&receivedPackage, rxBuffer,
+						sizeof(Transmission_VibrationPackage));
+
+				//if (FRAM_WriteStruct(&hi2c1, &metadata,
+				//metadata.nextFreeAddress, &receivedPackage,
+				//sizeof(Transmission_VibrationPackage)) == HAL_OK) {
+				//DEBUG_PRINT("VP Saved in FRAM\r\n");
+				//BEHAVIOR_ADD_Item_To_DataIndices('P');
+				//}
+				DEBUG_PRINT("VP Received \r\n");
+				SENDING_ACK(receivedPackage.key);
+
+			} else if (rxBuffer[0] == 'D') {
+				Transmission_Data receivedData;
+				memcpy(&receivedData, rxBuffer, sizeof(Transmission_Data));
+
+				//if (FRAM_WriteStruct(&hi2c1, &metadata,
+				//	metadata.nextFreeAddress, &receivedData,
+				//	sizeof(Transmission_Data)) == HAL_OK) {
+				//DEBUG_PRINT("Data Saved in FRAM\r\n");
+				//BEHAVIOR_ADD_Item_To_DataIndices('D');
+				//}
+				DEBUG_PRINT("DATA Received \r\n");
+				SENDING_ACK(receivedData.key);
+			} else {
+				// DEBUG_PRINT("Received packet size mismatch.\r\n");
+			}
+		}
+	}
+}
+ */
+
+void BlinkLed(uint16_t time_ms) {
+	HAL_GPIO_WritePin(DEBUG_LED_GPIO_Port, DEBUG_LED_Pin, GPIO_PIN_SET);
+	HAL_Delay(time_ms);
+	HAL_GPIO_WritePin(DEBUG_LED_GPIO_Port, DEBUG_LED_Pin, GPIO_PIN_RESET);
+}
+
+/* USER CODE END 4 */
+
+/**
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+	/* USER CODE BEGIN Error_Handler_Debug */
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	NVIC_SystemReset();
+	while (1) {
+	}
+	/* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */

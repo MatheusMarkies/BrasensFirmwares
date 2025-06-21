@@ -1,0 +1,4 @@
+../Core/Src/KX122.c:47:26:KX122_WriteRegister	1
+../Core/Src/KX122.c:52:26:KX122_ReadRegister	2
+../Core/Src/KX122.c:14:19:KX122_Init	6
+../Core/Src/KX122.c:23:11:KX122_ReadAccelData	7
