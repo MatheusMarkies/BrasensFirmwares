@@ -60,8 +60,8 @@ all: main-build
 main-build: Debug.elf secondary-outputs
 
 # Tool invocations
-Debug.elf Debug.map: $(OBJS) $(USER_OBJS) D:\Projetos\Firmware\firmware\Debug\STM32L053C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "Debug.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"D:\Projetos\Firmware\firmware\Debug\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Debug.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Debug.elf Debug.map: $(OBJS) $(USER_OBJS) D:\Projetos\BrasensFirmwares\BrasensFirmwares\Debug\STM32L053C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Debug.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"D:\Projetos\BrasensFirmwares\BrasensFirmwares\Debug\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Debug.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 

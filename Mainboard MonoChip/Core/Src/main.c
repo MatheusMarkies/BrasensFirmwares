@@ -124,6 +124,19 @@ void setup(void);
 #define COM_PRINT(msg) HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 200)
 
 LoRa myLoRa;
+
+typedef struct {
+	uint8_t rxBuffer[60];
+	char type;
+} LoRa_Data;
+
+#define LORA_DATA_BUFFER_SIZE 8
+volatile LoRa_Data LoRa_Data_transient_buffer[LORA_DATA_BUFFER_SIZE];
+uint8_t total_LoRa_Data_registred = 0;
+
+uint8_t packet_size = 0;
+uint8_t lora_recived_package = 0;
+
 uint8_t rxBuffer[120];
 Transmission_Data data;
 Transmission_VibrationPackage vibrationPackage;
@@ -149,10 +162,10 @@ int MSP_Stream_Index = 0;
 uint16_t lastMSPRxTick = 0;
 MSPStatus mspStatus = FREE_STATUS;
 
-const uint32_t MSP_TIMEOUT = 30000;
-const uint32_t GSM_TIMEOUT = 30000;
+const uint32_t MSP_TIMEOUT = 10 * 1000;
+const uint32_t GSM_TIMEOUT = 1 * 1000;
 const uint32_t LED_BLINK_DURATION_MS = 150;
-const uint32_t SEND_ATTEMPT_INTERVAL_MS = 1500;
+const uint32_t SEND_ATTEMPT_INTERVAL_MS = 500;
 const uint32_t READ_SERIAL_INTERVAL_MS = 20;
 const uint32_t SEND_AT_INTERVAL_MS = 50;
 
@@ -578,7 +591,7 @@ void setup() {
 	HAL_Delay(2000);
 
 	//sendAT("AT+CMEE=2\r\n", "OK");
-	//GSM_PDP_Context_Activate(apn, user, pwd);
+	GSM_PDP_Context_Activate(apn, user, pwd);
 
 	HAL_Delay(2000);
 	HAL_GPIO_WritePin(DEBUG_LED_GPIO_Port, DEBUG_LED_Pin, GPIO_PIN_RESET);
@@ -586,6 +599,61 @@ void setup() {
 	started = 1;
 	DEBUG_PRINT("Started!\r\n");
 }
+
+void format_LoRa_Data_buffer() {
+	total_LoRa_Data_registred = 0;
+	DEBUG_PRINT("Buffer de data formatado.\r\n");
+}
+
+void buffer_add_sample(LoRa_Data new_sample) {
+	if (total_LoRa_Data_registred >= LORA_DATA_BUFFER_SIZE) {
+		DEBUG_PRINT("ERRO: Buffer de vibração cheio!\r\n");
+		return;
+	}
+
+	LoRa_Data_transient_buffer[total_LoRa_Data_registred] = new_sample;
+
+	total_LoRa_Data_registred++;
+}
+
+void buffer_remove_sample(LoRa_Data *sample_out) {
+	if (total_LoRa_Data_registred == 0) {
+		return;
+	}
+
+	*sample_out = LoRa_Data_transient_buffer[0];
+
+	total_LoRa_Data_registred--;
+
+	if (total_LoRa_Data_registred > 0) {
+		memmove((void*) &LoRa_Data_transient_buffer[0],
+				(void*) &LoRa_Data_transient_buffer[1],
+				total_LoRa_Data_registred * sizeof(LoRa_Data));
+	}
+}
+
+void processing_data_in_FRAM(LoRa_Data data) {
+	if (data.type == 'P') {
+		Transmission_VibrationPackage receivedPackage;
+		memcpy(&receivedPackage, rxBuffer,
+				sizeof(Transmission_VibrationPackage));
+		if (FRAM_WriteStruct(&hi2c1, &metadata, metadata.nextFreeAddress,
+				&receivedPackage, sizeof(Transmission_VibrationPackage))
+				== HAL_OK) {
+			DEBUG_PRINT("VP Saved in FRAM\r\n");
+			BEHAVIOR_ADD_Item_To_DataIndices('P');
+		}
+	} else {
+		Transmission_Data receivedData;
+		memcpy(&receivedData, rxBuffer, sizeof(Transmission_Data));
+		if (FRAM_WriteStruct(&hi2c1, &metadata, metadata.nextFreeAddress,
+				&receivedData, sizeof(Transmission_Data)) == HAL_OK) {
+			DEBUG_PRINT("Data Saved in FRAM\r\n");
+			BEHAVIOR_ADD_Item_To_DataIndices('D');
+		}
+	}
+}
+
 uint8_t nextScript = 0;
 uint16_t resetCounter = 0;
 void loop() {
@@ -601,6 +669,93 @@ void loop() {
 					GPIO_PIN_RESET);
 			led_is_on = 0;
 		}
+	}
+
+	if (lora_recived_package == 1) {
+		DEBUG_PRINT("Recebido.\r\n");
+		lora_recived_package = 0;
+
+		if (packet_size > 0) {
+			char package_type = rxBuffer[0];
+
+			char buffer[64];
+			snprintf(buffer, sizeof(buffer),
+					"Type: %c | Size: %d bytes | Targets: VP: %d D: %d\r\n",
+					package_type, packet_size,
+					sizeof(Transmission_VibrationPackage),
+					sizeof(Transmission_Data));
+
+			DEBUG_PRINT(buffer);
+
+			if (package_type == 'P'
+					|| packet_size == sizeof(Transmission_VibrationPackage)) {
+				//Transmission_VibrationPackage receivedPackage;
+				if (packet_size == sizeof(Transmission_VibrationPackage)) {
+					//memcpy(&receivedPackage, rxBuffer,
+					//		sizeof(Transmission_VibrationPackage));
+					DEBUG_PRINT("Pacote de Vibração (P) recebido.\r\n");
+
+					BlinkLed();
+
+					LoRa_Data lora_data;
+					memcpy(lora_data.rxBuffer, rxBuffer, sizeof(Transmission_VibrationPackage));
+					lora_data.type = 'P';
+					buffer_add_sample(lora_data);
+
+					//Caso não entre aqui, precisa enviar um ACK para o sensor falando que deu erro no envio
+					/*
+					 if (FRAM_WriteStruct(&hi2c1, &metadata,
+					 metadata.nextFreeAddress, &receivedPackage,
+					 sizeof(Transmission_VibrationPackage)) == HAL_OK) {
+					 DEBUG_PRINT("VP Saved in FRAM\r\n");
+					 BEHAVIOR_ADD_Item_To_DataIndices('P');
+					 }
+					 */
+				} else {
+					DEBUG_PRINT(
+							"Recebido pacote tipo 'V' com tamanho incorreto.\r\n");
+				}
+
+			} else if (package_type == 'D'
+					|| packet_size == sizeof(Transmission_Data)) {
+
+				//Transmission_Data receivedData;
+				if (packet_size == sizeof(Transmission_Data)) {
+					//memcpy(&receivedData, rxBuffer, sizeof(Transmission_Data));
+					DEBUG_PRINT("Pacote de Dados (D) recebido.\r\n");
+
+					BlinkLed();
+
+					LoRa_Data lora_data;
+					memcpy(lora_data.rxBuffer, rxBuffer, sizeof(Transmission_Data));
+					//lora_data.rxBuffer = rxBuffer;
+					lora_data.type = 'D';
+					buffer_add_sample(lora_data);
+
+					//Caso não entre aqui, precisa enviar um ACK para o sensor falando que deu erro no envio
+					/*
+					 if (FRAM_WriteStruct(&hi2c1, &metadata,
+					 metadata.nextFreeAddress, &receivedData,
+					 sizeof(Transmission_Data)) == HAL_OK) {
+					 DEBUG_PRINT("Data Saved in FRAM\r\n");
+					 BEHAVIOR_ADD_Item_To_DataIndices('D');
+					 }
+					 */
+				} else {
+					DEBUG_PRINT(
+							"Recebido pacote tipo 'D' com tamanho incorreto.\r\n");
+				}
+
+			} else {
+				DEBUG_PRINT("Pacote com tipo desconhecido recebido.\r\n");
+			}
+		}
+	}
+
+	if (total_LoRa_Data_registred > 0) {
+		LoRa_Data data;
+		buffer_remove_sample(&data);
+		processing_data_in_FRAM(data);
 	}
 
 	//GSM Chip Mainboard
@@ -658,7 +813,7 @@ void BEHAVIOR_REMOVE_First_Item_From_DataIndices() {
 	}
 }
 
-char jsonDataBuffer[200];
+char jsonDataBuffer[220];
 char jsonVPBuffer[180];
 uint16_t BEHAVIOR_Send_Next_Struct_In_FRAM(char next) {
 	uint16_t address = 0;
@@ -672,7 +827,7 @@ uint16_t BEHAVIOR_Send_Next_Struct_In_FRAM(char next) {
 
 			cJSON *data_json = transmission_data_to_json(&data);
 
-			if (cJSON_PrintPreallocated(data_json, jsonDataBuffer, 200, 0)) {
+			if (cJSON_PrintPreallocated(data_json, jsonDataBuffer, 220, 0)) {
 				GSM_Send_HTTP_POST(jsonDataBuffer);
 			} else {
 				DEBUG_PRINT("JSON Buffer Overflow\r\n");
@@ -695,7 +850,7 @@ uint16_t BEHAVIOR_Send_Next_Struct_In_FRAM(char next) {
 			cJSON *vib_data_json = transmission_vibrationpackage_to_json(
 					&vibrationPackage);
 
-			if (cJSON_PrintPreallocated(vib_data_json, jsonVPBuffer, 160, 0)) {
+			if (cJSON_PrintPreallocated(vib_data_json, jsonVPBuffer, 180, 0)) {
 				GSM_Send_HTTP_POST(jsonVPBuffer);
 			} else {
 				DEBUG_PRINT("JSON Buffer Overflow\r\n");
@@ -836,7 +991,7 @@ void sendReady() {
 
 char* float_to_two_char_string(float value) {
 	static char buffer[10];
-	snprintf(buffer, sizeof(buffer), "%.2g", value);
+	snprintf(buffer, sizeof(buffer), "%.3f", value);
 	return buffer;
 }
 
@@ -852,7 +1007,7 @@ cJSON* transmission_data_to_json(const Transmission_Data *data) {
 		cJSON *rms_accel = cJSON_CreateArray();
 		for (int i = 0; i < 3; i++) {
 			snprintf(temp_float_buffer_rms_accel,
-					sizeof(temp_float_buffer_rms_accel), "%.2f",
+					sizeof(temp_float_buffer_rms_accel), "%.4f",
 					data->rms_accel[i]);
 			cJSON_AddItemToArray(rms_accel,
 					cJSON_CreateString(temp_float_buffer_rms_accel));
@@ -862,7 +1017,7 @@ cJSON* transmission_data_to_json(const Transmission_Data *data) {
 		cJSON *rms_vel = cJSON_CreateArray();
 		for (int i = 0; i < 3; i++) {
 			snprintf(temp_float_buffer_rms_vel,
-					sizeof(temp_float_buffer_rms_vel), "%.2f",
+					sizeof(temp_float_buffer_rms_vel), "%.4f",
 					data->rms_vel[i]);
 			cJSON_AddItemToArray(rms_vel,
 					cJSON_CreateString(temp_float_buffer_rms_vel));
@@ -904,7 +1059,7 @@ char* generateTransmissionDataJSON(Transmission_Data *data) {
 	char *json = (char*) malloc(256 * sizeof(char));
 
 	snprintf(json, 256,
-			"{\"type\":\"%s\",\"key\":\"%s\",\"rmsAccel\":[%.2f,%.2f,%.2f],\"rmsVel\":[%.2f,%.2f,%.2f],\"temperature\":%.2f,\"battery\":%.2f}",
+			"{\"type\":\"%s\",\"key\":\"%s\",\"rmsAccel\":[%.3f,%.3f,%.3f],\"rmsVel\":[%.3f,%.3f,%.3f],\"temperature\":%.3f,\"battery\":%.3f}",
 			data->type, data->key, data->rms_accel[0], data->rms_accel[1],
 			data->rms_accel[2], data->rms_vel[0], data->rms_vel[1],
 			data->rms_vel[2], data->temperature, data->battery);
@@ -1286,7 +1441,7 @@ char* GSM_Send_HTTP_POST(char *json) {
 		httpINITisOK = 1;
 		DEBUG_PRINT("HTTP Init!\r\n");
 	}
-
+	DEBUG_PRINT(json);
 	if (httpINITisOK) {
 		// Define o URL para o POST
 		sendAT(
@@ -1344,56 +1499,9 @@ void SENDING_ACK(char *ack_key) {
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == DIO_Pin) {
-		uint8_t rxBuffer[250];
-		uint8_t packet_size = LoRa_receive(&myLoRa, rxBuffer, sizeof(rxBuffer));
-
-		if (packet_size > 0 && started >= 1) {
-			char package_type = rxBuffer[0];
-
-			if (package_type == 'P') {
-				Transmission_VibrationPackage receivedPackage;
-				if (packet_size == sizeof(Transmission_VibrationPackage)) {
-					memcpy(&receivedPackage, rxBuffer,
-							sizeof(Transmission_VibrationPackage));
-					DEBUG_PRINT("Pacote de Vibração (P) recebido.\r\n");
-
-					 //if (FRAM_WriteStruct(&hi2c1, &metadata,
-					 //metadata.nextFreeAddress, &receivedPackage,
-					 //sizeof(Transmission_VibrationPackage)) == HAL_OK) {
-					 //DEBUG_PRINT("VP Saved in FRAM\r\n");
-					 //BEHAVIOR_ADD_Item_To_DataIndices('P');
-					 //}
-
-				} else {
-					DEBUG_PRINT(
-							"Recebido pacote tipo 'V' com tamanho incorreto.\r\n");
-				}
-
-				BlinkLed();
-			} else if (package_type == 'D') {
-
-				Transmission_Data receivedData;
-				if (packet_size == sizeof(Transmission_Data)) {
-					memcpy(&receivedData, rxBuffer, sizeof(Transmission_Data));
-					DEBUG_PRINT("Pacote de Dados (D) recebido.\r\n");
-
-					 //if (FRAM_WriteStruct(&hi2c1, &metadata,
-					 //	metadata.nextFreeAddress, &receivedData,
-					 //	sizeof(Transmission_Data)) == HAL_OK) {
-					 //DEBUG_PRINT("Data Saved in FRAM\r\n");
-					 //BEHAVIOR_ADD_Item_To_DataIndices('D');
-					 //}
-
-				} else {
-					DEBUG_PRINT(
-							"Recebido pacote tipo 'D' com tamanho incorreto.\r\n");
-				}
-
-				BlinkLed();
-			} else {
-				DEBUG_PRINT("Pacote com tipo desconhecido recebido.\r\n");
-			}
-		}
+		packet_size = LoRa_receive(&myLoRa, rxBuffer, sizeof(rxBuffer));
+		if (started >= 1)
+			lora_recived_package = 1;
 	}
 }
 

@@ -1,48 +1,55 @@
-11:17:02 **** Incremental Build of configuration Debug for project Mainboard MonoChip ****
+12:46:27 **** Incremental Build of configuration Debug for project Mainboard MonoChip ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
 In file included from ../Core/Src/main.c:28:
 ../Core/Inc/LoRa.h:1:1: warning: multi-line comment [-Wcomment]
     1 | // -------------------------------------------------- \\
       | ^
+../Core/Src/main.c: In function 'loop':
+../Core/Src/main.c:698:41: warning: implicit declaration of function 'BlinkLed' [-Wimplicit-function-declaration]
+  698 |                                         BlinkLed();
+      |                                         ^~~~~~~~
 ../Core/Src/main.c: In function 'generateTransmissionDataJSON':
-../Core/Src/main.c:902:39: warning: format '%s' expects argument of type 'char *', but argument 4 has type 'int' [-Wformat=]
-  902 |                         "{\"type\":\"%s\",\"key\":\"%s\",\"rmsAccel\":[%.2f,%.2f,%.2f],\"rmsVel\":[%.2f,%.2f,%.2f],\"temperature\":%.2f,\"battery\":%.2f}",
+../Core/Src/main.c:1062:39: warning: format '%s' expects argument of type 'char *', but argument 4 has type 'int' [-Wformat=]
+ 1062 |                         "{\"type\":\"%s\",\"key\":\"%s\",\"rmsAccel\":[%.3f,%.3f,%.3f],\"rmsVel\":[%.3f,%.3f,%.3f],\"temperature\":%.3f,\"battery\":%.3f}",
       |                                      ~^
       |                                       |
       |                                       char *
       |                                      %d
-  903 |                         data->type, data->key, data->rms_accel[0], data->rms_accel[1],
+ 1063 |                         data->type, data->key, data->rms_accel[0], data->rms_accel[1],
       |                         ~~~~~~~~~~     
       |                             |
       |                             int
 ../Core/Src/main.c: In function 'GSM_PDP_Context_Activate':
-../Core/Src/main.c:1049:17: warning: variable 'CGACTisOK' set but not used [-Wunused-but-set-variable]
- 1049 |         uint8_t CGACTisOK = 0;
+../Core/Src/main.c:1209:17: warning: variable 'CGACTisOK' set but not used [-Wunused-but-set-variable]
+ 1209 |         uint8_t CGACTisOK = 0;
       |                 ^~~~~~~~~
 ../Core/Src/main.c: In function 'GSM_Modem_HTTP_Post':
-../Core/Src/main.c:1218:22: warning: variable 'response' set but not used [-Wunused-but-set-variable]
- 1218 |                 char response[response_size + 1];
+../Core/Src/main.c:1378:22: warning: variable 'response' set but not used [-Wunused-but-set-variable]
+ 1378 |                 char response[response_size + 1];
       |                      ^~~~~~~~
-../Core/Src/main.c: In function 'HAL_GPIO_EXTI_Callback':
-../Core/Src/main.c:1367:33: warning: implicit declaration of function 'BlinkLed' [-Wimplicit-function-declaration]
- 1367 |                                 BlinkLed();
-      |                                 ^~~~~~~~
 ../Core/Src/main.c: At top level:
-../Core/Src/main.c:1469:6: warning: conflicting types for 'BlinkLed'; have 'void()'
- 1469 | void BlinkLed() {
+../Core/Src/main.c:1582:6: warning: conflicting types for 'BlinkLed'; have 'void()'
+ 1582 | void BlinkLed() {
       |      ^~~~~~~~
-../Core/Src/main.c:1367:33: note: previous implicit declaration of 'BlinkLed' with type 'void()'
- 1367 |                                 BlinkLed();
-      |                                 ^~~~~~~~
-arm-none-eabi-gcc -o "Mainboard MonoChip.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\Projetos\Firmware\firmware\Mainboard MonoChip\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Mainboard MonoChip.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+../Core/Src/main.c:698:41: note: previous implicit declaration of 'BlinkLed' with type 'void()'
+  698 |                                         BlinkLed();
+      |                                         ^~~~~~~~
+arm-none-eabi-gcc -o "Mainboard MonoChip.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\Projetos\BrasensFirmwares\BrasensFirmwares\Mainboard MonoChip\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Mainboard MonoChip.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 Finished building target: Mainboard MonoChip.elf
  
 arm-none-eabi-size  Mainboard\ MonoChip.elf 
 arm-none-eabi-objdump -h -S Mainboard\ MonoChip.elf  > "Mainboard MonoChip.list"
    text	   data	    bss	    dec	    hex	filename
-  59832	    480	   4408	  64720	   fcd0	Mainboard MonoChip.elf
+  61892	    512	   5040	  67444	  10774	Mainboard MonoChip.elf
 Finished building: default.size.stdout
  
 Finished building: Mainboard MonoChip.list
+ 
+12:46:29 **** Incremental Build of configuration Debug for project Mainboard MonoChip ****
+make -j12 all 
+arm-none-eabi-size  Mainboard\ MonoChip.elf 
+   text	   data	    bss	    dec	    hex	filename
+  61892	    512	   5040	  67444	  10774	Mainboard MonoChip.elf
+Finished building: default.size.stdout
  

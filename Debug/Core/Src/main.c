@@ -104,7 +104,7 @@ typedef enum {
 	STATE_DEEPSLEEP
 } SensorState;
 
-#define ACCEL_BUFFER_SIZE 256
+#define ACCEL_BUFFER_SIZE 32
 volatile Vibration vibration_transient_buffer[ACCEL_BUFFER_SIZE];
 volatile uint16_t buffer_head = 0;
 volatile uint16_t buffer_tail = 0;
@@ -115,7 +115,7 @@ volatile uint16_t total_samples_registred = 0;
 volatile SensorState current_state = STATE_IDLE;
 
 uint32_t last_cycle_start_timestamp = 0;
-const uint32_t CYCLE_INTERVAL_MS = 5 * 60 * 1000;
+const uint32_t CYCLE_INTERVAL_MS = 2 * 60 * 1000;
 
 int current_package_to_send = 0;
 volatile bool ack_received = false;
@@ -980,7 +980,7 @@ void read_vibration() {
 		data.rms_accel[1] += (vibration.y * vibration.y);
 		data.rms_accel[2] += (vibration.z * vibration.z);
 
-		//buffer_add_sample(vibration);
+		buffer_add_sample(vibration);
 
 		float velocity_x = vibration.x * (sampling_period_us * 1e6);
 		float velocity_y = vibration.y * (sampling_period_us * 1e6);
@@ -997,42 +997,36 @@ void read_vibration() {
 
 volatile uint16_t vibration_item_count = 0;
 
-void format_direct_vibration_buffer()
-{
-    vibration_item_count = 0;
-    DEBUG_PRINT("Buffer de vibração (direto) formatado.\r\n");
+void format_direct_vibration_buffer() {
+	vibration_item_count = 0;
+	DEBUG_PRINT("Buffer de vibração (direto) formatado.\r\n");
 }
 
-void buffer_add_sample(Vibration new_sample)
-{
-    if (vibration_item_count >= ACCEL_BUFFER_SIZE)
-    {
-        DEBUG_PRINT("ERRO: Buffer de vibração cheio!\r\n");
-        return;
-    }
+void buffer_add_sample(Vibration new_sample) {
+	if (vibration_item_count >= ACCEL_BUFFER_SIZE) {
+		DEBUG_PRINT("ERRO: Buffer de vibração cheio!\r\n");
+		return;
+	}
 
-    vibration_transient_buffer[vibration_item_count] = new_sample;
+	vibration_transient_buffer[vibration_item_count] = new_sample;
 
-    vibration_item_count++;
+	vibration_item_count++;
 }
 
-void buffer_remove_sample(Vibration *sample_out)
-{
-    if (vibration_item_count == 0)
-    {
-        return;
-    }
+void buffer_remove_sample(Vibration *sample_out) {
+	if (vibration_item_count == 0) {
+		return;
+	}
 
-    *sample_out = vibration_transient_buffer[0];
+	*sample_out = vibration_transient_buffer[0];
 
-    vibration_item_count--;
+	vibration_item_count--;
 
-    if (vibration_item_count > 0)
-    {
-        memmove((void*)&vibration_transient_buffer[0],
-                (void*)&vibration_transient_buffer[1],
-                vibration_item_count * sizeof(Vibration));
-    }
+	if (vibration_item_count > 0) {
+		memmove((void*) &vibration_transient_buffer[0],
+				(void*) &vibration_transient_buffer[1],
+				vibration_item_count * sizeof(Vibration));
+	}
 }
 
 void processing_data_in_FRAM(Vibration vibration) {
@@ -1042,6 +1036,7 @@ void processing_data_in_FRAM(Vibration vibration) {
 			sqrt(
 					vibration.x * vibration.x + vibration.z * vibration.z
 							+ vibration.y * vibration.y));
+
 	total_samples_processed++;
 }
 
@@ -1070,12 +1065,12 @@ uint32_t readMilliseconds = 0;
 void setup() {
 	DEBUG_PRINT("Setup...\r\n");
 
-	hiwdg.Instance = IWDG;
-	hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
-	hiwdg.Init.Reload = 4095;
-	if (HAL_IWDG_Init(&hiwdg) != HAL_OK) {
-		Error_Handler();
-	}
+	//hiwdg.Instance = IWDG;
+	//hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+	//hiwdg.Init.Reload = 4095;
+	//if (HAL_IWDG_Init(&hiwdg) != HAL_OK) {
+	//	Error_Handler();
+	//}
 
 	//I2C_Scan();
 	//DEBUG_PRINT("\r\n");
@@ -1201,6 +1196,11 @@ void readAndSendFRAMData() {
 					FRAM_ReadFloat(&hi2c1, address, &value);
 				}
 
+			char buffer[64];
+			snprintf(buffer, sizeof(buffer), "%.3f\r\n", value);
+
+			DEBUG_PRINT(buffer);
+
 			vibrationPackage.dataPackage[(i - start)] = value;
 		}
 
@@ -1216,7 +1216,7 @@ void readAndSendFRAMData() {
 	} else {
 		if (HAL_GetTick() - last_try_sending_timestamp >= 300) {
 			last_try_sending_timestamp = HAL_GetTick();
-			char msg[64];
+
 			LoRa_gotoMode(&myLoRa, TRANSMIT_MODE);
 			if (LoRa_transmit(&myLoRa, (uint8_t*) &vibrationPackage,
 					sizeof(vibrationPackage), 100) == 1) {
@@ -1271,7 +1271,7 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 }
 
 volatile uint8_t process_data_values = 0;
-
+volatile uint8_t sleeping_msg = 0;
 void loop() {
 	HAL_IWDG_Refresh(&hiwdg);
 
@@ -1282,8 +1282,12 @@ void loop() {
 				>= (CYCLE_INTERVAL_MS / package_factor)) {
 			last_cycle_start_timestamp = HAL_GetTick();
 			current_state = STATE_TRANSMITTING_VP;
+			sleeping_msg = 0;
 		} else {
-			//SLEEP
+			if (sleeping_msg == 0) {
+				DEBUG_PRINT("sleeping...\r\n");
+				sleeping_msg = 1;
+			}
 		}
 		break;
 
@@ -1304,6 +1308,13 @@ void loop() {
 		break;
 
 	case STATE_SAMPLING:
+		if (total_samples_processed == SAMPLES) {
+			DEBUG_PRINT(
+					"Gravação na FRAM concluída. Finalizando processamento...\r\n");
+			current_package = 0;
+			current_state = STATE_TRANSMITTING_VP;
+		}
+
 		if (total_samples_registred < SAMPLES)
 			read_vibration();
 		else {
@@ -1330,17 +1341,20 @@ void loop() {
 			}
 		}
 
-		if (total_samples_processed < SAMPLES
-				&& total_samples_processed < total_samples_registred){
+		if (total_samples_processed <= total_samples_registred) {
 
-			//Vibration vib;
-			//buffer_remove_sample(&vib);
-			processing_data_in_FRAM(vibration_transient_buffer[0]);
-		}else {
-			DEBUG_PRINT(
-					"Gravação na FRAM concluída. Finalizando processamento...\r\n");
-			current_package = 0;
-			current_state = STATE_TRANSMITTING_VP;
+			char buffer[256];
+			snprintf(buffer, sizeof(buffer),
+					"Buffer Processado: %d / %d | %d\r\n",
+					total_samples_processed, total_samples_registred,
+					vibration_item_count);
+			DEBUG_PRINT(buffer);
+
+			DEBUG_PRINT("\r\n");
+
+			Vibration vib;
+			buffer_remove_sample(&vib);
+			processing_data_in_FRAM(vib);
 		}
 
 		break;
@@ -1353,6 +1367,7 @@ void loop() {
 		} else {
 			DEBUG_PRINT(
 					"Gravação na FRAM concluída. Finalizando processamento...\r\n");
+			DEBUG_PRINT("\r\n");
 			current_package = 0;
 			current_state = STATE_TRANSMITTING_VP;
 		}
@@ -1360,12 +1375,15 @@ void loop() {
 
 	case STATE_TRANSMITTING_VP:
 		if (current_package >= package_factor) {
+			DEBUG_PRINT("\r\n");
 			DEBUG_PRINT("Envio de pacotes VP concluído.\r\n");
 			DEBUG_PRINT("Mudando para estado: TRANSMITTING_DATA\r\n");
+			DEBUG_PRINT("\r\n");
 			current_state = STATE_TRANSMITTING_DATA;
 		} else {
+			DEBUG_PRINT("\r\n");
 			char dbg_msg[64];
-			snprintf(dbg_msg, sizeof(dbg_msg), "Enviando Pacote VP #%d/#%d\r\n",
+			snprintf(dbg_msg, sizeof(dbg_msg), "Enviando Pacote VP %d / %d\r\n",
 					current_package, package_factor);
 			DEBUG_PRINT(dbg_msg);
 			readAndSendFRAMData();

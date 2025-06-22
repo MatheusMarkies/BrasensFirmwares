@@ -9,6 +9,8 @@
 		<item key="SmartImportRootWizardPage.STORE_NESTED_PROJECTS" value="true"/>
 		<item key="SmartImportRootWizardPage.STORE_CONFIGURE_NATURES" value="true"/>
 		<list key="org.eclipse.ui.internal.wizards.datatransfer.SmartImportRootWizardPage.knownSources">
+			<item value="D:\Projetos\BrasensFirmwares\BrasensFirmwares\Mainboard MonoChip"/>
+			<item value="D:\Projetos\BrasensFirmwares\BrasensFirmwares\Debug"/>
 			<item value="D:\Projetos\Firmware\firmware"/>
 			<item value="D:\Matheus Markies\Downloads\STM32_TMC5160_SPI-main\STM32_TMC5160_SPI-main"/>
 			<item value="D:\Projetos\Firmware\firmware\Mainboard 3.0"/>
