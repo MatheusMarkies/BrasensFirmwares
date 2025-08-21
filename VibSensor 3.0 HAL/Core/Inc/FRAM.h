@@ -41,7 +41,7 @@ HAL_StatusTypeDef FRAM_WriteStruct(I2C_HandleTypeDef *hi2c, FRAM_Metadata *metad
 HAL_StatusTypeDef FRAM_ReadStruct(I2C_HandleTypeDef *hi2c, uint16_t memAddress, void *data, size_t dataSize);
 HAL_StatusTypeDef FRAM_WriteFloat(I2C_HandleTypeDef *hi2c, FRAM_Metadata *metadata, uint16_t memAddress, float value);
 HAL_StatusTypeDef FRAM_ReadFloat(I2C_HandleTypeDef *hi2c, uint16_t memAddress, float *value);
-HAL_StatusTypeDef FRAM_EraseData(I2C_HandleTypeDef *hi2c, uint16_t memAddress, uint16_t dataSize);
+HAL_StatusTypeDef FRAM_EraseData(I2C_HandleTypeDef *hi2c, FRAM_Metadata *metadata, uint16_t memAddress, uint16_t dataSize);
 HAL_StatusTypeDef FRAM_Format(I2C_HandleTypeDef *hi2c, FRAM_Metadata *metadata);
 
 uint32_t FRAM_GetTotalMemorySize(void);

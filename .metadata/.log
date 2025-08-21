@@ -2764,3 +2764,402 @@ Command-line arguments:  -os win32 -ws win32 -arch x86_64
 
 !ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-06-22 14:33:22.623
 !MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2025-06-22 17:19:02.708 -----------------------------------------------
+eclipse.buildId=Version 1.16.1
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-06-22 17:26:22.506
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-06-22 17:26:22.509
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-06-22 17:26:37.812
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2025-06-22 18:27:48.309 -----------------------------------------------
+eclipse.buildId=Version 1.16.1
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-06-22 18:28:27.676
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-06-22 18:28:27.678
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-06-22 18:28:32.956
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2025-06-23 09:06:23.888 -----------------------------------------------
+eclipse.buildId=Version 1.16.1
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-06-23 09:07:10.449
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-06-23 09:07:10.458
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-06-23 09:07:25.062
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.cdt.dsf.gdb 4 5012 2025-06-24 12:14:25.361
+!MESSAGE Error in final launch sequence:
+
+Failed to execute MI command:
+target remote localhost:61234
+
+Error message from debugger back end:
+localhost:61234: Connection timed out.
+!STACK 1
+org.eclipse.core.runtime.CoreException: Failed to execute MI command:
+target remote localhost:61234
+
+Error message from debugger back end:
+localhost:61234: Connection timed out.
+	at org.eclipse.cdt.dsf.concurrent.Query.get(Query.java:112)
+	at org.eclipse.cdt.dsf.gdb.launching.GdbLaunchDelegate.launchDebugSession(GdbLaunchDelegate.java:252)
+	at org.eclipse.cdt.dsf.gdb.launching.GdbLaunchDelegate.launchDebugger(GdbLaunchDelegate.java:109)
+	at org.eclipse.cdt.dsf.gdb.launching.GdbLaunchDelegate.launch(GdbLaunchDelegate.java:97)
+	at com.st.stm32cube.ide.mcu.debug.launch.DSFDelegate.launch(DSFDelegate.java:334)
+	at org.eclipse.debug.internal.core.LaunchConfiguration.launch(LaunchConfiguration.java:805)
+	at org.eclipse.debug.internal.core.LaunchConfiguration.launch(LaunchConfiguration.java:716)
+	at org.eclipse.debug.internal.ui.DebugUIPlugin.buildAndLaunch(DebugUIPlugin.java:1040)
+	at org.eclipse.debug.internal.ui.DebugUIPlugin$1.run(DebugUIPlugin.java:1243)
+	at org.eclipse.core.internal.jobs.Worker.run(Worker.java:63)
+Caused by: java.lang.Exception: localhost:61234: Connection timed out.
+	at org.eclipse.cdt.dsf.mi.service.command.AbstractMIControl$RxThread.processMIOutput(AbstractMIControl.java:1024)
+	at org.eclipse.cdt.dsf.mi.service.command.AbstractMIControl$RxThread.run(AbstractMIControl.java:853)
+!SUBENTRY 1 org.eclipse.cdt.dsf.gdb 4 10004 2025-06-24 12:14:25.362
+!MESSAGE Failed to execute MI command:
+target remote localhost:61234
+
+Error message from debugger back end:
+localhost:61234: Connection timed out.
+!STACK 0
+java.lang.Exception: localhost:61234: Connection timed out.
+	at org.eclipse.cdt.dsf.mi.service.command.AbstractMIControl$RxThread.processMIOutput(AbstractMIControl.java:1024)
+	at org.eclipse.cdt.dsf.mi.service.command.AbstractMIControl$RxThread.run(AbstractMIControl.java:853)
+!SESSION 2025-08-07 23:29:02.418 -----------------------------------------------
+eclipse.buildId=Version 1.16.1
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY org.eclipse.core.resources 2 10035 2025-08-07 23:33:06.505
+!MESSAGE The workspace exited with unsaved changes in the previous session; refreshing workspace to recover changes.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-08-07 23:33:38.375
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-08-07 23:33:38.384
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-08-07 23:33:56.043
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2025-08-09 11:19:01.290 -----------------------------------------------
+eclipse.buildId=Version 1.16.1
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-08-09 11:20:41.960
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-08-09 11:20:41.969
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-08-09 11:20:59.037
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2025-08-11 21:38:25.195 -----------------------------------------------
+eclipse.buildId=Version 1.16.1
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-08-11 21:39:22.878
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-08-11 21:39:22.889
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-08-11 21:39:46.542
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2025-08-16 09:38:02.264 -----------------------------------------------
+eclipse.buildId=Version 1.16.1
+java.version=17.0.11
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-08-16 09:43:59.957
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-08-16 09:43:59.966
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-08-16 09:44:16.533
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.equinox.p2.operations 4 0 2025-08-16 09:47:10.185
+!MESSAGE Operation details
+!SUBENTRY 1 org.eclipse.equinox.p2.operations 4 10001 2025-08-16 09:47:10.185
+!MESSAGE Your original request has been modified.
+!SUBENTRY 2 org.eclipse.equinox.p2.operations 4 0 2025-08-16 09:47:10.185
+!MESSAGE Unexpected Error.  Could not process the request. Check the error log for details.
+
+!ENTRY org.eclipse.equinox.p2.operations 4 0 2025-08-16 09:47:10.293
+!MESSAGE Operation details
+!SUBENTRY 1 org.eclipse.equinox.p2.operations 4 10001 2025-08-16 09:47:10.293
+!MESSAGE Your original request has been modified.
+!SUBENTRY 2 org.eclipse.equinox.p2.operations 4 0 2025-08-16 09:47:10.293
+!MESSAGE Unexpected Error.  Could not process the request. Check the error log for details.
+
+!ENTRY org.eclipse.equinox.p2.touchpoint.natives 2 0 2025-08-16 10:00:16.421
+!MESSAGE Could not remove temporary backup directory (it is safe to manually delete it and its contents): C:\Users\MATHEU~1\AppData\Local\Temp\STM32CubeIDE_ac59df69-207e-40c4-ac47-434338b043e5
+!SESSION 2025-08-16 10:00:30.141 -----------------------------------------------
+eclipse.buildId=Version 1.16.1
+java.version=21.0.3
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64 -data file:/D:/Projetos/BrasensFirmwares/BrasensFirmwares/
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-08-16 10:00:49.913
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-08-16 10:00:49.913
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-08-16 10:01:00.086
+!MESSAGE Started RMI Server, listening on port 41337
+
+!ENTRY org.eclipse.cdt.core 1 0 2025-08-16 10:32:31.739
+!MESSAGE Indexed 'ECUU_Formula' (24 sources, 85 headers) in 3.84 sec: 7,715 declarations; 56,106 references; 0 unresolved inclusions; 1 syntax errors; 2 unresolved names (0.0031%)
+
+!ENTRY org.eclipse.core.resources 4 1 2025-08-16 10:32:42.348
+!MESSAGE Internal Error
+!STACK 1
+org.eclipse.core.internal.resources.ResourceException(/ECU_Formula/.project)[368]: org.eclipse.core.runtime.CoreException: File not found: D:\Projetos\BrasensFirmwares\BrasensFirmwares\ECU_Formula\.project.
+	at org.eclipse.core.internal.filesystem.Policy.error(Policy.java:32)
+	at org.eclipse.core.internal.filesystem.local.LocalFile.handleReadIOException(LocalFile.java:498)
+	at org.eclipse.core.internal.filesystem.local.LocalFile.readAllBytes(LocalFile.java:490)
+	at org.eclipse.core.internal.localstore.FileSystemResourceManager.readAllBytes(FileSystemResourceManager.java:911)
+	at org.eclipse.core.internal.resources.File.readAllBytes(File.java:355)
+	at org.eclipse.core.internal.localstore.FileSystemResourceManager.descriptionChanged(FileSystemResourceManager.java:429)
+	at org.eclipse.core.internal.localstore.FileSystemResourceManager.internalWrite(FileSystemResourceManager.java:710)
+	at org.eclipse.core.internal.resources.Project.writeDescription(Project.java:1466)
+	at org.eclipse.core.internal.resources.Project.writeDescription(Project.java:1447)
+	at org.eclipse.core.internal.resources.Workspace.copyTree(Workspace.java:1204)
+	at org.eclipse.core.internal.resources.Workspace.copyTree(Workspace.java:1242)
+	at org.eclipse.core.internal.resources.Workspace.copyTree(Workspace.java:1242)
+	at org.eclipse.core.internal.resources.Workspace.copyTree(Workspace.java:1242)
+	at org.eclipse.core.internal.resources.Workspace.move(Workspace.java:2179)
+	at org.eclipse.core.internal.resources.ResourceTree.movedProjectSubtree(ResourceTree.java:684)
+	at org.eclipse.core.internal.resources.ResourceTree.standardMoveProject(ResourceTree.java:1061)
+	at org.eclipse.core.internal.resources.Resource.unprotectedMove(Resource.java:1878)
+	at org.eclipse.core.internal.resources.Resource.move(Resource.java:1543)
+	at org.eclipse.ltk.core.refactoring.resource.RenameResourceChange.perform(RenameResourceChange.java:118)
+	at org.eclipse.ltk.core.refactoring.CompositeChange.perform(CompositeChange.java:278)
+	at org.eclipse.ltk.core.refactoring.PerformChangeOperation.lambda$0(PerformChangeOperation.java:247)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2451)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2476)
+	at org.eclipse.ltk.core.refactoring.PerformChangeOperation.executeChange(PerformChangeOperation.java:284)
+	at org.eclipse.ltk.internal.ui.refactoring.UIPerformChangeOperation.executeChange(UIPerformChangeOperation.java:94)
+	at org.eclipse.ltk.core.refactoring.PerformChangeOperation.run(PerformChangeOperation.java:210)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2451)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2476)
+	at org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:89)
+	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:124)
+Caused by: java.nio.file.NoSuchFileException: D:\Projetos\BrasensFirmwares\BrasensFirmwares\ECU_Formula\.project
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:234)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:379)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:431)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3268)
+	at org.eclipse.core.internal.filesystem.local.LocalFile.readAllBytes(LocalFile.java:488)
+	... 27 more
+!SUBENTRY 1 org.eclipse.core.resources 4 368 2025-08-16 10:32:42.392
+!MESSAGE File not found: D:\Projetos\BrasensFirmwares\BrasensFirmwares\ECU_Formula\.project.
+!STACK 1
+org.eclipse.core.runtime.CoreException: File not found: D:\Projetos\BrasensFirmwares\BrasensFirmwares\ECU_Formula\.project.
+	at org.eclipse.core.internal.filesystem.Policy.error(Policy.java:32)
+	at org.eclipse.core.internal.filesystem.local.LocalFile.handleReadIOException(LocalFile.java:498)
+	at org.eclipse.core.internal.filesystem.local.LocalFile.readAllBytes(LocalFile.java:490)
+	at org.eclipse.core.internal.localstore.FileSystemResourceManager.readAllBytes(FileSystemResourceManager.java:911)
+	at org.eclipse.core.internal.resources.File.readAllBytes(File.java:355)
+	at org.eclipse.core.internal.localstore.FileSystemResourceManager.descriptionChanged(FileSystemResourceManager.java:429)
+	at org.eclipse.core.internal.localstore.FileSystemResourceManager.internalWrite(FileSystemResourceManager.java:710)
+	at org.eclipse.core.internal.resources.Project.writeDescription(Project.java:1466)
+	at org.eclipse.core.internal.resources.Project.writeDescription(Project.java:1447)
+	at org.eclipse.core.internal.resources.Workspace.copyTree(Workspace.java:1204)
+	at org.eclipse.core.internal.resources.Workspace.copyTree(Workspace.java:1242)
+	at org.eclipse.core.internal.resources.Workspace.copyTree(Workspace.java:1242)
+	at org.eclipse.core.internal.resources.Workspace.copyTree(Workspace.java:1242)
+	at org.eclipse.core.internal.resources.Workspace.move(Workspace.java:2179)
+	at org.eclipse.core.internal.resources.ResourceTree.movedProjectSubtree(ResourceTree.java:684)
+	at org.eclipse.core.internal.resources.ResourceTree.standardMoveProject(ResourceTree.java:1061)
+	at org.eclipse.core.internal.resources.Resource.unprotectedMove(Resource.java:1878)
+	at org.eclipse.core.internal.resources.Resource.move(Resource.java:1543)
+	at org.eclipse.ltk.core.refactoring.resource.RenameResourceChange.perform(RenameResourceChange.java:118)
+	at org.eclipse.ltk.core.refactoring.CompositeChange.perform(CompositeChange.java:278)
+	at org.eclipse.ltk.core.refactoring.PerformChangeOperation.lambda$0(PerformChangeOperation.java:247)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2451)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2476)
+	at org.eclipse.ltk.core.refactoring.PerformChangeOperation.executeChange(PerformChangeOperation.java:284)
+	at org.eclipse.ltk.internal.ui.refactoring.UIPerformChangeOperation.executeChange(UIPerformChangeOperation.java:94)
+	at org.eclipse.ltk.core.refactoring.PerformChangeOperation.run(PerformChangeOperation.java:210)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2451)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2476)
+	at org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:89)
+	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:124)
+Caused by: java.nio.file.NoSuchFileException: D:\Projetos\BrasensFirmwares\BrasensFirmwares\ECU_Formula\.project
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:234)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:379)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:431)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3268)
+	at org.eclipse.core.internal.filesystem.local.LocalFile.readAllBytes(LocalFile.java:488)
+	... 27 more
+!SUBENTRY 2 org.eclipse.core.filesystem 4 269 2025-08-16 10:32:42.392
+!MESSAGE File not found: D:\Projetos\BrasensFirmwares\BrasensFirmwares\ECU_Formula\.project.
+!STACK 0
+java.nio.file.NoSuchFileException: D:\Projetos\BrasensFirmwares\BrasensFirmwares\ECU_Formula\.project
+	at java.base/sun.nio.fs.WindowsException.translateToIOException(WindowsException.java:85)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:103)
+	at java.base/sun.nio.fs.WindowsException.rethrowAsIOException(WindowsException.java:108)
+	at java.base/sun.nio.fs.WindowsFileSystemProvider.newByteChannel(WindowsFileSystemProvider.java:234)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:379)
+	at java.base/java.nio.file.Files.newByteChannel(Files.java:431)
+	at java.base/java.nio.file.Files.readAllBytes(Files.java:3268)
+	at org.eclipse.core.internal.filesystem.local.LocalFile.readAllBytes(LocalFile.java:488)
+	at org.eclipse.core.internal.localstore.FileSystemResourceManager.readAllBytes(FileSystemResourceManager.java:911)
+	at org.eclipse.core.internal.resources.File.readAllBytes(File.java:355)
+	at org.eclipse.core.internal.localstore.FileSystemResourceManager.descriptionChanged(FileSystemResourceManager.java:429)
+	at org.eclipse.core.internal.localstore.FileSystemResourceManager.internalWrite(FileSystemResourceManager.java:710)
+	at org.eclipse.core.internal.resources.Project.writeDescription(Project.java:1466)
+	at org.eclipse.core.internal.resources.Project.writeDescription(Project.java:1447)
+	at org.eclipse.core.internal.resources.Workspace.copyTree(Workspace.java:1204)
+	at org.eclipse.core.internal.resources.Workspace.copyTree(Workspace.java:1242)
+	at org.eclipse.core.internal.resources.Workspace.copyTree(Workspace.java:1242)
+	at org.eclipse.core.internal.resources.Workspace.copyTree(Workspace.java:1242)
+	at org.eclipse.core.internal.resources.Workspace.move(Workspace.java:2179)
+	at org.eclipse.core.internal.resources.ResourceTree.movedProjectSubtree(ResourceTree.java:684)
+	at org.eclipse.core.internal.resources.ResourceTree.standardMoveProject(ResourceTree.java:1061)
+	at org.eclipse.core.internal.resources.Resource.unprotectedMove(Resource.java:1878)
+	at org.eclipse.core.internal.resources.Resource.move(Resource.java:1543)
+	at org.eclipse.ltk.core.refactoring.resource.RenameResourceChange.perform(RenameResourceChange.java:118)
+	at org.eclipse.ltk.core.refactoring.CompositeChange.perform(CompositeChange.java:278)
+	at org.eclipse.ltk.core.refactoring.PerformChangeOperation.lambda$0(PerformChangeOperation.java:247)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2451)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2476)
+	at org.eclipse.ltk.core.refactoring.PerformChangeOperation.executeChange(PerformChangeOperation.java:284)
+	at org.eclipse.ltk.internal.ui.refactoring.UIPerformChangeOperation.executeChange(UIPerformChangeOperation.java:94)
+	at org.eclipse.ltk.core.refactoring.PerformChangeOperation.run(PerformChangeOperation.java:210)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2451)
+	at org.eclipse.core.internal.resources.Workspace.run(Workspace.java:2476)
+	at org.eclipse.ltk.internal.ui.refactoring.WorkbenchRunnableAdapter.run(WorkbenchRunnableAdapter.java:89)
+	at org.eclipse.jface.operation.ModalContext$ModalContextThread.run(ModalContext.java:124)
+
+!ENTRY org.eclipse.cdt.core 1 0 2025-08-16 10:32:45.047
+!MESSAGE Indexed 'ECU_Formula' (24 sources, 85 headers) in 1.56 sec: 7,715 declarations; 56,106 references; 0 unresolved inclusions; 1 syntax errors; 2 unresolved names (0.0031%)
+!SESSION 2025-08-19 14:28:12.653 -----------------------------------------------
+eclipse.buildId=Version 1.19.0
+java.version=21.0.3
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-08-19 14:33:38.602
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-08-19 14:33:38.604
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-08-19 14:33:56.982
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2025-08-19 18:46:22.553 -----------------------------------------------
+eclipse.buildId=Version 1.19.0
+java.version=21.0.3
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-08-19 18:46:27.888
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-08-19 18:46:27.889
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-08-19 18:46:33.294
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2025-08-19 22:58:35.110 -----------------------------------------------
+eclipse.buildId=Version 1.19.0
+java.version=21.0.3
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-08-19 22:59:24.681
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-08-19 22:59:24.683
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-08-19 22:59:37.117
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2025-08-20 09:49:07.071 -----------------------------------------------
+eclipse.buildId=Version 1.19.0
+java.version=21.0.3
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-08-20 09:51:43.432
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-08-20 09:51:43.434
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-08-20 09:52:03.709
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2025-08-20 15:09:10.710 -----------------------------------------------
+eclipse.buildId=Version 1.19.0
+java.version=21.0.3
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-08-20 15:10:27.622
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-08-20 15:10:27.624
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml
+
+!ENTRY com.st.stm32cube.ide.mcu.ide 1 1 2025-08-20 15:10:42.945
+!MESSAGE Started RMI Server, listening on port 41337
+!SESSION 2025-08-21 10:30:46.218 -----------------------------------------------
+eclipse.buildId=Version 1.19.0
+java.version=21.0.3
+java.vendor=Eclipse Adoptium
+BootLoader constants: OS=win32, ARCH=x86_64, WS=win32, NL=pt_BR
+Command-line arguments:  -os win32 -ws win32 -arch x86_64
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 4 4 2025-08-21 10:31:35.666
+!MESSAGE CubeMX plugin appears to be active, Log4j initialization might be too late.
+
+!ENTRY com.st.stm32cube.ide.mcu.informationcenter 1 1 2025-08-21 10:31:35.667
+!MESSAGE Log4j2 initialized with config file D:\Projetos\BrasensFirmwares\BrasensFirmwares\.metadata\.log4j2.xml

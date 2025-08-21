@@ -90,7 +90,7 @@ HAL_StatusTypeDef MCP9808_ReadTemperature(I2C_HandleTypeDef *hi2c, double *tempe
 
 static HAL_StatusTypeDef MCP9808_WriteRegister_16(I2C_HandleTypeDef *hi2c, uint8_t reg, uint16_t value) {
     uint8_t data[3] = {reg, (value >> 8) & 0xFF, value & 0xFF};
-    return HAL_I2C_Master_Transmit(hi2c, MCP9808_I2C_ADDRESS << 1, data, 3, HAL_MAX_DELAY);
+    return HAL_I2C_Master_Transmit(hi2c, MCP9808_I2C_ADDRESS << 1, data, 3, 200);
 }
 
 static HAL_StatusTypeDef MCP9808_WriteRegister(I2C_HandleTypeDef *hi2c, uint8_t reg, uint8_t *data, uint8_t len) {
@@ -99,22 +99,22 @@ static HAL_StatusTypeDef MCP9808_WriteRegister(I2C_HandleTypeDef *hi2c, uint8_t 
     for (uint8_t i = 0; i < len; i++) {
         buffer[i + 1] = data[i];
     }
-    return HAL_I2C_Master_Transmit(hi2c, MCP9808_I2C_ADDRESS << 1, buffer, len + 1, HAL_MAX_DELAY);
+    return HAL_I2C_Master_Transmit(hi2c, MCP9808_I2C_ADDRESS << 1, buffer, len + 1, 200);
 }
 
 static HAL_StatusTypeDef MCP9808_ReadRegister(I2C_HandleTypeDef *hi2c, uint8_t reg, uint8_t *data, uint8_t len) {
-    HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(hi2c, MCP9808_I2C_ADDRESS << 1, &reg, 1, HAL_MAX_DELAY);
+    HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(hi2c, MCP9808_I2C_ADDRESS << 1, &reg, 1, 200);
     if (status == HAL_OK) {
-        status = HAL_I2C_Master_Receive(hi2c, MCP9808_I2C_ADDRESS << 1, data, len, HAL_MAX_DELAY);
+        status = HAL_I2C_Master_Receive(hi2c, MCP9808_I2C_ADDRESS << 1, data, len, 200);
     }
     return status;
 }
 
 static HAL_StatusTypeDef MCP9808_ReadRegister_16(I2C_HandleTypeDef *hi2c, uint8_t reg, uint16_t *value) {
     uint8_t data[2];
-    HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(hi2c, MCP9808_I2C_ADDRESS << 1, &reg, 1, HAL_MAX_DELAY);
+    HAL_StatusTypeDef status = HAL_I2C_Master_Transmit(hi2c, MCP9808_I2C_ADDRESS << 1, &reg, 1, 200);
     if (status == HAL_OK) {
-        status = HAL_I2C_Master_Receive(hi2c, MCP9808_I2C_ADDRESS << 1, data, 2, HAL_MAX_DELAY);
+        status = HAL_I2C_Master_Receive(hi2c, MCP9808_I2C_ADDRESS << 1, data, 2, 200);
         if (status == HAL_OK) {
             *value = (data[0] << 8) | data[1];
         }

@@ -1,0 +1,18 @@
+/*
+ * engine_controll.c
+ *
+ *  Created on: Aug 19, 2025
+ *      Author: Matheus Markies
+ */
+
+/*
+*Implementação Algorítmica do Speed-Density
+*O algoritmo Speed-Density é executado pela ECU a cada ciclo do motor para determinar a massa de combustível a ser injetada. O processo pode ser resumido nos seguintes passos:
+*Amostragem dos Sensores: A ECU lê os valores instantâneos dos sensores MAP, IAT e RPM.
+*Consulta à Tabela VE: Usando os valores atuais de MAP e RPM como coordenadas, a ECU consulta a tabela VE 2D. Se o ponto de operação exato (por exemplo, 2550 RPM e 85 kPa) não corresponder a um ponto de grade na tabela, a ECU utiliza um algoritmo de interpolação bilinear (detalhado na Seção 6.1) para calcular o valor preciso da VE entre os quatro pontos de grade circundantes.
+*Cálculo do Volume Efetivo (Vefetivo): O volume efetivo de ar admitido é calculado multiplicando-se o volume de deslocamento de um único cilindro pelo valor da VE obtido.
+*
+*Vefetivo = DeslocamentoCilindro * VE(MAP,RPM)
+*Cálculo da Massa de Ar (mar): Com a pressão (p do MAP), a temperatura (T do IAT, convertida para Kelvin)
+*e o volume efetivo (V efetivo), a ECU aplica a forma derivada da Lei dos Gases Ideais para calcular a massa de ar que preencheu o cilindro durante o ciclo de admissão.
+*/

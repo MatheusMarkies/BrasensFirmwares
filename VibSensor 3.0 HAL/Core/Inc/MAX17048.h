@@ -11,7 +11,7 @@
 #include "stm32l0xx_hal.h"
 
 // I2C address of the MAX17048
-#define MAX17048_I2C_ADDRESS (0x6C << 1)
+#define MAX17048_I2C_ADDRESS (0x7C << 1)
 
 // Register addresses
 #define MAX17048_REG_VCELL       0x02

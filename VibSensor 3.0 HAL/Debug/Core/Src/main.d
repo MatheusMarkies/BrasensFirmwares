@@ -23,6 +23,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_flash_ramfunc.h \
  ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_i2c.h \
  ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_i2c_ex.h \
+ ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_iwdg.h \
  ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_pwr.h \
  ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_pwr_ex.h \
  ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_spi.h \
@@ -30,10 +31,8 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_tim_ex.h \
  ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_uart.h \
  ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_uart_ex.h \
- ../Core/Inc/i2c.h ../Core/Inc/main.h ../Core/Inc/spi.h \
- ../Core/Inc/usart.h ../Core/Inc/gpio.h ../Core/Inc/LORA.h \
- ../Core/Inc/FRAM.h ../Core/Inc/KX122.h ../Core/Inc/gpio.h \
- ../Core/Inc/MCP9808.h ../Core/Inc/i2c.h ../Core/Inc/MAX17048.h \
+ ../Core/Inc/LoRa.h ../Core/Inc/main.h ../Core/Inc/FRAM.h \
+ ../Core/Inc/MCP9808.h ../Core/Inc/MAX17048.h \
  ../Core/Inc/BrasensFirmware.h
 ../Core/Inc/main.h:
 ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal.h:
@@ -60,6 +59,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_flash_ramfunc.h:
 ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_i2c.h:
 ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_i2c_ex.h:
+../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_iwdg.h:
 ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_pwr.h:
 ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_pwr_ex.h:
 ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_spi.h:
@@ -67,16 +67,9 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_tim_ex.h:
 ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_uart.h:
 ../Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_uart_ex.h:
-../Core/Inc/i2c.h:
+../Core/Inc/LoRa.h:
 ../Core/Inc/main.h:
-../Core/Inc/spi.h:
-../Core/Inc/usart.h:
-../Core/Inc/gpio.h:
-../Core/Inc/LORA.h:
 ../Core/Inc/FRAM.h:
-../Core/Inc/KX122.h:
-../Core/Inc/gpio.h:
 ../Core/Inc/MCP9808.h:
-../Core/Inc/i2c.h:
 ../Core/Inc/MAX17048.h:
 ../Core/Inc/BrasensFirmware.h:

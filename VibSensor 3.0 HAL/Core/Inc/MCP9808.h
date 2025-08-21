@@ -12,9 +12,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "i2c.h"
-#include "gpio.h"
-#include <math.h>
 
 #define MCP9808_I2C_ADDRESS 0x18 ///< I2C address
 #define MCP9808_REG_CONFIG 0x01      ///< MCP9808 config register

@@ -12,8 +12,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "gpio.h"
-#include <math.h>
 
 #define ACC_DATA_RATE 25800
 
@@ -29,6 +27,16 @@
 #define KX122_ZOUT_L 0x0A
 #define KX122_ZOUT_H 0x0B
 
+#define ODR_25600HZ 0x0F
+#define SENSITIVITY_2G (0.000061)
+
+#define BUF_CNTL1 0x3A
+#define BUF_CNTL2 0x3B
+#define BUF_STATUS_1 0x3C
+#define BUF_STATUS_2 0x3D
+#define BUF_CLEAR 0x3E
+#define BUF_READ 0x3F
+
 typedef struct {
   float x;
   float y;
@@ -37,5 +45,6 @@ typedef struct {
 
 HAL_StatusTypeDef KX122_Init(I2C_HandleTypeDef *hi2c);
 Vibration KX122_ReadAccelData(I2C_HandleTypeDef *hi2c);
+int8_t KX122_GetBufferSize(I2C_HandleTypeDef *hi2c);
 
 #endif /* SRC_KX122_H_ */

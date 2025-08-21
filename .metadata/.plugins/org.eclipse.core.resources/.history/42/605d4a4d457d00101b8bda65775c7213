@@ -1,0 +1,13 @@
+/*
+ * ecu_config.h
+ *
+ *  Created on: Aug 19, 2025
+ *      Author: Matheus Markies
+ */
+
+#ifndef INC_ECU_CONFIG_H_
+#define INC_ECU_CONFIG_H_
+
+
+
+#endif /* INC_ECU_CONFIG_H_ */

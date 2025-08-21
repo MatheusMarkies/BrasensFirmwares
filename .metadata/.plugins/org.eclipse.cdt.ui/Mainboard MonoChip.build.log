@@ -1,10 +1,10 @@
-12:46:29 **** Incremental Build of configuration Debug for project Mainboard MonoChip ****
+21:05:42 **** Build of configuration Debug for project Mainboard MonoChip ****
 make -j12 all 
 arm-none-eabi-size  Mainboard\ MonoChip.elf 
    text	   data	    bss	    dec	    hex	filename
-  61892	    512	   5040	  67444	  10774	Mainboard MonoChip.elf
+  63112	    512	   5056	  68680	  10c48	Mainboard MonoChip.elf
 Finished building: default.size.stdout
  
 
-12:46:30 Build Finished. 0 errors, 0 warnings. (took 298ms)
+21:05:43 Build Finished. 0 errors, 0 warnings. (took 303ms)
 

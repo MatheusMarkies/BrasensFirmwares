@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;ECUU_Formula&apos; to &apos;ECU_Formula&apos;" description="Rename resource &apos;ECUU_Formula&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="/ECUU_Formula" name="ECU_Formula" stamp="1755351162970" updateReferences="true"/>
+</session>

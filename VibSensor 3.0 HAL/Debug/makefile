@@ -1,6 +1,6 @@
 ################################################################################
 # Automatically-generated file. Do not edit!
-# Toolchain: GNU Tools for STM32 (12.3.rel1)
+# Toolchain: GNU Tools for STM32 (13.3.rel1)
 ################################################################################
 
 -include ../makefile.init
@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := VibSensor V3.0
+BUILD_ARTIFACT_NAME := Debug
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-VibSensor\ V3.0.elf \
+Debug.elf \
 
 MAP_FILES += \
-VibSensor\ V3.0.map \
+Debug.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-VibSensor\ V3.0.list \
+Debug.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: VibSensor\ V3.0.elf secondary-outputs
+main-build: Debug.elf secondary-outputs
 
 # Tool invocations
-VibSensor\ V3.0.elf VibSensor\ V3.0.map: $(OBJS) $(USER_OBJS) D:\Projetos\Firmware\firmware\VibSensor\ 3.0\ HAL\STM32L053C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "VibSensor V3.0.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"D:\Projetos\Firmware\firmware\VibSensor 3.0 HAL\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="VibSensor V3.0.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Debug.elf Debug.map: $(OBJS) $(USER_OBJS) D:\Projetos\BrasensFirmwares\BrasensFirmwares\Debug\STM32L053C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "Debug.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"D:\Projetos\BrasensFirmwares\BrasensFirmwares\Debug\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Debug.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-VibSensor\ V3.0.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "VibSensor V3.0.list"
+Debug.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "Debug.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) VibSensor\ V3.0.elf VibSensor\ V3.0.list VibSensor\ V3.0.map VibSensor\\ V3.0.elf default.size.stdout
+	-$(RM) Debug.elf Debug.list Debug.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

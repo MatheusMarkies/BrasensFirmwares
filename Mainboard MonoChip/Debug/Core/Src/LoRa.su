@@ -20,3 +20,4 @@
 ../Core/Src/LoRa.c:479:9:LoRa_receive	56	static
 ../Core/Src/LoRa.c:512:5:LoRa_getRSSI	32	static
 ../Core/Src/LoRa.c:528:10:LoRa_init	40	static
+../Core/Src/LoRa.c:596:10:crc16	24	static

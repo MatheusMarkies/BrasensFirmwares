@@ -20,3 +20,4 @@
 ../Core/Src/LoRa.c:479:9:LoRa_receive	5
 ../Core/Src/LoRa.c:512:5:LoRa_getRSSI	1
 ../Core/Src/LoRa.c:528:10:LoRa_init	3
+../Core/Src/LoRa.c:596:10:crc16	4

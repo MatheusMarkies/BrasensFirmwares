@@ -31,7 +31,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-volatile uint32_t counter = 0;
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -84,7 +84,9 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
   /* USER CODE BEGIN HardFault_IRQn 0 */
-
+  // Em vez de um loop infinito, force um reset.
+  // O sistema vai reiniciar e tentar se recuperar.
+  NVIC_SystemReset();
   /* USER CODE END HardFault_IRQn 0 */
   while (1)
   {
@@ -125,7 +127,7 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
-	counter++;
+
   /* USER CODE END SysTick_IRQn 0 */
   HAL_IncTick();
   /* USER CODE BEGIN SysTick_IRQn 1 */
@@ -141,7 +143,5 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /* USER CODE BEGIN 1 */
-uint32_t millis() {
-  return (uint32_t)counter/1000;
-}
+
 /* USER CODE END 1 */

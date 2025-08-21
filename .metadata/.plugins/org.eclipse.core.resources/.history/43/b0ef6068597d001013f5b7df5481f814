@@ -1,0 +1,18 @@
+/*
+ * engine_sensors.h
+ *
+ *  Created on: Aug 19, 2025
+ *      Author: Matheus Markies
+ */
+
+#ifndef INC_ENGINE_SENSORS_H_
+#define INC_ENGINE_SENSORS_H_
+
+#include "main.h"
+#include "ecu_config.h"
+
+void EngineSensors_Init(ADC_HandleTypeDef* hadc_sensors, ADC_HandleTypeDef* hadc_battery);
+void EngineSensors_Process(void);
+
+
+#endif /* INC_ENGINE_SENSORS_H_ */

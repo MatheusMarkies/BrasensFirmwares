@@ -1,5 +1,0 @@
-../Core/Src/MAX17048.c:11:19:MAX17048_Init	24	static
-../Core/Src/MAX17048.c:16:19:MAX17048_ReadVoltage	16	static
-../Core/Src/MAX17048.c:20:19:MAX17048_ReadSOC	16	static
-../Core/Src/MAX17048.c:24:19:MAX17048_WriteRegister	32	static
-../Core/Src/MAX17048.c:33:19:MAX17048_ReadRegister	56	static
