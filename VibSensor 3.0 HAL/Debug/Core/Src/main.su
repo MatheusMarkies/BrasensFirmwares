@@ -38,6 +38,6 @@
 ../Core/Src/main.c:1065:6:setup	64	static
 ../Core/Src/main.c:1167:6:readAndSendFRAMData	112	static
 ../Core/Src/main.c:1251:6:HAL_GPIO_EXTI_Callback	16	static
-../Core/Src/main.c:1280:6:sampling	360	static
+../Core/Src/main.c:1279:6:sampling	360	static
 ../Core/Src/main.c:1305:6:loop	320	static
-../Core/Src/main.c:1471:6:Error_Handler	8	static,ignoring_inline_asm
+../Core/Src/main.c:1497:6:Error_Handler	8	static,ignoring_inline_asm

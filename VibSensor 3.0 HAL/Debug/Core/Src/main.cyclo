@@ -38,6 +38,6 @@
 ../Core/Src/main.c:1065:6:setup	7
 ../Core/Src/main.c:1167:6:readAndSendFRAMData	12
 ../Core/Src/main.c:1251:6:HAL_GPIO_EXTI_Callback	3
-../Core/Src/main.c:1280:6:sampling	2
-../Core/Src/main.c:1305:6:loop	20
-../Core/Src/main.c:1471:6:Error_Handler	0
+../Core/Src/main.c:1279:6:sampling	2
+../Core/Src/main.c:1305:6:loop	22
+../Core/Src/main.c:1497:6:Error_Handler	0

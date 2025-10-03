@@ -1251,8 +1251,7 @@ uint8_t lora_nack_detected = 0;
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == DIO_Pin) {
 		if (lora_nack_detected == 0) {
-			rx_nack_package_size = LoRa_receive(&myLoRa, nack_buffer,
-					sizeof(nack_buffer));
+			rx_nack_package_size = LoRa_receive(&myLoRa, nack_buffer,sizeof(nack_buffer));
 			lora_nack_detected = 1;
 		}
 		/*
@@ -1302,13 +1301,15 @@ void sampling() {
 }
 
 volatile uint8_t sleeping_msg = 0;
+volatile uint32_t deepsleep_start_timestamp = 0;
 void loop() {
 	HAL_IWDG_Refresh(&hiwdg);
 
 	switch (current_state) {
 
 	case STATE_IDLE:
-		LoRa_gotoMode(&myLoRa, RXCONTIN_MODE);
+		//LoRa_gotoMode(&myLoRa, RXCONTIN_MODE);
+		/*
 		if (lora_nack_detected == 1) {
 			DEBUG_PRINT("NACK received...\r\n");
 
@@ -1326,6 +1327,7 @@ void loop() {
 			lora_nack_detected = 0;
 			current_state = STATE_TRANSMITTING_VP;
 		}
+		*/
 
 		if (HAL_GetTick() - last_cycle_start_timestamp
 				>= (CYCLE_INTERVAL_MS / package_factor)) {
@@ -1445,7 +1447,9 @@ void loop() {
 			if (LoRa_transmit(&myLoRa, (uint8_t*) &data, sizeof(data), 100)
 					== 1) {
 				DEBUG_PRINT("Pacote final enviado com sucesso.\r\n");
-				current_state = STATE_STARTSAMPLING;
+				deepsleep_start_timestamp = HAL_GetTick();
+				LoRa_gotoMode(&myLoRa, RXCONTIN_MODE);
+				current_state = STATE_DEEPSLEEP;
 				current_package = 0;
 				break;
 			} else {
@@ -1457,7 +1461,29 @@ void loop() {
 		}
 		break;
 	case STATE_DEEPSLEEP:
+		if (lora_nack_detected == 1) {
+			DEBUG_PRINT("NACK received...\r\n");
 
+			if (rx_nack_package_size == strlen(SENSOR_KEY)) {
+				nack_buffer[rx_nack_package_size] = '\0';
+
+				if (strcmp((char*) nack_buffer, SENSOR_KEY) == 0) {
+					DEBUG_PRINT(
+							"NACK identified... Re-transmitting packages...\r\n");
+
+				}
+			}
+
+			//lora_nack_detected = 0;
+			//current_state = STATE_TRANSMITTING_VP;
+		}
+
+		if (HAL_GetTick() - deepsleep_start_timestamp >= 50000) {
+			if(!lora_nack_detected)
+				current_state = STATE_STARTSAMPLING;
+		} else {
+
+		}
 		break;
 	}
 }

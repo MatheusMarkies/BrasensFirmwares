@@ -107,6 +107,7 @@ cJSON* transmission_vibrationpackage_to_json(
 cJSON* transmission_data_to_json(const Transmission_Data*);
 /* GSM */
 uint8_t sendAT(char*, char*);
+uint8_t sendATWithTimeOut(char*, char*, uint32_t);
 
 void GSM_RX_Callback(void);
 void GSM_TX_Callback(void);
@@ -129,9 +130,9 @@ char* GSM_Send_HTTP_GET(void);
 char* GSM_Send_HTTP_POST(char*);
 
 void format_LoRa_Data_buffer(void);
-void buffer_add_sample( LoRa_Data);
+void buffer_add_sample(LoRa_Data);
 uint8_t check_range_value(int);
-void processing_data_in_FRAM( LoRa_Data);
+void processing_data_in_FRAM(LoRa_Data);
 
 void loop(void);
 void BlinkLed(void);
@@ -159,9 +160,9 @@ Transmission_Data data;
 Transmission_VibrationPackage vibrationPackage;
 FRAM_Metadata metadata;
 
-char apn[] = "zap.vivo.com.br";
-char user[] = "vivo";
-char pwd[] = "vivo";
+char apn[] = "timbrasil.br";
+char user[] = "tim";
+char pwd[] = "tim";
 
 /* BEHAVIOR */
 #define MAX_DATA_INDICES 300
@@ -180,7 +181,7 @@ uint16_t lastMSPRxTick = 0;
 MSPStatus mspStatus = FREE_STATUS;
 
 const uint32_t MSP_TIMEOUT = 10 * 1000;
-const uint32_t GSM_TIMEOUT = 1 * 1000;
+const uint32_t GSM_TIMEOUT = 15 * 1000;
 const uint32_t LED_BLINK_DURATION_MS = 150;
 const uint32_t SEND_ATTEMPT_INTERVAL_MS = 500;
 const uint32_t READ_SERIAL_INTERVAL_MS = 20;
@@ -215,7 +216,7 @@ GSMStatus gsmStatus = FREE;
 
 int started = 0;
 
-const char server[] = "ec2-54-212-246-25.us-west-2.compute.amazonaws.com";
+const char server[] = "ec2-35-88-115-76.us-west-2.compute.amazonaws.com";
 const uint16_t port = 8080;
 const char resource[] = "/data/register";
 
@@ -617,25 +618,8 @@ void setup() {
 	DEBUG_PRINT("Started!\r\n");
 }
 
-void send_NACK(char* sensor_key){
-	LoRa_gotoMode(&myLoRa, TRANSMIT_MODE);
+void send_NACK(char *sensor_key) {
 
-	int trycount = 0;
-	while (1) {
-		if (LoRa_transmit(&myLoRa, (uint8_t*) sensor_key, sizeof(sensor_key), 100)
-				== 1) {
-			DEBUG_PRINT("Pacote NACK enviado com sucesso.\r\n");
-
-			break;
-		} else {
-			DEBUG_PRINT("Falha ao enviar pacote NACK.\r\n");
-			trycount++;
-		}
-		if (trycount > 20)
-			break;
-	}
-
-	LoRa_gotoMode(&myLoRa, RXCONTIN_MODE);
 }
 
 void format_LoRa_Data_buffer() {
@@ -699,13 +683,6 @@ void processing_data_in_FRAM(LoRa_Data data) {
 		} else {
 			DEBUG_PRINT("\r\n");
 			DEBUG_PRINT("Error in VP\r\n");
-			char buffer[50];
-			snprintf(buffer, sizeof(buffer), "KEY: %s \r\n",
-					receivedPackage.key);
-			DEBUG_PRINT(buffer);
-
-			send_NACK(receivedPackage.key);
-			DEBUG_PRINT("\r\n");
 		}
 	} else {
 		Transmission_Data receivedData;
@@ -1188,6 +1165,57 @@ uint8_t sendAT(char command[], char answer[]) {
 	return ATisOK;
 }
 
+uint8_t sendATWithTimeOut(char command[], char answer[], uint32_t timeout_ms) {
+	uint8_t ATisOK = 0;
+	sendTick = HAL_GetTick();
+
+	resetBuffers();
+
+	HAL_UART_Receive_IT(&huart2, &GSM_RX_Stream_Data, 1);
+
+	uint8_t commandBuffer[200] = { 0 };
+	memcpy(commandBuffer, (uint8_t*) command, strlen(command) + 1);
+
+	DEBUG_PRINT("Sending AT Command: \r\n");
+	DEBUG_PRINT(command);
+
+	uint32_t previousTick = HAL_GetTick();
+	while (!ATisOK && previousTick + timeout_ms > HAL_GetTick()) {
+
+		if (HAL_GetTick() - last_send_at_timestamp >= SEND_AT_INTERVAL_MS) {
+			last_send_at_timestamp = HAL_GetTick();
+
+			if (gsmStatus == FREE) {
+				HAL_UART_Transmit_IT(&huart2, commandBuffer,
+						sizeof(commandBuffer));
+			}
+
+			if (gsmStatus >= WAITING) {
+				if (gsmStatus == RX) {
+					if (strstr((char*) GSM_RX_Buffer, answer) != NULL) {
+						ATisOK = 1;
+						break;
+					}
+					if (strstr((char*) GSM_RX_Buffer, "ERROR") != NULL) {
+						ATisOK = 0;
+						break;
+					}
+				}
+			}
+
+		}
+		//HAL_Delay(50);
+	}
+
+	gsmStatus = FREE;
+
+	if (!ATisOK) {
+		DEBUG_PRINT((char*) GSM_RX_Buffer);
+		DEBUG_PRINT("CMD Timeout...\r\n");
+	}
+	return ATisOK;
+}
+
 void directTransmit(char *cmd) {
 	resetBuffers();
 	HAL_UART_Transmit(&huart2, (uint8_t*) cmd, strlen(cmd), 1000);
@@ -1448,7 +1476,7 @@ char* GSM_Send_HTTP_GET() {
 
 	if (httpINITisOK) {
 		sendAT(
-				"AT+HTTPPARA=\"URL\",\"http://ec2-54-212-246-25.us-west-2.compute.amazonaws.com:8080/data/test\"\r\n",
+				"AT+HTTPPARA=\"URL\",\"http://ec2-35-88-115-76.us-west-2.compute.amazonaws.com:8080/data/test\"\r\n",
 				"OK");
 		sendAT("AT+HTTPACTION=0\r\n", "OK");
 
@@ -1465,9 +1493,89 @@ char* GSM_Send_HTTP_GET() {
 
 	return read;
 }
-
+/*
 char* GSM_Send_HTTP_POST(char *json) {
 	uint8_t httpINITisOK = 0;
+
+    sendAT("AT\r\n", "OK");
+    sendAT("ATI\r\n", "OK");
+    sendAT("AT+CSQ\r\n", "OK");
+    sendAT("AT+CPSI?\r\n", "OK");
+
+    if (!sendATWithTimeOut("AT+CGATT?\r\n", "+CGATT: 1", 5000)) {
+        DEBUG_PRINT("Not attached to PS domain!\r\n");
+    }
+
+    sendAT("AT+CGDCONT=1,\"IP\",\"timbrasil.br\"\r\n", "OK");
+    sendAT("AT+CGAUTH=1,1,\"tim\",\"tim\"\r\n", "OK");
+
+    if (!sendATWithTimeOut("AT+CGACT=1,1\r\n", "OK", 60000)) {
+        DEBUG_PRINT("CGACT failed or timed out\r\n");
+    }
+
+    if (sendATWithTimeOut("AT+CGPADDR=1\r\n", "+CGPADDR:", 5000)) {
+        DEBUG_PRINT("IP assigned!\r\n");
+    } else {
+        DEBUG_PRINT("No IP assigned yet.\r\n");
+    }
+
+    sendAT("AT+CMEE=2\r\n", "OK");
+
+    sendATWithTimeOut("AT+HTTPTERM\r\n", "OK", 120000);
+    sendATWithTimeOut("AT+NETOPEN?\r\n", "+NETOPEN:", 5000);
+    sendATWithTimeOut("AT+NETCLOSE\r\n", "OK", 60000);
+    sendATWithTimeOut("AT+CGATT?\r\n", "+CGATT: 1", 5000);
+    sendATWithTimeOut("AT+CGACT?\r\n", "+CGACT:", 5000);
+    sendATWithTimeOut("AT+CGPADDR=1\r\n", "+CGPADDR:", 5000);
+
+
+    if (sendATWithTimeOut("AT+HTTPINIT\r\n", "OK", 120000)) {
+        DEBUG_PRINT("HTTPINIT OK\r\n");
+    } else {
+        DEBUG_PRINT("HTTPINIT FAILED — conteúdo do buffer abaixo:\r\n");
+        DEBUG_PRINT((char*)GSM_RX_Buffer);
+    }
+
+	DEBUG_PRINT("\r\n");
+	if (httpINITisOK) {
+		DEBUG_PRINT(json);
+		// Define o URL para o POST
+		sendAT(
+				"AT+HTTPPARA=\"URL\",\"http://ec2-35-88-115-76.us-west-2.compute.amazonaws.com:8080/data/register\"\r\n",
+				"OK");
+
+		// Define o tipo de conteúdo como JSON
+		sendAT("AT+HTTPPARA=\"CONTENT\",\"application/json\"\r\n", "OK");
+
+		HAL_Delay(50);
+
+		// Envia o conteúdo JSON
+		GSM_HTTP_Send(json);
+
+		// Executa o POST HTTP
+		sendAT("AT+HTTPACTION=1\r\n", "OK");
+		DEBUG_PRINT((char*) GSM_RX_Buffer);
+
+		// Lê o cabeçalho de resposta HTTP
+		sendAT("AT+HTTPHEAD\r\n", "OK");
+		DEBUG_PRINT((char*) GSM_RX_Buffer);
+
+		// Finaliza a sessão HTTP
+		sendAT("AT+HTTPTERM\r\n", "OK");
+	}
+
+	return "";
+}
+*/
+char* GSM_Send_HTTP_POST(char *json) {
+	uint8_t httpINITisOK = 0;
+
+    sendATWithTimeOut("AT+HTTPTERM\r\n", "OK", 120000);
+    sendATWithTimeOut("AT+NETOPEN?\r\n", "+NETOPEN:", 5000);
+    sendATWithTimeOut("AT+NETCLOSE\r\n", "OK", 60000);
+    sendATWithTimeOut("AT+CGATT?\r\n", "+CGATT: 1", 5000);
+    sendATWithTimeOut("AT+CGACT?\r\n", "+CGACT:", 5000);
+    sendATWithTimeOut("AT+CGPADDR=1\r\n", "+CGPADDR:", 5000);
 
 	// Inicializa HTTP
 	if (sendAT("AT+HTTPINIT\r\n", "OK")) {
@@ -1478,7 +1586,7 @@ char* GSM_Send_HTTP_POST(char *json) {
 	if (httpINITisOK) {
 		// Define o URL para o POST
 		sendAT(
-				"AT+HTTPPARA=\"URL\",\"http://ec2-54-212-246-25.us-west-2.compute.amazonaws.com:8080/data/register\"\r\n",
+				"AT+HTTPPARA=\"URL\",\"http://ec2-35-88-115-76.us-west-2.compute.amazonaws.com:8080/data/register\"\r\n",
 				"OK");
 
 		// Define o tipo de conteúdo como JSON
