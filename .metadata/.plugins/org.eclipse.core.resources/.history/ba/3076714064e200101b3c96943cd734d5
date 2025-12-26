@@ -1,0 +1,1506 @@
+/*
+ * st25r300.c
+ *
+ *  Created on: Dec 25, 2025
+ *      Author: Matheus Markies
+ */
+#include "st25r300.h"
+#include <stdlib.h>´
+
+// ============================================================================
+// DEFINES AND MACROS
+// ============================================================================
+
+// SPI Operation Modes (Bit 7 - R/W)
+#define ST25R300_SPI_WRITE                          0x00
+#define ST25R300_SPI_READ                           0x80
+
+// SPI Commands
+#define ST25R300_CMD_MASK                           0x60
+
+// Timeouts
+#define ST25R300_SPI_TIMEOUT                        100  // ms
+#define ST25R300_RESET_DELAY                        2    // ms
+
+// ============================================================================
+// PRIVATE FUNCTIONS - GPIO CONTROL
+// ============================================================================
+
+/**
+ * @brief  Set Chip Select (CS/BSS) pin LOW - Enable SPI
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval None
+ */
+void ST25R300_CS_Low(ST25R300 *dev) {
+    if (dev && dev->CS_port) {
+        HAL_GPIO_WritePin(dev->CS_port, dev->CS_pin, GPIO_PIN_RESET);
+    }
+}
+
+/**
+ * @brief  Set Chip Select (CS/BSS) pin HIGH - Disable SPI
+ */
+void ST25R300_CS_High(ST25R300 *dev) {
+    if (dev && dev->CS_port) {
+        HAL_GPIO_WritePin(dev->CS_port, dev->CS_pin, GPIO_PIN_SET);
+    }
+}
+
+/**
+ * @brief  Set Reset pin LOW - Enable device (Active State)
+ */
+void ST25R300_Reset_Low(ST25R300 *dev) {
+    if (dev && dev->reset_port) {
+        HAL_GPIO_WritePin(dev->reset_port, dev->reset_pin, GPIO_PIN_RESET);
+    }
+}
+
+/**
+ * @brief  Set Reset pin HIGH - Hold device in reset
+ */
+void ST25R300_Reset_High(ST25R300 *dev) {
+    if (dev && dev->reset_port) {
+        HAL_GPIO_WritePin(dev->reset_port, dev->reset_pin, GPIO_PIN_SET);
+    }
+}
+
+/**
+ * @brief  Read IRQ pin state
+ */
+GPIO_PinState ST25R300_IRQ_Read(ST25R300 *dev) {
+    if (dev && dev->IRQ_port) {
+        return HAL_GPIO_ReadPin(dev->IRQ_port, dev->IRQ_pin);
+    }
+    return GPIO_PIN_RESET; // Retorno padrão seguro
+}
+
+// ============================================================================
+// PUBLIC FUNCTIONS - REGISTER ACCESS
+// ============================================================================
+
+/**
+ * @brief  Write a single byte to a register
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  reg: Register address (0x00 to 0x57)
+ * @param  data: Data byte to write
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_WriteRegister(ST25R300 *dev, uint8_t reg,
+		uint8_t data) {
+	HAL_StatusTypeDef status;
+	uint8_t tx_buffer[2];
+
+	// Validate register address
+	if (reg > 0x57) {
+		return HAL_ERROR;
+	}
+
+	// Prepare command byte (bit 7 = 0 for write)
+	tx_buffer[0] = (reg & 0x7F);  // Clear bit 7 for write operation
+	tx_buffer[1] = data;
+
+	// SPI Transaction
+	ST25R300_CS_Low(dev);
+	status = HAL_SPI_Transmit(dev->hSPIx, tx_buffer, 2, ST25R300_SPI_TIMEOUT);
+	ST25R300_CS_High(dev);
+
+	return status;
+}
+
+/**
+ * @brief  Write multiple bytes to consecutive registers (auto-increment)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  reg: Starting register address (0x00 to 0x57)
+ * @param  data: Pointer to data buffer
+ * @param  length: Number of bytes to write
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_WriteRegisters(ST25R300 *dev, uint8_t reg,
+		uint8_t *data, uint16_t length) {
+	HAL_StatusTypeDef status;
+	uint8_t cmd;
+
+	// Validate parameters
+	if (reg > 0x57 || data == NULL || length == 0) {
+		return HAL_ERROR;
+	}
+
+	// Prepare command byte (bit 7 = 0 for write)
+	cmd = (reg & 0x7F);
+
+	// SPI Transaction
+	ST25R300_CS_Low(dev);
+
+	// Send command byte
+	status = HAL_SPI_Transmit(dev->hSPIx, &cmd, 1, ST25R300_SPI_TIMEOUT);
+
+	if (status == HAL_OK) {
+		// Send data bytes (address auto-increments)
+		status = HAL_SPI_Transmit(dev->hSPIx, data, length,
+				ST25R300_SPI_TIMEOUT);
+	}
+
+	ST25R300_CS_High(dev);
+
+	return status;
+}
+
+/**
+ * @brief  Read a single byte from a register
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  reg: Register address (0x00 to 0x57)
+ * @param  data: Pointer to store read data
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_ReadRegister(ST25R300 *dev, uint8_t reg,
+		uint8_t *data) {
+	HAL_StatusTypeDef status;
+	uint8_t cmd;
+	uint8_t dummy = 0x00;
+
+	// Validate parameters
+	if (reg > 0x57 || data == NULL) {
+		return HAL_ERROR;
+	}
+
+	// Prepare command byte (bit 7 = 1 for read)
+	cmd = (reg | 0x80);  // Set bit 7 for read operation
+
+	// SPI Transaction
+	ST25R300_CS_Low(dev);
+
+	// Send command byte
+	status = HAL_SPI_Transmit(dev->hSPIx, &cmd, 1, ST25R300_SPI_TIMEOUT);
+
+	if (status == HAL_OK) {
+		// Send dummy byte and receive data
+		status = HAL_SPI_TransmitReceive(dev->hSPIx, &dummy, data, 1,
+				ST25R300_SPI_TIMEOUT);
+	}
+
+	ST25R300_CS_High(dev);
+
+	return status;
+}
+
+/**
+ * @brief  Read multiple bytes from consecutive registers (auto-increment)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  reg: Starting register address (0x00 to 0x57)
+ * @param  data: Pointer to buffer to store read data
+ * @param  length: Number of bytes to read
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_ReadRegisters(ST25R300 *dev, uint8_t reg,
+		uint8_t *data, uint16_t length) {
+	HAL_StatusTypeDef status;
+	uint8_t cmd;
+
+	// Validate parameters
+	if (reg > 0x57 || data == NULL || length == 0) {
+		return HAL_ERROR;
+	}
+
+	// Prepare command byte (bit 7 = 1 for read)
+	cmd = (reg | 0x80);
+
+	// Prepare dummy buffer for transmit
+	uint8_t *dummy_tx = (uint8_t*) calloc(length, sizeof(uint8_t));
+	if (dummy_tx == NULL) {
+		return HAL_ERROR;
+	}
+
+	// SPI Transaction
+	ST25R300_CS_Low(dev);
+
+	// Send command byte
+	status = HAL_SPI_Transmit(dev->hSPIx, &cmd, 1, ST25R300_SPI_TIMEOUT);
+
+	if (status == HAL_OK) {
+		// Send dummy bytes and receive data (address auto-increments)
+		status = HAL_SPI_TransmitReceive(dev->hSPIx, dummy_tx, data, length,
+				ST25R300_SPI_TIMEOUT);
+	}
+
+	ST25R300_CS_High(dev);
+
+	free(dummy_tx);
+
+	return status;
+}
+
+/**
+ * @brief  Modify specific bits in a register (Read-Modify-Write)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  reg: Register address (0x00 to 0x57)
+ * @param  mask: Bit mask for bits to modify
+ * @param  value: New value for masked bits
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ *
+ * @note   Example: To set bit 3 and clear bit 1:
+ *         ST25R300_ModifyRegister(dev, reg, 0x0A, 0x08)
+ *         mask = 0b00001010, value = 0b00001000
+ */
+HAL_StatusTypeDef ST25R300_ModifyRegister(ST25R300 *dev, uint8_t reg,
+		uint8_t mask, uint8_t value) {
+	HAL_StatusTypeDef status;
+	uint8_t reg_value;
+
+	// Read current register value
+	status = ST25R300_ReadRegister(dev, reg, &reg_value);
+
+	if (status == HAL_OK) {
+		// Clear bits to modify and set new values
+		reg_value = (reg_value & ~mask) | (value & mask);
+
+		// Write modified value back
+		status = ST25R300_WriteRegister(dev, reg, reg_value);
+	}
+
+	return status;
+}
+
+
+HAL_StatusTypeDef ST25R300_SendCommand(ST25R300 *dev, uint8_t cmd) {
+    HAL_StatusTypeDef status;
+
+    if (dev == NULL || dev->hSPIx == NULL) {
+        return HAL_ERROR;
+    }
+
+    ST25R300_CS_Low(dev);
+    status = HAL_SPI_Transmit(dev->hSPIx, &cmd, 1, ST25R300_SPI_TIMEOUT);
+    ST25R300_CS_High(dev);
+
+    return status;
+}
+// ============================================================================
+// PUBLIC FUNCTIONS - FIFO ACCESS
+// ============================================================================
+
+/**
+ * @brief  Write data to FIFO
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  data: Pointer to data buffer
+ * @param  length: Number of bytes to write (1-256)
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_WriteFIFO(ST25R300 *dev, uint8_t *data,
+		uint16_t length) {
+	HAL_StatusTypeDef status;
+	uint8_t cmd = 0x5F;  // FIFO write address (bit 7 = 0 for write)
+
+	// Validate parameters
+	if (data == NULL || length == 0 || length > 256) {
+		return HAL_ERROR;
+	}
+
+	// SPI Transaction
+	ST25R300_CS_Low(dev);
+
+	// Send FIFO write command
+	status = HAL_SPI_Transmit(dev->hSPIx, &cmd, 1, ST25R300_SPI_TIMEOUT);
+
+	if (status == HAL_OK) {
+		// Write data to FIFO
+		status = HAL_SPI_Transmit(dev->hSPIx, data, length,
+				ST25R300_SPI_TIMEOUT);
+	}
+
+	ST25R300_CS_High(dev);
+
+	return status;
+}
+
+/**
+ * @brief  Read data from FIFO
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  data: Pointer to buffer to store read data
+ * @param  length: Number of bytes to read (1-256)
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_ReadFIFO(ST25R300 *dev,
+                                   uint8_t *data,
+                                   uint16_t length)
+{
+    if (!data || length == 0 || length > 256)
+        return HAL_ERROR;
+
+    uint8_t cmd = 0xBF; // FIFO READ
+
+    ST25R300_CS_Low(dev);
+
+    if (HAL_SPI_Transmit(dev->hSPIx, &cmd, 1, ST25R300_SPI_TIMEOUT) != HAL_OK) {
+        ST25R300_CS_High(dev);
+        return HAL_ERROR;
+    }
+
+    if (HAL_SPI_Receive(dev->hSPIx, data, length, ST25R300_SPI_TIMEOUT) != HAL_OK) {
+        ST25R300_CS_High(dev);
+        return HAL_ERROR;
+    }
+
+    ST25R300_CS_High(dev);
+
+    return HAL_OK;
+}
+
+
+// ============================================================================
+// PUBLIC FUNCTIONS - DEVICE CONTROL
+// ============================================================================
+
+/**
+ * @brief  Hardware reset of ST25R300
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval None
+ *
+ * @note   Reset pulse must be at least 10μs HIGH according to datasheet
+ *         After reset, wait at least 138μs before first SPI operation
+ */
+void ST25R300_HardwareReset(ST25R300 *dev) {
+	// Set RESET high (device in reset state)
+	ST25R300_Reset_High(dev);
+	HAL_Delay(ST25R300_RESET_DELAY);
+
+	// Set RESET low (device active)
+	ST25R300_Reset_Low(dev);
+	HAL_Delay(1);  // Wait for device to boot (t_BOOT = 138μs typical)
+}
+
+/**
+ * @brief  Check if IRQ is active
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval uint8_t: 1 if IRQ is active (HIGH), 0 otherwise
+ */
+uint8_t ST25R300_IsIRQ_Active(ST25R300 *dev) {
+	return (ST25R300_IRQ_Read(dev) == GPIO_PIN_SET) ? 1 : 0;
+}
+
+/**
+ * @brief  Initialize ST25R300 GPIO pins and reset device
+ * @param  dev: Pointer to ST25R300 device structure (must be pre-configured)
+ * @retval HAL_StatusTypeDef: HAL_OK if success
+ *
+ * @note   This function assumes GPIOs and SPI are already initialized by CubeMX
+ */
+HAL_StatusTypeDef ST25R300_Init(ST25R300 *dev) {
+	// Validate device structure
+	if (dev == NULL || dev->hSPIx == NULL) {
+		return HAL_ERROR;
+	}
+
+	// Set initial pin states
+	ST25R300_CS_High(dev);      // CS inactive (HIGH)
+	ST25R300_Reset_High(dev);   // Device in reset
+
+	// Perform hardware reset
+	ST25R300_HardwareReset(dev);
+
+	/*
+	 * Bit 4 (vdddr_en)
+	 * Bit 3 (en)
+	 */
+	ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, 0x18);
+	return HAL_OK;
+}
+
+uint16_t ST25R300_Identity(ST25R300 *_st25) {
+	uint8_t read = ST25R300_ReadRegister(_st25, ST25R300_REG_IC_IDENTITY, 0);
+	if ((read & 0xF8) != 0xB0)
+		return ST25_OK;
+	else
+		return ST25_NOT_FOUND;
+}
+
+void ST25R300_FieldOn(ST25R300 *dev) {
+    ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, 0x18);
+    HAL_Delay(5);
+
+    // 0x78 = tx_en | rx_en | vdddr_en | en
+    ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, 0x78);
+}
+
+void ST25R300_FieldOff(ST25R300 *dev) {
+    // 0x18 = vdddr_en | en
+    ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, 0x18);
+}
+
+HAL_StatusTypeDef ST25R300_SetAntennaMode(ST25R300 *dev, ST25R300_AntennaMode_t mode)
+{
+    uint8_t value = (mode == ST25R300_ANTENNA_SINGLE) ? ST25R300_GENERAL_CFG_SINGLE_BIT : 0x00;
+
+    return ST25R300_ModifyRegister(dev,
+                                   ST25R300_REG_GENERAL_CONFIG,
+                                   ST25R300_GENERAL_CFG_SINGLE_BIT,
+                                   value);
+}
+
+/**
+ * @brief  Select which RFO output to use in Single-Ended mode
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  rfo: RFO output selection
+ *         @arg ST25R300_RFO1: Use RFO1 and RFI1
+ *         @arg ST25R300_RFO2: Use RFO2 and RFI2 (field detector sense at RFI2)
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ *
+ * @note   This setting only applies when antenna is in Single-Ended mode
+ * @note   Can be used to switch between two different antennas dynamically
+ */
+HAL_StatusTypeDef ST25R300_SelectRFO(ST25R300 *dev, ST25R300_RFO_Select_t rfo)
+{
+    uint8_t value = (rfo == ST25R300_RFO2) ? ST25R300_GENERAL_CFG_RFO2_BIT : 0x00;
+
+    return ST25R300_ModifyRegister(dev,
+                                   ST25R300_REG_GENERAL_CONFIG,
+                                   ST25R300_GENERAL_CFG_RFO2_BIT,
+                                   value);
+}
+
+/**
+ * @brief  Configure antenna in Single-Ended mode with RFO selection
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  rfo: RFO output selection (RFO1 or RFO2)
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ *
+ * @note   Combined function to set single-ended mode and select RFO in one call
+ */
+HAL_StatusTypeDef ST25R300_ConfigureSingleEndedAntenna(ST25R300 *dev, ST25R300_RFO_Select_t rfo)
+{
+    HAL_StatusTypeDef status;
+    uint8_t config_value;
+
+    // Read current configuration
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_GENERAL_CONFIG, &config_value);
+
+    if (status == HAL_OK)
+    {
+        // Set Single mode bit
+        config_value |= ST25R300_GENERAL_CFG_SINGLE_BIT;
+
+        // Set or clear RFO2 bit based on selection
+        if (rfo == ST25R300_RFO2)
+        {
+            config_value |= ST25R300_GENERAL_CFG_RFO2_BIT;
+        }
+        else
+        {
+            config_value &= ~ST25R300_GENERAL_CFG_RFO2_BIT;
+        }
+
+        // Write back configuration
+        status = ST25R300_WriteRegister(dev, ST25R300_REG_GENERAL_CONFIG, config_value);
+    }
+
+    return status;
+}
+
+/**
+ * @brief  Configure antenna in Differential mode (default)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ *
+ * @note   In differential mode, both RFO1 and RFO2 drive the antenna
+ */
+HAL_StatusTypeDef ST25R300_ConfigureDifferentialAntenna(ST25R300 *dev)
+{
+    // Clear Single bit to enable differential mode
+    return ST25R300_ModifyRegister(dev,
+                                   ST25R300_REG_GENERAL_CONFIG,
+                                   ST25R300_GENERAL_CFG_SINGLE_BIT,
+                                   0x00);
+}
+
+/**
+ * @brief  Get current antenna configuration
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  mode: Pointer to store antenna mode
+ * @param  rfo: Pointer to store RFO selection (only valid in single-ended mode)
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_GetAntennaConfig(ST25R300 *dev,
+                                           ST25R300_AntennaMode_t *mode,
+                                           ST25R300_RFO_Select_t *rfo)
+{
+    HAL_StatusTypeDef status;
+    uint8_t config_value;
+
+    // Validate parameters
+    if (mode == NULL || rfo == NULL)
+    {
+        return HAL_ERROR;
+    }
+
+    // Read configuration register
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_GENERAL_CONFIG, &config_value);
+
+    if (status == HAL_OK)
+    {
+        // Extract antenna mode
+        *mode = (config_value & ST25R300_GENERAL_CFG_SINGLE_BIT) ?
+                ST25R300_ANTENNA_SINGLE : ST25R300_ANTENNA_DIFFERENTIAL;
+
+        // Extract RFO selection
+        *rfo = (config_value & ST25R300_GENERAL_CFG_RFO2_BIT) ?
+               ST25R300_RFO2 : ST25R300_RFO1;
+    }
+
+    return status;
+}
+
+// ============================================================================
+// LOW-LEVEL DIAGNOSTIC FUNCTIONS
+// ============================================================================
+
+/**
+ * @brief  Enable test register access
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval HAL_StatusTypeDef
+ */
+HAL_StatusTypeDef ST25R300_EnableTestAccess(ST25R300 *dev)
+{
+    return ST25R300_SendCommand(dev, 0xFC);  // Test register access command
+}
+
+HAL_StatusTypeDef ST25R300_InitRegulators(ST25R300 *dev) {
+    HAL_StatusTypeDef status;
+    uint8_t reg_value;
+
+    // 1. Configure VDD_DR regulator (Register 0x02)
+    reg_value = 0x42;  // regd=2 (300mV drop), rege manual
+    status = ST25R300_WriteRegister(dev, 0x02, reg_value);
+    if (status != HAL_OK) return status;
+
+    // 2. Configure TX Driver (Register 0x03)
+    reg_value = 0x20;  // regd=2, d_res=0 (min resistance)
+    status = ST25R300_WriteRegister(dev, 0x03, reg_value);
+    if (status != HAL_OK) return status;
+
+    // 3. Enable regulators (Operation Register 0x00)
+    reg_value = 0x18;  // vdddr_en=1, en=1 (Ready mode)
+    status = ST25R300_WriteRegister(dev, 0x00, reg_value);
+    if (status != HAL_OK) return status;
+
+    HAL_Delay(10);  // Wait for regulators to stabilize
+
+    // 4. Execute "Adjust Regulators" command (0x68)
+    status = ST25R300_SendCommand(dev, 0x68);
+    if (status != HAL_OK) return status;
+
+    // 5. Wait for I_dct interrupt (regulator adjustment done)
+    HAL_Delay(5);
+
+    // 6. Clear any pending IRQs
+    uint8_t irq_status[3];
+    ST25R300_ReadRegister(dev, 0x3C, &irq_status[0]); // Clear IRQ1
+    ST25R300_ReadRegister(dev, 0x3D, &irq_status[1]); // Clear IRQ2
+    ST25R300_ReadRegister(dev, 0x3E, &irq_status[2]); // Clear IRQ3
+
+    return HAL_OK;
+}
+
+HAL_StatusTypeDef ST25R300_FullReset(ST25R300 *dev) {
+    // 1. Hardware Reset
+	ST25R300_HardwareReset(dev);
+
+    // 2. Verify chip ID
+    uint8_t chip_id;
+    ST25R300_ReadRegister(dev, 0x3F, &chip_id);
+    if ((chip_id & 0xF8) != 0xB0) {  // IC type must be 0x16 (10110b)
+        return HAL_ERROR;
+    }
+
+    // 3. Set Default command
+    ST25R300_SendCommand(dev, 0x60);
+    HAL_Delay(5);
+
+    // 4. Initialize regulators
+    return ST25R300_InitRegulators(dev);
+}
+
+void ST25R300_DetailedDiagnostic(ST25R300 *dev) {
+    uint8_t data;
+
+    DEBUG_PRINT("\n=== ST25R300 DIAGNOSTIC ===\n");
+
+    // Read all voltage regulators
+    ST25R300_ReadRegister(dev, 0x48, &data);  // Analog Display 1
+    DEBUG_PRINT("VDD_DR Control: 0x%02X (regc=%d)\n", data, data & 0x7F);
+
+    ST25R300_ReadRegister(dev, 0x49, &data);  // Analog Display 2
+    DEBUG_PRINT("AFE Gain: %d dB\n", (data & 0x0F) * 3);
+
+    // Check oscillator
+    ST25R300_ReadRegister(dev, 0x40, &data);  // Status 1
+    DEBUG_PRINT("Oscillator: %s\n", (data & 0x10) ? "STABLE ✓" : "NOT READY ✗");
+    DEBUG_PRINT("AGD: %s\n", (data & 0x20) ? "OK ✓" : "FAULT ✗");
+
+    // Trigger diagnostic measurement (VDD_A)
+    ST25R300_WriteRegister(dev, 0x58, 0x0D);  // Select VDD_A measurement
+    ST25R300_SendCommand(dev, 0xF8);  // Trigger measurement
+    HAL_Delay(10);
+
+    // Read result from FIFO
+    uint8_t result[4];
+    if (ST25R300_ReadFIFO(dev, result, 4) == HAL_OK) {
+        // Extração do valor bruto de 9 bits (bit 0 do byte 1 é o MSB)
+        uint16_t vdd_a_raw = ((uint16_t)(result[1] & 0x01) << 8) | result[2];
+
+        // Cálculo em milivolts usando inteiros (11.7 mV -> 117 / 10)
+        uint32_t vdd_a_mv = (vdd_a_raw * 117) / 10;
+
+        // Separação para exibição: %d.%02d V
+        int v_int = vdd_a_mv / 1000;          // Parte inteira (Volts)
+        int v_dec = (vdd_a_mv % 1000) / 10;   // Duas casas decimais (Centésimos)
+
+        // Status check (Range: 2850mV a 3150mV conforme datasheet)
+        const char* status_icon = (vdd_a_mv >= 2850 && vdd_a_mv <= 3150) ? "✓" : "✗";
+
+        DEBUG_PRINT("VDD_A: %d.%02d V %s\r\n", v_int, v_dec, status_icon);
+    }
+}
+
+/**
+ * @brief  Read test register
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  test_reg: Test register address
+ * @param  data: Pointer to store data
+ * @retval HAL_StatusTypeDef
+ */
+HAL_StatusTypeDef ST25R300_ReadTestRegister(ST25R300 *dev, uint8_t test_reg, uint8_t *data)
+{
+    HAL_StatusTypeDef status;
+    uint8_t cmd[2];
+
+    // Enable test access
+    status = ST25R300_EnableTestAccess(dev);
+    if (status != HAL_OK) return status;
+
+    // Read test register with address 0xFC | 0x80
+    cmd[0] = 0xFC | 0x80;  // Read command
+
+    ST25R300_CS_Low(dev);
+    status = HAL_SPI_Transmit(dev->hSPIx, cmd, 1, ST25R300_SPI_TIMEOUT);
+    if (status == HAL_OK)
+    {
+        cmd[0] = test_reg;
+        uint8_t dummy = 0x00;
+        status = HAL_SPI_TransmitReceive(dev->hSPIx, &dummy, data, 1, ST25R300_SPI_TIMEOUT);
+    }
+    ST25R300_CS_High(dev);
+
+    return status;
+}
+
+/**
+ * @brief  Write test register
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  test_reg: Test register address
+ * @param  data: Data to write
+ * @retval HAL_StatusTypeDef
+ */
+HAL_StatusTypeDef ST25R300_WriteTestRegister(ST25R300 *dev, uint8_t test_reg, uint8_t data)
+{
+    HAL_StatusTypeDef status;
+    uint8_t cmd[3];
+
+    // Enable test access
+    status = ST25R300_EnableTestAccess(dev);
+    if (status != HAL_OK) return status;
+
+    // Write test register
+    cmd[0] = 0xFC;  // Write command
+    cmd[1] = test_reg;
+    cmd[2] = data;
+
+    ST25R300_CS_Low(dev);
+    status = HAL_SPI_Transmit(dev->hSPIx, cmd, 3, ST25R300_SPI_TIMEOUT);
+    ST25R300_CS_High(dev);
+
+    return status;
+}
+
+// Define o comando conforme a Tabela 6 do datasheet
+#define ST25R300_CMD_CLEAR_FIFO  0x64
+
+/**
+ * @brief Limpa o FIFO para garantir que a próxima leitura de diagnóstico seja de dados novos.
+ */
+void ST25R300_ResetFIFO(ST25R300 *dev) {
+    // Envia o comando direto 0x64 conforme visto na Tabela 6
+    if (ST25R300_SendCommand(dev, ST25R300_CMD_CLEAR_FIFO) == HAL_OK) {
+        DEBUG_PRINT("FIFO Cleared successfully.\r\n");
+    } else {
+        DEBUG_PRINT("Error clearing FIFO.\r\n");
+    }
+}
+
+/**
+ * @brief  Executa um reset completo (Set Default) no chip.
+ * @details Retorna o chip ao estado inicial de power-up, limpando registros e o FIFO.
+ */
+HAL_StatusTypeDef ST25R300_SoftReset(ST25R300 *dev) {
+    HAL_StatusTypeDef status;
+
+    DEBUG_PRINT("Iniciando Full Reset (Set Default)...\r\n");
+
+    // 1. Enviar comando Set Default (0x60)
+    // Este comando funciona tanto em modo Ready (RD) quanto Power Down (PD).
+    status = ST25R300_SendCommand(dev, 0x60);
+    if (status != HAL_OK) return status;
+
+    // 2. Aguardar o tempo de boot interno e estabilização
+    HAL_Delay(50);
+
+    // 3. Verificar se o chip voltou respondendo a identidade
+    uint8_t id;
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_IC_IDENTITY, &id);
+
+    if (status == HAL_OK && ((id >> 3) & 0x1F) == 0x16) {
+        DEBUG_PRINT("Reset concluído com sucesso. Chip online.\r\n");
+        return HAL_OK;
+    } else {
+        DEBUG_PRINT("ERRO: Chip não respondeu após o reset.\r\n");
+        return HAL_ERROR;
+    }
+}
+
+/**
+ * @brief  Execute diagnostic measurement
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  cmd: Diagnostic command
+ * @param  result: Pointer to store result (raw 9-bit value)
+ * @retval HAL_StatusTypeDef
+ */
+/**
+ * @brief  Executa uma medição de diagnóstico e retorna o valor bruto de 9 bits.
+ * @param  dev: Ponteiro para a estrutura do dispositivo.
+ * @param  cmd: Comando de diagnóstico (ex: ST25R300_DIAG_CMD_VDD_A).
+ * @param  result: Ponteiro para armazenar o valor de 9 bits resultante.
+ * @retval HAL_StatusTypeDef
+ */
+HAL_StatusTypeDef ST25R300_DiagnosticMeasurement(ST25R300 *dev, uint8_t cmd, uint16_t *result)
+{
+    HAL_StatusTypeDef status;
+    uint8_t ce_memory[2];
+    uint8_t fifo_data[4];
+
+    // 1. Limpar o FIFO usando o código 0x64 (conforme Tabela 6)
+    status = ST25R300_SendCommand(dev, 0x64);
+    if (status != HAL_OK) return status;
+
+    // 2. Habilitar acesso aos registros de teste (Comando 0xFC)
+    status = ST25R300_SendCommand(dev, 0xFC);
+    if (status != HAL_OK) return status;
+    ST25R300_SendCommand(dev, 0xF8); // Trigger Diagnostic
+    // 3. Configurar desconexão do TAD no registro de teste 0x14
+    status = ST25R300_WriteTestRegister(dev, 0x14, 0x04);
+    if (status != HAL_OK) return status;
+
+    // 4. Escrever comando de medição na CE RAM (Endereço 0x58)
+    ce_memory[0] = cmd;
+    ce_memory[1] = 0x00;
+    ST25R300_CS_Low(dev);
+    uint8_t ce_hdr = 0x58;
+    HAL_SPI_Transmit(dev->hSPIx, &ce_hdr, 1, 10);
+    HAL_SPI_Transmit(dev->hSPIx, ce_memory, 2, 10);
+    ST25R300_CS_High(dev);
+
+    // 5. Disparar medição de diagnóstico (Comando 0xF8)
+    status = ST25R300_SendCommand(dev, 0xF8);
+    if (status != HAL_OK) return status;
+
+    // 6. Aguardar bit I_dct (bit 4) no IRQ Status 3 (Reg 0x42)
+    uint8_t irq_status = 0;
+    uint32_t timeout = HAL_GetTick() + 100; // 100ms timeout
+    while (HAL_GetTick() < timeout) {
+        ST25R300_ReadRegister(dev, 0x42, &irq_status);
+        if (irq_status & 0x10) break; // Sucesso: Medição concluída
+        HAL_Delay(1);
+    }
+
+    if (!(irq_status & 0x10)) {
+        DEBUG_PRINT("ERRO: Medição de diagnóstico não concluiu (I_dct fail)\r\n");
+        return HAL_TIMEOUT;
+    }
+
+    // 7. Ler 4 bytes do FIFO (Header, MSB, LSB, RFU)
+    status = ST25R300_ReadFIFO(dev, fifo_data, 4);
+    if (status == HAL_OK) {
+        // Extrair valor de 9 bits (bit 0 do byte 1 é o MSB)
+        *result = ((uint16_t)(fifo_data[1] & 0x01) << 8) | fifo_data[2];
+    }
+
+    return status;
+}
+
+// ============================================================================
+// POWER SUPPLY MEASUREMENTS
+// ============================================================================
+
+/**
+ * @brief  Measure all power supply voltages and currents
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  power: Pointer to store power measurements
+ * @retval HAL_StatusTypeDef
+ */
+HAL_StatusTypeDef ST25R300_MeasurePower(ST25R300 *dev, ST25R300_PowerMeasurements_t *power)
+{
+    HAL_StatusTypeDef status;
+    uint16_t raw_value;
+
+    memset(power, 0, sizeof(ST25R300_PowerMeasurements_t));
+
+    // Ensure receiver is enabled for measurements
+    uint8_t op_reg;
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_OPERATION, &op_reg);
+    if (status != HAL_OK) return status;
+
+    if (!(op_reg & 0x20))  // rx_en not set
+    {
+        op_reg |= 0x20;
+        status = ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, op_reg);
+        if (status != HAL_OK) return status;
+        HAL_Delay(5);
+    }
+
+    // Measure VDD
+    status = ST25R300_DiagnosticMeasurement(dev, ST25R300_DIAG_CMD_VDD, &raw_value);
+    if (status == HAL_OK)
+    {
+        power->vdd = (float)raw_value * ST25R300_DIAG_CONV_VOLTAGE_HIGH / 1000.0f;
+    }
+
+    // Measure VDD_TX
+    status = ST25R300_DiagnosticMeasurement(dev, ST25R300_DIAG_CMD_VDD_TX, &raw_value);
+    if (status == HAL_OK)
+    {
+        power->vdd_tx = (float)raw_value * ST25R300_DIAG_CONV_VOLTAGE_HIGH / 1000.0f;
+    }
+
+    // Measure VDD_IO
+    status = ST25R300_DiagnosticMeasurement(dev, ST25R300_DIAG_CMD_VDD_IO, &raw_value);
+    if (status == HAL_OK)
+    {
+        power->vdd_io = (float)raw_value * ST25R300_DIAG_CONV_VOLTAGE_HIGH / 1000.0f;
+    }
+
+    // Measure VDD_DR
+    status = ST25R300_DiagnosticMeasurement(dev, ST25R300_DIAG_CMD_VDD_DR, &raw_value);
+    if (status == HAL_OK)
+    {
+        power->vdd_dr = (float)raw_value * ST25R300_DIAG_CONV_VOLTAGE_HIGH / 1000.0f;
+    }
+
+    // Measure VDD_A
+    status = ST25R300_DiagnosticMeasurement(dev, ST25R300_DIAG_CMD_VDD_A, &raw_value);
+    if (status == HAL_OK)
+    {
+        power->vdd_a = (float)raw_value * ST25R300_DIAG_CONV_VOLTAGE_HIGH / 1000.0f;
+    }
+
+    // Measure VDD_D
+    status = ST25R300_DiagnosticMeasurement(dev, ST25R300_DIAG_CMD_VDD_D, &raw_value);
+    if (status == HAL_OK)
+    {
+        power->vdd_d = (float)raw_value * ST25R300_DIAG_CONV_VOLTAGE_LOW / 1000.0f;
+    }
+
+    // Measure AGD
+    status = ST25R300_DiagnosticMeasurement(dev, ST25R300_DIAG_CMD_AGD, &raw_value);
+    if (status == HAL_OK)
+    {
+        power->agd = (float)raw_value * ST25R300_DIAG_CONV_VOLTAGE_LOW / 1000.0f;
+    }
+
+    // Measure VDD_DR current
+    status = ST25R300_DiagnosticMeasurement(dev, ST25R300_DIAG_CMD_I_VDD_DR, &raw_value);
+    if (status == HAL_OK)
+    {
+        power->i_vdd_dr = (float)raw_value * ST25R300_DIAG_CONV_CURRENT_VDD_DR;
+    }
+
+    return HAL_OK;
+}
+
+// ============================================================================
+// RF AND ANTENNA MEASUREMENTS
+// ============================================================================
+
+/**
+ * @brief  Measure RSSI (Received Signal Strength Indicator)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  rf: Pointer to store RF measurements
+ * @retval HAL_StatusTypeDef
+ */
+HAL_StatusTypeDef ST25R300_MeasureRSSI(ST25R300 *dev, ST25R300_RFMeasurements_t *rf)
+{
+    HAL_StatusTypeDef status;
+
+    // 1. Disparar comando direto 0xF9 (Measure Amplitude)
+    // Este comando força o ADC interno a amostrar o nível de RF atual.
+    status = ST25R300_SendCommand(dev, 0xF9);
+    if (status != HAL_OK) return status;
+
+    // 2. Pequeno delay para permitir a conversão do ADC (100us a 1ms é suficiente)
+    HAL_Delay(1);
+
+    // 3. Ler RSSI do Canal I (In-phase)
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_RSSI_I, &rf->rssi_i);
+    if (status != HAL_OK) return status;
+
+    // 4. Ler RSSI do Canal Q (Quadrature)
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_RSSI_Q, &rf->rssi_q);
+    if (status != HAL_OK) return status;
+
+    // 5. Conversão para dBm aproximado (Cálculo empírico)
+    // Se você não habilitou o suporte a float no printf, o DEBUG_PRINT ignorará estes valores.
+    rf->rssi_i_dbm = -90.0f + ((float)rf->rssi_i * 0.5f);
+    rf->rssi_q_dbm = -90.0f + ((float)rf->rssi_q * 0.5f);
+
+    return HAL_OK;
+}
+
+/**
+ * @brief  Perform RF self-test (loopback test)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  rf: Pointer to store RF measurements
+ * @retval HAL_StatusTypeDef
+ *
+ * @note   This test measures the field generated by the antenna
+ */
+HAL_StatusTypeDef ST25R300_RFSelfTest(ST25R300 *dev, ST25R300_RFMeasurements_t *rf)
+{
+    HAL_StatusTypeDef status;
+
+    // Enable transmitter and receiver
+    uint8_t op_reg = 0x78;  // en=1, vdddr_en=1, rx_en=1, tx_en=1
+    status = ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, op_reg);
+    if (status != HAL_OK) return status;
+
+    // Wait for field to stabilize
+    HAL_Delay(10);
+
+    // Measure I/Q ADC values with field on
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_I_CHANNEL_ADC, &rf->i_adc);
+    if (status != HAL_OK) return status;
+
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_Q_CHANNEL_ADC, &rf->q_adc);
+    if (status != HAL_OK) return status;
+
+    // Measure RSSI
+    status = ST25R300_MeasureRSSI(dev, rf);
+    if (status != HAL_OK) return status;
+
+    // Check external field detector
+    uint8_t status_reg;
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_STATUS_1, &status_reg);
+    if (status != HAL_OK) return status;
+
+    rf->field_detected = (status_reg & 0x01) ? 1 : 0;
+
+    return HAL_OK;
+}
+
+/**
+ * @brief  Estimate antenna Q-factor
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  q_factor: Pointer to store Q-factor
+ * @retval HAL_StatusTypeDef
+ *
+ * @note   This is a simplified estimation based on decay time
+ */
+HAL_StatusTypeDef ST25R300_EstimateAntennaQ(ST25R300 *dev, float *q_factor)
+{
+    HAL_StatusTypeDef status;
+    uint8_t rssi_on, rssi_off;
+
+    // Turn on field and measure RSSI
+    uint8_t op_reg = 0x78;
+    status = ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, op_reg);
+    if (status != HAL_OK) return status;
+    HAL_Delay(1);
+
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_RSSI_I, &rssi_on);
+    if (status != HAL_OK) return status;
+
+    // Turn off field quickly and measure decay
+    op_reg = 0x28;  // Keep receiver on, turn off TX
+    status = ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, op_reg);
+    if (status != HAL_OK) return status;
+
+    HAL_Delay(1);  // Small delay for decay
+
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_RSSI_I, &rssi_off);
+    if (status != HAL_OK) return status;
+
+    // Estimate Q-factor based on decay rate
+    // Q ≈ π × f0 × τ, where τ is the decay time constant
+    // Simplified estimation
+    if (rssi_on > 0)
+    {
+        float decay_ratio = (float)rssi_off / (float)rssi_on;
+        *q_factor = 20.0f * decay_ratio;  // Empirical approximation
+    }
+    else
+    {
+        *q_factor = 0.0f;
+    }
+
+    return HAL_OK;
+}
+
+// ============================================================================
+// SYSTEM STATUS CHECKS
+// ============================================================================
+
+/**
+ * @brief  Check system status
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  sys_status: Pointer to store system status
+ * @retval HAL_StatusTypeDef
+ */
+HAL_StatusTypeDef ST25R300_CheckSystemStatus(ST25R300 *dev, ST25R300_SystemStatus_t *sys_status)
+{
+    HAL_StatusTypeDef status;
+    uint8_t reg_value;
+
+    memset(sys_status, 0, sizeof(ST25R300_SystemStatus_t));
+
+    // Read IC identity
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_IC_IDENTITY, &reg_value);
+    if (status != HAL_OK) return status;
+
+    sys_status->ic_identity = (reg_value >> 3) & 0x1F;
+    sys_status->ic_revision = reg_value & 0x07;
+
+    // Check if identity is correct (should be 0x16 for ST25R300)
+    sys_status->spi_ok = (sys_status->ic_identity == 0x16) ? 1 : 0;
+
+    // Check oscillator status
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_STATUS_1, &reg_value);
+    if (status != HAL_OK) return status;
+
+    sys_status->oscillator_ok = (reg_value & 0x10) ? 1 : 0;
+
+    // Check current limiter
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_ANALOG_DISPLAY_1, &reg_value);
+    if (status != HAL_OK) return status;
+
+    sys_status->current_limit = (reg_value & 0x80) ? 1 : 0;
+
+    // Check if regulators are within expected range (by reading voltages)
+    ST25R300_PowerMeasurements_t power;
+    status = ST25R300_MeasurePower(dev, &power);
+    if (status == HAL_OK)
+    {
+        sys_status->regulators_ok = 1;
+
+        // Check VDD_A (should be ~3.0V)
+        if (power.vdd_a < 2.85f || power.vdd_a > 3.15f)
+            sys_status->regulators_ok = 0;
+
+        // Check VDD_D (should be ~1.15V)
+        if (power.vdd_d < 1.05f || power.vdd_d > 1.25f)
+            sys_status->regulators_ok = 0;
+
+        // Check AGD (should be ~1.5V)
+        if (power.agd < 1.44f || power.agd > 1.56f)
+            sys_status->regulators_ok = 0;
+    }
+
+    return HAL_OK;
+}
+
+// ============================================================================
+// COMPREHENSIVE DIAGNOSTIC TEST
+// ============================================================================
+
+/**
+ * @brief  Run complete diagnostic test
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  report: Pointer to store diagnostic report
+ * @retval HAL_StatusTypeDef
+ */
+
+void ST25R300_Debug_Printf(const char *format, ...) {
+    char buffer[256]; // Tamanho máximo de uma linha de debug
+    va_list args;
+
+    va_start(args, format);
+    // vsnprintf preenche o buffer com segurança, respeitando o limite de 128 bytes
+    int len = vsnprintf(buffer, sizeof(buffer), format, args);
+    va_end(args);
+
+    if (len > 0) {
+        HAL_UART_Transmit(&huart1, (uint8_t*)buffer, len, 200);
+    }
+}
+
+HAL_StatusTypeDef ST25R300_RunDiagnostics(ST25R300 *dev, ST25R300_DiagnosticReport_t *report)
+{
+    HAL_StatusTypeDef status;
+    uint8_t test_count = 0;
+    uint8_t pass_count = 0;
+
+    memset(report, 0, sizeof(ST25R300_DiagnosticReport_t));
+    strcpy(report->message, "Diagnostic started...\n");
+
+    DEBUG_PRINT("\n╔══════════════════════════════════════════════════════╗\n");
+    DEBUG_PRINT("║     ST25R300 COMPREHENSIVE DIAGNOSTIC TEST          ║\n");
+    DEBUG_PRINT("╚══════════════════════════════════════════════════════╝\n\n");
+
+    // Test 1: System Status
+    DEBUG_PRINT("┌─ Test 1: System Status Check\n");
+    status = ST25R300_CheckSystemStatus(dev, &report->status);
+    test_count++;
+
+    if (status == HAL_OK && report->status.spi_ok)
+    {
+        DEBUG_PRINT("│  ✓ SPI Communication: OK\n");
+        DEBUG_PRINT("│  ✓ IC Identity: 0x%02X (ST25R300)\n", report->status.ic_identity);
+        DEBUG_PRINT("│  ✓ IC Revision: %d\n", report->status.ic_revision);
+        DEBUG_PRINT("│  %s Oscillator: %s\n",
+               report->status.oscillator_ok ? "✓" : "✗",
+               report->status.oscillator_ok ? "Stable" : "NOT STABLE");
+        DEBUG_PRINT("│  %s Regulators: %s\n",
+               report->status.regulators_ok ? "✓" : "✗",
+               report->status.regulators_ok ? "Within limits" : "OUT OF RANGE");
+
+        if (report->status.oscillator_ok && report->status.regulators_ok)
+            pass_count++;
+    }
+    else
+    {
+        DEBUG_PRINT("│  ✗ FAILED: Cannot communicate with ST25R300\n");
+        report->overall_health = 0;
+        strcpy(report->message, "CRITICAL: SPI communication failed");
+        return HAL_ERROR;
+    }
+    DEBUG_PRINT("└─ Result: %s\n\n", (status == HAL_OK) ? "PASS" : "FAIL");
+
+    // Test 2: Power Supply Measurements
+    DEBUG_PRINT("┌─ Test 2: Power Supply Measurements\n");
+    status = ST25R300_MeasurePower(dev, &report->power);
+    test_count++;
+
+    if (status == HAL_OK)
+    {
+    	int vdd_int = (int)report->power.vdd;
+    	    int vdd_dec = (int)((report->power.vdd - vdd_int) * 100);
+
+    	    DEBUG_PRINT("│  VDD     : %d.%02d V %s\n", vdd_int, vdd_dec,
+    	               (report->power.vdd >= 2.7f && report->power.vdd <= 6.0f) ? "✓" : "✗");
+
+    	    int tx_int = (int)report->power.vdd_tx;
+    	    int tx_dec = (int)((report->power.vdd_tx - tx_int) * 100);
+    	    DEBUG_PRINT("│  VDD_TX  : %d.%02d V %s\n", tx_int, tx_dec,
+    	               (report->power.vdd_tx >= 2.7f && report->power.vdd_tx <= 6.0f) ? "✓" : "✗");
+
+    	    int io_int = (int)report->power.vdd_io;
+    	    int io_dec = (int)((report->power.vdd_io - io_int) * 100);
+    	    DEBUG_PRINT("│  VDD_IO  : %d.%02d V %s\n", io_int, io_dec,
+    	               (report->power.vdd_io >= 1.65f && report->power.vdd_io <= 5.5f) ? "✓" : "✗");
+
+    	    int dr_int = (int)report->power.vdd_dr;
+    	    int dr_dec = (int)((report->power.vdd_dr - dr_int) * 100);
+    	    DEBUG_PRINT("│  VDD_DR  : %d.%02d V %s\n", dr_int, dr_dec,
+    	               (report->power.vdd_dr >= 2.0f && report->power.vdd_dr <= 6.0f) ? "✓" : "✗");
+
+    	    int a_int = (int)report->power.vdd_a;
+    	    int a_dec = (int)((report->power.vdd_a - a_int) * 100);
+    	    DEBUG_PRINT("│  VDD_A   : %d.%02d V %s\n", a_int, a_dec,
+    	               (report->power.vdd_a >= 2.85f && report->power.vdd_a <= 3.15f) ? "✓" : "✗");
+
+    	    int d_int = (int)report->power.vdd_d;
+    	    int d_dec = (int)((report->power.vdd_d - d_int) * 100);
+    	    DEBUG_PRINT("│  VDD_D   : %d.%02d V %s\n", d_int, d_dec,
+    	               (report->power.vdd_d >= 1.05f && report->power.vdd_d <= 1.25f) ? "✓" : "✗");
+
+    	    int agd_int = (int)report->power.agd;
+    	    int agd_dec = (int)((report->power.agd - agd_int) * 100);
+    	    DEBUG_PRINT("│  AGD     : %d.%02d V %s\n", agd_int, agd_dec,
+    	               (report->power.agd >= 1.44f && report->power.agd <= 1.56f) ? "✓" : "✓");
+
+    	    // Para corrente (mA), uma casa decimal
+    	    int cur_int = (int)report->power.i_vdd_dr;
+    	    int cur_dec = (int)((report->power.i_vdd_dr - cur_int) * 10);
+    	    DEBUG_PRINT("│  I_VDD_DR: %d.%d mA %s\n", cur_int, cur_dec,
+    	               (report->power.i_vdd_dr < 500.0f) ? "✓" : "✗ OVERCURRENT");
+
+        if (report->status.regulators_ok)
+            pass_count++;
+    }
+    DEBUG_PRINT("└─ Result: %s\n\n", (status == HAL_OK) ? "PASS" : "FAIL");
+
+    // Test 3: RF Self-Test
+    DEBUG_PRINT("┌─ Test 3: RF Field and Antenna Test\n");
+    status = ST25R300_RFSelfTest(dev, &report->rf);
+    test_count++;
+
+    if (status == HAL_OK)
+    {
+    	DEBUG_PRINT("│  RSSI I  : %d (%.1f dBm) %s\n",
+               report->rf.rssi_i, report->rf.rssi_i_dbm,
+               (report->rf.rssi_i > 10) ? "✓" : "✗ LOW");
+    	DEBUG_PRINT("│  RSSI Q  : %d (%.1f dBm) %s\n",
+               report->rf.rssi_q, report->rf.rssi_q_dbm,
+               (report->rf.rssi_q > 10) ? "✓" : "✗ LOW");
+        DEBUG_PRINT("│  I ADC   : %d %s\n", report->rf.i_adc,
+               (report->rf.i_adc > 20) ? "✓" : "✗");
+        DEBUG_PRINT("│  Q ADC   : %d %s\n", report->rf.q_adc,
+               (report->rf.q_adc > 20) ? "✓" : "✗");
+        DEBUG_PRINT("│  Field   : %s\n",
+               report->rf.field_detected ? "✓ Detected" : "Not detected (normal)");
+
+        if (report->rf.rssi_i > 10 && report->rf.rssi_q > 10)
+            pass_count++;
+    }
+    DEBUG_PRINT("└─ Result: %s\n\n", (status == HAL_OK) ? "PASS" : "FAIL");
+
+    // Test 4: Antenna Q-Factor Estimation
+    DEBUG_PRINT("┌─ Test 4: Antenna Quality (Q-Factor)\n");
+    float q_factor;
+    status = ST25R300_EstimateAntennaQ(dev, &q_factor);
+    test_count++;
+
+    if (status == HAL_OK)
+    {
+        report->rf.antenna_q = q_factor;
+        DEBUG_PRINT("│  Q-Factor: %.1f %s\n", q_factor,
+               (q_factor > 10.0f) ? "✓ Good" :
+               (q_factor > 5.0f) ? "⚠ Marginal" : "✗ Poor");
+
+        if (q_factor > 10.0f)
+        {
+            DEBUG_PRINT("│  Antenna tuning: Excellent\n");
+            pass_count++;
+        }
+        else if (q_factor > 5.0f)
+        {
+            DEBUG_PRINT("│  Antenna tuning: Acceptable (consider re-tuning)\n");
+        }
+        else
+        {
+            DEBUG_PRINT("│  Antenna tuning: Poor (check matching network)\n");
+        }
+    }
+    DEBUG_PRINT("└─ Result: %s\n\n", (status == HAL_OK) ? "PASS" : "FAIL");
+
+    // Test 5: Current Limiter Check
+    DEBUG_PRINT("┌─ Test 5: Current Limiter Status\n");
+    test_count++;
+
+    if (report->status.current_limit)
+    {
+        DEBUG_PRINT("│  ⚠ WARNING: Current limiter is ACTIVE\n");
+        DEBUG_PRINT("│  This indicates:\n");
+        DEBUG_PRINT("│  - Antenna impedance may be too low\n");
+        DEBUG_PRINT("│  - Possible short circuit in matching network\n");
+        DEBUG_PRINT("│  - Driver overload\n");
+    }
+    else
+    {
+        DEBUG_PRINT("│  ✓ Current limiter: Inactive (normal)\n");
+        pass_count++;
+    }
+    DEBUG_PRINT("└─ Result: %s\n\n", report->status.current_limit ? "WARNING" : "PASS");
+
+    // Calculate overall health
+    report->overall_health = (pass_count * 100) / test_count;
+
+    // Generate summary message
+    DEBUG_PRINT("╔══════════════════════════════════════════════════════╗\n");
+    DEBUG_PRINT("║                    SUMMARY                           ║\n");
+    DEBUG_PRINT("╠══════════════════════════════════════════════════════╣\n");
+    DEBUG_PRINT("║  Tests Passed : %d / %d                                ║\n", pass_count, test_count);
+    DEBUG_PRINT("║  Overall Health: %d%%                                 ║\n", report->overall_health);
+    DEBUG_PRINT("║                                                      ║\n");
+
+    if (report->overall_health >= 80)
+    {
+        DEBUG_PRINT("║  Status: ✓ EXCELLENT - System fully operational     ║\n");
+        strcpy(report->message, "System is working perfectly");
+    }
+    else if (report->overall_health >= 60)
+    {
+        DEBUG_PRINT("║  Status: ⚠ GOOD - Minor issues detected             ║\n");
+        strcpy(report->message, "System operational with minor issues");
+    }
+    else if (report->overall_health >= 40)
+    {
+        DEBUG_PRINT("║  Status: ⚠ MARGINAL - Significant issues            ║\n");
+        strcpy(report->message, "System has significant issues - check antenna");
+    }
+    else
+    {
+        DEBUG_PRINT("║  Status: ✗ CRITICAL - System not functional         ║\n");
+        strcpy(report->message, "CRITICAL: System requires immediate attention");
+    }
+
+    DEBUG_PRINT("╚══════════════════════════════════════════════════════╝\n\n");
+
+    return HAL_OK;
+}
+
+// ============================================================================
+// SPECIFIC ANTENNA TESTS
+// ============================================================================
+
+/**
+ * @brief  Test antenna matching and tuning
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval TestResult_t
+ */
+TestResult_t ST25R300_TestAntennaMatching(ST25R300 *dev)
+{
+    HAL_StatusTypeDef status;
+    ST25R300_RFMeasurements_t rf;
+
+    DEBUG_PRINT("\n═══ Antenna Matching Test ═══\n\n");
+
+    // Perform RF test
+    status = ST25R300_RFSelfTest(dev, &rf);
+    if (status != HAL_OK)
+    {
+        DEBUG_PRINT("✗ FAIL: Cannot perform RF test\n");
+        return TEST_RESULT_FAIL;
+    }
+
+    // Analyze results
+    DEBUG_PRINT("Results:\n");
+    DEBUG_PRINT("  RSSI I: %d (%.1f dBm)\n", rf.rssi_i, rf.rssi_i_dbm);
+    DEBUG_PRINT("  RSSI Q: %d (%.1f dBm)\n", rf.rssi_q, rf.rssi_q_dbm);
+
+    // Check for good signal levels
+    if (rf.rssi_i > 30 && rf.rssi_q > 30)
+    {
+        DEBUG_PRINT("\n✓ EXCELLENT: Strong signal, good antenna matching\n");
+        return TEST_RESULT_PASS;
+    }
+    else if (rf.rssi_i > 15 && rf.rssi_q > 15)
+    {
+        DEBUG_PRINT("\n⚠ WARNING: Weak signal, consider antenna re-tuning\n");
+        DEBUG_PRINT("Recommendations:\n");
+        DEBUG_PRINT("  - Check matching capacitor values\n");
+        DEBUG_PRINT("  - Verify antenna coil inductance\n");
+        DEBUG_PRINT("  - Check for PCB interference\n");
+        return TEST_RESULT_WARNING;
+    }
+    else
+    {
+        DEBUG_PRINT("\n✗ FAIL: Very weak or no signal\n");
+        DEBUG_PRINT("Possible issues:\n");
+        DEBUG_PRINT("  - Antenna not connected\n");
+        DEBUG_PRINT("  - Wrong matching network values\n");
+        DEBUG_PRINT("  - Antenna coil damaged\n");
+        DEBUG_PRINT("  - Short circuit in matching network\n");
+        return TEST_RESULT_FAIL;
+    }
+}
+
+/**
+ * @brief  Test antenna resonance frequency (simplified)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval TestResult_t
+ */
+TestResult_t ST25R300_TestAntennaResonance(ST25R300 *dev)
+{
+    HAL_StatusTypeDef status;
+    uint8_t rssi_values[5];
+
+    DEBUG_PRINT("\n═══ Antenna Resonance Test ═══\n\n");
+    DEBUG_PRINT("Testing at 13.56 MHz...\n");
+
+    // Enable field
+    uint8_t op_reg = 0x78;
+    status = ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, op_reg);
+    if (status != HAL_OK) return TEST_RESULT_FAIL;
+
+    // Take multiple measurements
+    for (int i = 0; i < 5; i++)
+    {
+        HAL_Delay(10);
+        status = ST25R300_ReadRegister(dev, ST25R300_REG_RSSI_I, &rssi_values[i]);
+        if (status != HAL_OK) return TEST_RESULT_FAIL;
+        DEBUG_PRINT("  Sample %d: RSSI = %d\n", i+1, rssi_values[i]);
+    }
+
+    // Calculate average
+    uint16_t sum = 0;
+    for (int i = 0; i < 5; i++)
+    {
+        sum += rssi_values[i];
+    }
+    uint8_t avg_rssi = sum / 5;
+
+    DEBUG_PRINT("\nAverage RSSI: %d\n", avg_rssi);
+
+    if (avg_rssi > 40)
+    {
+        DEBUG_PRINT("✓ EXCELLENT: Antenna resonating well at 13.56 MHz\n");
+        return TEST_RESULT_PASS;
+    }
+    else if (avg_rssi > 20)
+    {
+        DEBUG_PRINT("⚠ WARNING: Antenna slightly off-resonance\n");
+        DEBUG_PRINT("Consider adjusting matching capacitors\n");
+        return TEST_RESULT_WARNING;
+    }
+    else
+    {
+        DEBUG_PRINT("✗ FAIL: Antenna not resonating at 13.56 MHz\n");
+        DEBUG_PRINT("Check:\n");
+        DEBUG_PRINT("  - Antenna coil value (should be ~1-2 µH)\n");
+        DEBUG_PRINT("  - Series capacitor (for resonance)\n");
+        DEBUG_PRINT("  - Parallel capacitor (for matching)\n");
+        return TEST_RESULT_FAIL;
+    }
+}
+
+/**
+ * @brief  Quick health check (fast diagnostic)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval TestResult_t
+ */
+TestResult_t ST25R300_QuickHealthCheck(ST25R300 *dev)
+{
+    HAL_StatusTypeDef status;
+    uint8_t ic_identity, status_reg, rssi;
+
+    DEBUG_PRINT("\n═══ Quick Health Check ═══\n\n");
+
+    // Check 1: SPI communication
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_IC_IDENTITY, &ic_identity);
+    if (status != HAL_OK || ((ic_identity >> 3) & 0x1F) != 0x16)
+    {
+        DEBUG_PRINT("✗ FAIL: SPI communication error\n");
+        return TEST_RESULT_FAIL;
+    }
+    DEBUG_PRINT("✓ SPI communication: OK\n");
+
+    // Check 2: Oscillator
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_STATUS_1, &status_reg);
+    if (status != HAL_OK || !(status_reg & 0x10))
+    {
+        DEBUG_PRINT("✗ FAIL: Oscillator not stable\n");
+        return TEST_RESULT_FAIL;
+    }
+    DEBUG_PRINT("✓ Oscillator: Stable\n");
+
+    // Check 3: RF field
+    uint8_t op_reg = 0x78;
+    ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, op_reg);
+    HAL_Delay(10);
+
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_RSSI_I, &rssi);
+    if (status != HAL_OK || rssi < 10)
+    {
+        DEBUG_PRINT("✗ WARNING: Weak or no RF field\n");
+        return TEST_RESULT_WARNING;
+    }
+    DEBUG_PRINT("✓ RF field: Present (RSSI=%d)\n", rssi);
+
+    DEBUG_PRINT("\n✓ PASS: Basic functionality OK\n");
+    return TEST_RESULT_PASS;
+}

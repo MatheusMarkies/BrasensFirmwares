@@ -1,0 +1,615 @@
+/**
+  ******************************************************************************
+  * @file    st25r300.c
+  * @brief   ST25R300 NFC Reader Driver Implementation
+  ******************************************************************************
+  */
+
+#include "st25r300.h"
+#include <string.h>
+
+/* Private macros ------------------------------------------------------------*/
+#define CS_LOW()    HAL_GPIO_WritePin(hst25r->cs_port, hst25r->cs_pin, GPIO_PIN_RESET)
+#define CS_HIGH()   HAL_GPIO_WritePin(hst25r->cs_port, hst25r->cs_pin, GPIO_PIN_SET)
+
+/* Private function prototypes -----------------------------------------------*/
+static ST25R300_StatusTypeDef ST25R300_SPI_Transmit(ST25R300_HandleTypeDef *hst25r, uint8_t *data, uint16_t size);
+static ST25R300_StatusTypeDef ST25R300_SPI_Receive(ST25R300_HandleTypeDef *hst25r, uint8_t *data, uint16_t size);
+static ST25R300_StatusTypeDef ST25R300_SPI_TransmitReceive(ST25R300_HandleTypeDef *hst25r, uint8_t *txData, uint8_t *rxData, uint16_t size);
+
+/* Initialization and Control ------------------------------------------------*/
+
+/**
+  * @brief  Initialize ST25R300
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_Init(ST25R300_HandleTypeDef *hst25r) {
+    ST25R300_StatusTypeDef status;
+    uint8_t ic_type, ic_rev;
+
+    // Set CS high (inactive)
+    CS_HIGH();
+    HAL_Delay(1);
+
+    // Hardware reset
+    status = ST25R300_Reset(hst25r);
+    if (status != ST25R300_OK) return status;
+
+    // Check IC identity
+    status = ST25R300_GetICIdentity(hst25r, &ic_type, &ic_rev);
+    if (status != ST25R300_OK) return status;
+
+    if (ic_type != ST25R300_IC_TYPE_ST25R300) {
+        return ST25R300_ERROR;
+    }
+
+    // Send set default command
+    status = ST25R300_SendCommand(hst25r, ST25R300_CMD_SET_DEFAULT);
+    if (status != ST25R300_OK) return status;
+
+    HAL_Delay(10);
+
+    return ST25R300_OK;
+}
+
+/**
+  * @brief  Hardware reset ST25R300
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_Reset(ST25R300_HandleTypeDef *hst25r) {
+    // RESET pulse: HIGH -> LOW
+    HAL_GPIO_WritePin(hst25r->reset_port, hst25r->reset_pin, GPIO_PIN_SET);
+    HAL_Delay(1);
+    HAL_GPIO_WritePin(hst25r->reset_port, hst25r->reset_pin, GPIO_PIN_RESET);
+
+    // Wait for boot (tBOOT max = 900us, typical = 138us)
+    HAL_Delay(2);
+
+    return ST25R300_OK;
+}
+
+/**
+  * @brief  Wait for oscillator to be ready
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  timeout: Timeout in ms
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_WaitOscillator(ST25R300_HandleTypeDef *hst25r, uint32_t timeout) {
+    uint32_t tickstart = HAL_GetTick();
+    uint8_t status1;
+
+    while ((HAL_GetTick() - tickstart) < timeout) {
+        if (ST25R300_ReadRegister(hst25r, ST25R300_REG_STATUS_1, &status1) == ST25R300_OK) {
+            if (status1 & ST25R300_STAT1_OSC_OK) {
+                return ST25R300_OK;
+            }
+        }
+        HAL_Delay(1);
+    }
+
+    return ST25R300_TIMEOUT;
+}
+
+/* Low Level SPI Functions ---------------------------------------------------*/
+
+/**
+  * @brief  Read single register
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  reg: Register address (0x00-0x57)
+  * @param  data: Pointer to store read data
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_ReadRegister(ST25R300_HandleTypeDef *hst25r, uint8_t reg, uint8_t *data) {
+    ST25R300_StatusTypeDef status;
+    uint8_t cmd = ST25R300_CMD_READ | (reg & 0x7F);
+    uint8_t dummy = 0xFF;
+
+    CS_LOW();
+
+    // Send command
+    status = ST25R300_SPI_Transmit(hst25r, &cmd, 1);
+    if (status != ST25R300_OK) {
+        CS_HIGH();
+        return status;
+    }
+
+    // Read data (send dummy byte)
+    status = ST25R300_SPI_TransmitReceive(hst25r, &dummy, data, 1);
+
+    CS_HIGH();
+
+    return status;
+}
+
+/**
+  * @brief  Read multiple registers with auto-increment
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  reg: Starting register address
+  * @param  data: Pointer to store read data
+  * @param  length: Number of bytes to read
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_ReadRegisters(ST25R300_HandleTypeDef *hst25r, uint8_t reg, uint8_t *data, uint8_t length) {
+    ST25R300_StatusTypeDef status;
+    uint8_t cmd = ST25R300_CMD_READ | (reg & 0x7F);
+    uint8_t dummy[256];
+
+    if (length > 256) return ST25R300_ERROR;
+
+    memset(dummy, 0xFF, length);
+
+    CS_LOW();
+
+    // Send command
+    status = ST25R300_SPI_Transmit(hst25r, &cmd, 1);
+    if (status != ST25R300_OK) {
+        CS_HIGH();
+        return status;
+    }
+
+    // Read data
+    status = ST25R300_SPI_TransmitReceive(hst25r, dummy, data, length);
+
+    CS_HIGH();
+
+    return status;
+}
+
+/**
+  * @brief  Write single register
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  reg: Register address (0x00-0x57)
+  * @param  data: Data to write
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_WriteRegister(ST25R300_HandleTypeDef *hst25r, uint8_t reg, uint8_t data) {
+    ST25R300_StatusTypeDef status;
+    uint8_t txData[2];
+
+    txData[0] = ST25R300_CMD_WRITE | (reg & 0x7F);
+    txData[1] = data;
+
+    CS_LOW();
+    status = ST25R300_SPI_Transmit(hst25r, txData, 2);
+    CS_HIGH();
+
+    return status;
+}
+
+/**
+  * @brief  Write multiple registers with auto-increment
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  reg: Starting register address
+  * @param  data: Pointer to data to write
+  * @param  length: Number of bytes to write
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_WriteRegisters(ST25R300_HandleTypeDef *hst25r, uint8_t reg, uint8_t *data, uint8_t length) {
+    ST25R300_StatusTypeDef status;
+    uint8_t cmd = ST25R300_CMD_WRITE | (reg & 0x7F);
+
+    CS_LOW();
+
+    // Send command
+    status = ST25R300_SPI_Transmit(hst25r, &cmd, 1);
+    if (status != ST25R300_OK) {
+        CS_HIGH();
+        return status;
+    }
+
+    // Send data
+    status = ST25R300_SPI_Transmit(hst25r, data, length);
+
+    CS_HIGH();
+
+    return status;
+}
+
+/**
+  * @brief  Modify register (read-modify-write)
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  reg: Register address
+  * @param  mask: Bit mask
+  * @param  value: New value (will be masked)
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_ModifyRegister(ST25R300_HandleTypeDef *hst25r, uint8_t reg, uint8_t mask, uint8_t value) {
+    ST25R300_StatusTypeDef status;
+    uint8_t regValue;
+
+    // Read current value
+    status = ST25R300_ReadRegister(hst25r, reg, &regValue);
+    if (status != ST25R300_OK) return status;
+
+    // Modify
+    regValue = (regValue & ~mask) | (value & mask);
+
+    // Write back
+    return ST25R300_WriteRegister(hst25r, reg, regValue);
+}
+
+/* Direct Commands -----------------------------------------------------------*/
+
+/**
+  * @brief  Send direct command
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  cmd: Command code (0x60-0xF9)
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_SendCommand(ST25R300_HandleTypeDef *hst25r, uint8_t cmd) {
+    ST25R300_StatusTypeDef status;
+
+    CS_LOW();
+    status = ST25R300_SPI_Transmit(hst25r, &cmd, 1);
+    CS_HIGH();
+
+    return status;
+}
+
+/**
+  * @brief  Send multiple commands in chain (without deactivating CS)
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  cmds: Array of command codes
+  * @param  count: Number of commands
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_SendCommandChain(ST25R300_HandleTypeDef *hst25r, uint8_t *cmds, uint8_t count) {
+    ST25R300_StatusTypeDef status = ST25R300_OK;
+
+    CS_LOW();
+
+    for (uint8_t i = 0; i < count; i++) {
+        status = ST25R300_SPI_Transmit(hst25r, &cmds[i], 1);
+        if (status != ST25R300_OK) break;
+    }
+
+    CS_HIGH();
+
+    return status;
+}
+
+/* FIFO Operations -----------------------------------------------------------*/
+
+/**
+  * @brief  Write data to FIFO
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  data: Pointer to data to write
+  * @param  length: Number of bytes (1-256)
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_WriteFIFO(ST25R300_HandleTypeDef *hst25r, uint8_t *data, uint16_t length) {
+    ST25R300_StatusTypeDef status;
+    uint8_t cmd = ST25R300_CMD_FIFO_WRITE;
+
+    if (length == 0 || length > 256) return ST25R300_ERROR;
+
+    CS_LOW();
+
+    // Send FIFO write command
+    status = ST25R300_SPI_Transmit(hst25r, &cmd, 1);
+    if (status != ST25R300_OK) {
+        CS_HIGH();
+        return status;
+    }
+
+    // Write data
+    status = ST25R300_SPI_Transmit(hst25r, data, length);
+
+    CS_HIGH();
+
+    return status;
+}
+
+/**
+  * @brief  Read data from FIFO
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  data: Pointer to store read data
+  * @param  length: Number of bytes to read (1-256)
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_ReadFIFO(ST25R300_HandleTypeDef *hst25r, uint8_t *data, uint16_t length) {
+    ST25R300_StatusTypeDef status;
+    uint8_t cmd = ST25R300_CMD_FIFO_READ;
+    uint8_t dummy = 0xFF;
+
+    if (length == 0 || length > 256) return ST25R300_ERROR;
+
+    CS_LOW();
+
+    // Send FIFO read command
+    status = ST25R300_SPI_Transmit(hst25r, &cmd, 1);
+    if (status != ST25R300_OK) {
+        CS_HIGH();
+        return status;
+    }
+
+    // Send dummy byte to trigger data output
+    status = ST25R300_SPI_Transmit(hst25r, &dummy, 1);
+    if (status != ST25R300_OK) {
+        CS_HIGH();
+        return status;
+    }
+
+    // Read data
+    status = ST25R300_SPI_Receive(hst25r, data, length);
+
+    CS_HIGH();
+
+    return status;
+}
+
+/**
+  * @brief  Get FIFO length
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  length: Pointer to store FIFO length (0-256)
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_GetFIFOLength(ST25R300_HandleTypeDef *hst25r, uint16_t *length) {
+    ST25R300_StatusTypeDef status;
+    uint8_t fifo_status[2];
+
+    // Read FIFO status registers
+    status = ST25R300_ReadRegisters(hst25r, ST25R300_REG_FIFO_STATUS_1, fifo_status, 2);
+    if (status != ST25R300_OK) return status;
+
+    // Combine LSB (reg 0x36) and MSB bit (reg 0x37 bit 6)
+    *length = fifo_status[0] | ((fifo_status[1] & 0x40) << 2);
+
+    return ST25R300_OK;
+}
+
+/* IRQ Functions -------------------------------------------------------------*/
+
+/**
+  * @brief  Read IRQ status registers
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  irq1: Pointer to store IRQ status 1
+  * @param  irq2: Pointer to store IRQ status 2
+  * @param  irq3: Pointer to store IRQ status 3
+  * @retval ST25R300 status
+  * @note   Reading IRQ registers clears them
+  */
+ST25R300_StatusTypeDef ST25R300_ReadIRQ(ST25R300_HandleTypeDef *hst25r, uint8_t *irq1, uint8_t *irq2, uint8_t *irq3) {
+    ST25R300_StatusTypeDef status;
+    uint8_t irq_data[3];
+
+    // Read all 3 IRQ registers (auto-clears them)
+    status = ST25R300_ReadRegisters(hst25r, ST25R300_REG_IRQ_STATUS_1, irq_data, 3);
+    if (status != ST25R300_OK) return status;
+
+    if (irq1) *irq1 = irq_data[0];
+    if (irq2) *irq2 = irq_data[1];
+    if (irq3) *irq3 = irq_data[2];
+
+    return ST25R300_OK;
+}
+
+/**
+  * @brief  Clear all IRQ flags
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_ClearIRQ(ST25R300_HandleTypeDef *hst25r) {
+    return ST25R300_ReadIRQ(hst25r, NULL, NULL, NULL);
+}
+
+/**
+  * @brief  Get IRQ pin state
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @retval true if IRQ is active (high), false otherwise
+  */
+bool ST25R300_GetIRQPin(ST25R300_HandleTypeDef *hst25r) {
+    return (HAL_GPIO_ReadPin(hst25r->irq_port, hst25r->irq_pin) == GPIO_PIN_SET);
+}
+
+/* Status Functions ----------------------------------------------------------*/
+
+/**
+  * @brief  Get IC identity
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  type: Pointer to store IC type (should be 0xB0 for ST25R300)
+  * @param  revision: Pointer to store IC revision
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_GetICIdentity(ST25R300_HandleTypeDef *hst25r, uint8_t *type, uint8_t *revision) {
+    ST25R300_StatusTypeDef status;
+    uint8_t id;
+
+    status = ST25R300_ReadRegister(hst25r, ST25R300_REG_IC_IDENTITY, &id);
+    if (status != ST25R300_OK) return status;
+
+    if (type) *type = id & ST25R300_IC_TYPE_MASK;
+    if (revision) *revision = id & ST25R300_IC_REV_MASK;
+
+    return ST25R300_OK;
+}
+
+/**
+  * @brief  Get status registers
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  status1: Pointer to store status register 1
+  * @param  status2: Pointer to store status register 2
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_GetStatus(ST25R300_HandleTypeDef *hst25r, uint8_t *status1, uint8_t *status2) {
+    ST25R300_StatusTypeDef status;
+    uint8_t status_data[2];
+
+    status = ST25R300_ReadRegisters(hst25r, ST25R300_REG_STATUS_1, status_data, 2);
+    if (status != ST25R300_OK) return status;
+
+    if (status1) *status1 = status_data[0];
+    if (status2) *status2 = status_data[1];
+
+    return ST25R300_OK;
+}
+
+/* Test Functions ------------------------------------------------------------*/
+
+/**
+  * @brief  Test register read/write access
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_TestRegisterAccess(ST25R300_HandleTypeDef *hst25r) {
+    ST25R300_StatusTypeDef status;
+    uint8_t write_val, read_val;
+
+    // Test with operation register (safe to write in PD mode)
+    // Try to read current value
+    status = ST25R300_ReadRegister(hst25r, ST25R300_REG_OPERATION, &read_val);
+    if (status != ST25R300_OK) return status;
+
+    // Write a test pattern (all zeros = safe default)
+    write_val = 0x00;
+    status = ST25R300_WriteRegister(hst25r, ST25R300_REG_OPERATION, write_val);
+    if (status != ST25R300_OK) return status;
+
+    // Read back
+    status = ST25R300_ReadRegister(hst25r, ST25R300_REG_OPERATION, &read_val);
+    if (status != ST25R300_OK) return status;
+
+    if (read_val != write_val) {
+        return ST25R300_ERROR;
+    }
+
+    return ST25R300_OK;
+}
+
+/**
+  * @brief  Test FIFO read/write
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_TestFIFO(ST25R300_HandleTypeDef *hst25r) {
+    ST25R300_StatusTypeDef status;
+    uint8_t write_data[16], read_data[16];
+    uint16_t fifo_len;
+
+    // Clear FIFO first
+    status = ST25R300_SendCommand(hst25r, ST25R300_CMD_CLEAR_FIFO);
+    if (status != ST25R300_OK) return status;
+
+    HAL_Delay(1);
+
+    // Prepare test pattern
+    for (int i = 0; i < 16; i++) {
+        write_data[i] = 0xA0 + i;
+    }
+
+    // Write to FIFO
+    status = ST25R300_WriteFIFO(hst25r, write_data, 16);
+    if (status != ST25R300_OK) return status;
+
+    // Check FIFO length
+    status = ST25R300_GetFIFOLength(hst25r, &fifo_len);
+    if (status != ST25R300_OK) return status;
+
+    if (fifo_len != 16) {
+        return ST25R300_ERROR;
+    }
+
+    // Read from FIFO
+    status = ST25R300_ReadFIFO(hst25r, read_data, 16);
+    if (status != ST25R300_OK) return status;
+
+    // Verify
+    if (memcmp(write_data, read_data, 16) != 0) {
+        return ST25R300_ERROR;
+    }
+
+    return ST25R300_OK;
+}
+
+/**
+  * @brief  Test direct commands
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_TestCommands(ST25R300_HandleTypeDef *hst25r) {
+    ST25R300_StatusTypeDef status;
+
+    // Test clear FIFO command
+    status = ST25R300_SendCommand(hst25r, ST25R300_CMD_CLEAR_FIFO);
+    if (status != ST25R300_OK) return status;
+
+    HAL_Delay(1);
+
+    // Test command chaining: Clear FIFO + Clear RX Gain
+    uint8_t cmds[2] = {ST25R300_CMD_CLEAR_FIFO, ST25R300_CMD_CLEAR_RX_GAIN};
+    status = ST25R300_SendCommandChain(hst25r, cmds, 2);
+    if (status != ST25R300_OK) return status;
+
+    return ST25R300_OK;
+}
+
+/**
+  * @brief  Run complete diagnostics
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_RunDiagnostics(ST25R300_HandleTypeDef *hst25r) {
+    ST25R300_StatusTypeDef status;
+    uint8_t ic_type, ic_rev;
+    uint8_t status1, status2;
+
+    // Check IC identity
+    status = ST25R300_GetICIdentity(hst25r, &ic_type, &ic_rev);
+    if (status != ST25R300_OK) return status;
+
+    if (ic_type != ST25R300_IC_TYPE_ST25R300) {
+        return ST25R300_ERROR;
+    }
+
+    // Check status
+    status = ST25R300_GetStatus(hst25r, &status1, &status2);
+    if (status != ST25R300_OK) return status;
+
+    // Test register access
+    status = ST25R300_TestRegisterAccess(hst25r);
+    if (status != ST25R300_OK) return status;
+
+    // Test commands
+    status = ST25R300_TestCommands(hst25r);
+    if (status != ST25R300_OK) return status;
+
+    // Test FIFO
+    status = ST25R300_TestFIFO(hst25r);
+    if (status != ST25R300_OK) return status;
+
+    return ST25R300_OK;
+}
+
+/* Private Functions ---------------------------------------------------------*/
+
+/**
+  * @brief  SPI transmit wrapper
+  */
+static ST25R300_StatusTypeDef ST25R300_SPI_Transmit(ST25R300_HandleTypeDef *hst25r, uint8_t *data, uint16_t size) {
+    if (HAL_SPI_Transmit(hst25r->hspi, data, size, ST25R300_TIMEOUT_MS) != HAL_OK) {
+        return ST25R300_ERROR;
+    }
+    return ST25R300_OK;
+}
+
+/**
+  * @brief  SPI receive wrapper
+  */
+static ST25R300_StatusTypeDef ST25R300_SPI_Receive(ST25R300_HandleTypeDef *hst25r, uint8_t *data, uint16_t size) {
+    if (HAL_SPI_Receive(hst25r->hspi, data, size, ST25R300_TIMEOUT_MS) != HAL_OK) {
+        return ST25R300_ERROR;
+    }
+    return ST25R300_OK;
+}
+
+/**
+  * @brief  SPI transmit-receive wrapper
+  */
+static ST25R300_StatusTypeDef ST25R300_SPI_TransmitReceive(ST25R300_HandleTypeDef *hst25r, uint8_t *txData, uint8_t *rxData, uint16_t size) {
+    if (HAL_SPI_TransmitReceive(hst25r->hspi, txData, rxData, size, ST25R300_TIMEOUT_MS) != HAL_OK) {
+        return ST25R300_ERROR;
+    }
+    return ST25R300_OK;
+}

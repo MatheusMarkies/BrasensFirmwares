@@ -1,0 +1,37 @@
+14:31:14 **** Build of configuration Debug for project TorquimetroTag ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L011xx -c -I../Core/Inc -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/Legacy" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Device/ST/STM32L0xx/Include" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Include" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'ADS1115_Read':
+../Core/Src/main.c:113:34: error: 'hi2c1' undeclared (first use in this function)
+  113 |     if (HAL_I2C_Master_Transmit(&hi2c1, ADS1115_ADDR, config, 3, 100) != HAL_OK) return -1;
+      |                                  ^~~~~
+../Core/Src/main.c:113:34: note: each undeclared identifier is reported only once for each function it appears in
+../Core/Src/main.c: In function 'ST25DV_Write_Float':
+../Core/Src/main.c:149:30: error: 'hi2c1' undeclared (first use in this function)
+  149 |     HAL_I2C_Master_Transmit(&hi2c1, ST25DV_ADDR, payload, 6, 100);
+      |                              ^~~~~
+../Core/Src/main.c: In function 'Realizar_Tara':
+../Core/Src/main.c:80:26: warning: implicit declaration of function 'HAL_UART_Transmit' [-Wimplicit-function-declaration]
+   80 | #define DEBUG_PRINT(msg) HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), 200)
+      |                          ^~~~~~~~~~~~~~~~~
+../Core/Src/main.c:157:5: note: in expansion of macro 'DEBUG_PRINT'
+  157 |     DEBUG_PRINT("Iniciando Tara...\r\n");
+      |     ^~~~~~~~~~~
+../Core/Src/main.c:80:45: error: 'huart1' undeclared (first use in this function)
+   80 | #define DEBUG_PRINT(msg) HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), 200)
+      |                                             ^~~~~~
+../Core/Src/main.c:157:5: note: in expansion of macro 'DEBUG_PRINT'
+  157 |     DEBUG_PRINT("Iniciando Tara...\r\n");
+      |     ^~~~~~~~~~~
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:80:45: error: 'huart1' undeclared (first use in this function)
+   80 | #define DEBUG_PRINT(msg) HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), 200)
+      |                                             ^~~~~~
+../Core/Src/main.c:208:5: note: in expansion of macro 'DEBUG_PRINT'
+  208 |     DEBUG_PRINT(msg_buffer);
+      |     ^~~~~~~~~~~
+make: *** [Core/Src/subdir.mk:34: Core/Src/main.o] Error 1
+"make -j12 all" terminated with exit code 2. Build might be incomplete.
+
+14:31:14 Build Failed. 5 errors, 1 warnings. (took 452ms)
+

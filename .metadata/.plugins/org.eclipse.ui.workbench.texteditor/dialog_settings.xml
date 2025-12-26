@@ -14,25 +14,26 @@
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
-		<item key="selection" value="snprintf"/>
+		<item key="selection" value="ST25R300_DiagnosticMeasurement"/>
 		<list key="findhistory">
+			<item value="ST25R300_DiagnosticMeasurement"/>
+			<item value="ST25R300_ReadFIFO"/>
+			<item value="ST25R300_Init"/>
+			<item value="init"/>
+			<item value="ST25R300 COMPREHENSIVE DIAGNOSTIC TES"/>
+			<item value="clear"/>
+			<item value="EstimateAntennaQ"/>
+			<item value="MeasureRSSI"/>
+			<item value="64"/>
+			<item value="printf"/>
 			<item value="snprintf"/>
 			<item value="fram"/>
 			<item value="sendAT"/>
 			<item value="send"/>
 			<item value="hiwdg"/>
-			<item value="float_to_two_char_string"/>
-			<item value="transmission_data_to_json"/>
-			<item value="jsonDataBuffer"/>
-			<item value="GSM_Send_HTTP_POST"/>
-			<item value="DEBUG_PRINT"/>
-			<item value="f"/>
-			<item value="%.2f"/>
-			<item value="gsm_send_command"/>
-			<item value="DEBUG"/>
-			<item value="while"/>
 		</list>
 		<list key="replacehistory">
+			<item value="DEBUG_PRINT"/>
 			<item value=""/>
 		</list>
 	</section>

@@ -1,0 +1,847 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2025 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+// Endereços de Registradores ST25R300
+
+
+// --- Registradores ST25R300 ---
+#define ST25_REG_OP_CONTROL      0x00
+#define ST25_REG_GEN_CONFIG      0x01
+#define ST25_REG_REGULATOR_CTRL  0x02
+#define ST25_REG_TX_DRIVER       0x03
+#define ST25_REG_TX_MOD1         0x04
+#define ST25_REG_PROTOCOL        0x14
+#define ST25_REG_FIFO_STATUS1    0x36
+#define ST25_REG_IRQ_STATUS1     0x3C
+#define ST25_FIFO_ADDR           0x5F
+
+// Comandos Diretos [cite: 2775]
+#define CMD_SET_DEFAULT          0xC0
+#define CMD_CLEAR_FIFO           0xC4
+#define CMD_TRANSMIT_W_CRC       0xC5
+#define CMD_ADJUST_REGULATORS    0xD0 // Code 0x68 | 0xC0 (Command Pattern)
+#define CMD_CALIBRATE_RC         0xDC // Code 0xEE | 0xC0
+
+#define ST25_REG_IC_IDENTITY     0x3F
+#define ST25_REG_STATUS1         0x40
+#define ST25_REG_RSSI1           0x4A
+#define ST25_REG_ANALOG_DISPLAY1 0x48
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+char log_buf[128];
+#define LOG(fmt, ...) do { \
+    sLOG(log_buf, fmt, ##__VA_ARGS__); \
+    HAL_UART_Transmit(&huart1, (uint8_t*)log_buf, strlen(log_buf), 100); \
+} while(0)
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+I2C_HandleTypeDef hi2c2;
+
+SPI_HandleTypeDef hspi1;
+SPI_HandleTypeDef hspi2;
+
+UART_HandleTypeDef huart1;
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_I2C2_Init(void);
+static void MX_SPI1_Init(void);
+static void MX_SPI2_Init(void);
+static void MX_USART1_UART_Init(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+ST25R300_StatusTypeDef ST25R300_EnableNFCField(ST25R300_HandleTypeDef *hst25r) {
+    ST25R300_StatusTypeDef status;
+    uint8_t irq1, irq2, irq3;
+
+    LOG("Enabling NFC Field...\r\n");
+
+    // 1. Enter Ready Mode
+    status = ST25R300_WriteRegister(hst25r, ST25R300_REG_OPERATION, ST25R300_OP_EN);
+    if (status != ST25R300_OK) return status;
+
+    // 2. Wait for oscillator
+    status = ST25R300_WaitOscillator(hst25r, 100);
+    if (status != ST25R300_OK) {
+        LOG("  Error: Oscillator timeout\r\n");
+        return status;
+    }
+    LOG("  ✓ Oscillator ready\r\n");
+
+    // 3. Enable VDD_DR regulator
+    status = ST25R300_ModifyRegister(hst25r, ST25R300_REG_OPERATION,
+                                     ST25R300_OP_VDDDR_EN, ST25R300_OP_VDDDR_EN);
+    if (status != ST25R300_OK) return status;
+    HAL_Delay(1); // Wait minimum 10us
+
+    // 4. Enable TX and RX
+    status = ST25R300_ModifyRegister(hst25r, ST25R300_REG_OPERATION,
+                                     ST25R300_OP_TX_EN | ST25R300_OP_RX_EN,
+                                     ST25R300_OP_TX_EN | ST25R300_OP_RX_EN);
+    if (status != ST25R300_OK) return status;
+    LOG("  ✓ TX/RX enabled\r\n");
+
+    // 5. Execute adjust regulator command
+    status = ST25R300_SendCommand(hst25r, ST25R300_CMD_ADJUST_REG);
+    if (status != ST25R300_OK) return status;
+
+    // 6. Wait for command completion
+    HAL_Delay(10);
+
+    // Check for I_dct interrupt
+    ST25R300_ReadIRQ(hst25r, &irq1, &irq2, &irq3);
+    if (irq3 & ST25R300_IRQ3_DCT) {
+        LOG("  ✓ Regulator adjusted\r\n");
+    }
+
+    // 7. Execute NFC field on command (with collision avoidance)
+    status = ST25R300_SendCommand(hst25r, ST25R300_CMD_NFC_FIELD_ON);
+    if (status != ST25R300_OK) return status;
+
+    // Wait for field on completion
+    HAL_Delay(10);
+
+    ST25R300_ReadIRQ(hst25r, &irq1, &irq2, &irq3);
+    if (irq3 & ST25R300_IRQ3_DCT) {
+        LOG("  ✓ NFC field active!\r\n");
+        return ST25R300_OK;
+    }
+
+    return ST25R300_ERROR;
+}
+
+/**
+  * @brief  Configure ST25R300 for ISO14443-A operation
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  bitrate: 0=106kbps, 1=212kbps, 2=424kbps, 3=848kbps
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_ConfigureISO14443A(ST25R300_HandleTypeDef *hst25r, uint8_t bitrate) {
+    ST25R300_StatusTypeDef status;
+    uint8_t protocol_reg;
+
+    LOG("Configuring ISO14443-A at ");
+    switch(bitrate) {
+        case 0: LOG("106 kbps\r\n"); break;
+        case 1: LOG("212 kbps\r\n"); break;
+        case 2: LOG("424 kbps\r\n"); break;
+        case 3: LOG("848 kbps\r\n"); break;
+        default: return ST25R300_ERROR;
+    }
+
+    // Protocol Register 1 (0x14):
+    // Bits 7:6 = rx_rate
+    // Bits 5:4 = tx_rate
+    // Bits 3:0 = om (operation mode)
+    // om = 0x1 for ISO14443-A/NFC-A
+
+    protocol_reg = ((bitrate & 0x03) << 6) |  // RX rate
+                   ((bitrate & 0x03) << 4) |  // TX rate
+                   0x01;                       // ISO14443-A mode
+
+    status = ST25R300_WriteRegister(hst25r, 0x14, protocol_reg);
+    if (status != ST25R300_OK) return status;
+
+    // Configure TX Protocol Register 1 (0x15)
+    // Enable parity and CRC generation
+    status = ST25R300_WriteRegister(hst25r, 0x15, 0x60); // a_tx_par=1, tx_crc=1
+    if (status != ST25R300_OK) return status;
+
+    // Configure RX Protocol Register 1 (0x17)
+    // Enable parity and CRC checking
+    status = ST25R300_WriteRegister(hst25r, 0x17, 0x2C); // a_rx_par=1, rx_crc=1
+    if (status != ST25R300_OK) return status;
+
+    LOG("  ✓ ISO14443-A configured\r\n");
+    return ST25R300_OK;
+}
+
+/**
+  * @brief  Send ISO14443-A REQA command
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  atqa: Pointer to store ATQA response (2 bytes)
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_SendREQA(ST25R300_HandleTypeDef *hst25r, uint8_t *atqa) {
+    ST25R300_StatusTypeDef status;
+    uint8_t reqa_cmd = 0x26; // REQA command
+    uint8_t irq1, irq2, irq3;
+    uint16_t fifo_len;
+    uint32_t timeout;
+
+    LOG("Sending REQA...\r\n");
+
+    // Clear FIFO
+    status = ST25R300_SendCommand(hst25r, ST25R300_CMD_CLEAR_FIFO);
+    if (status != ST25R300_OK) return status;
+
+    // Configure for short frame (7 bits for REQA)
+    // Tx Frame Config Register 2 (0x35): nbtx = 7
+    status = ST25R300_WriteRegister(hst25r, 0x35, 0x07);
+    if (status != ST25R300_OK) return status;
+
+    // Write REQA to FIFO
+    status = ST25R300_WriteFIFO(hst25r, &reqa_cmd, 1);
+    if (status != ST25R300_OK) return status;
+
+    // Clear interrupts
+    ST25R300_ClearIRQ(hst25r);
+
+    // Configure No-Response Timer (NRT)
+    // Set timeout for tag response (~5ms)
+    uint8_t nrt_config[3] = {0x00, 0x00, 0x00}; // Will be configured based on standard
+    status = ST25R300_WriteRegisters(hst25r, 0x22, nrt_config, 3);
+    if (status != ST25R300_OK) return status;
+
+    // Send transmit command
+    status = ST25R300_SendCommand(hst25r, ST25R300_CMD_TX_DATA);
+    if (status != ST25R300_OK) return status;
+
+    // Wait for transmission end (I_txe)
+    timeout = HAL_GetTick();
+    while ((HAL_GetTick() - timeout) < 100) {
+        ST25R300_ReadIRQ(hst25r, &irq1, &irq2, &irq3);
+        if (irq1 & ST25R300_IRQ1_TXE) {
+            LOG("  ✓ Transmission complete\r\n");
+            break;
+        }
+        HAL_Delay(1);
+    }
+
+    // Wait for reception (I_rxe) or no-response (I_nre)
+    timeout = HAL_GetTick();
+    while ((HAL_GetTick() - timeout) < 100) {
+        ST25R300_ReadIRQ(hst25r, &irq1, &irq2, &irq3);
+
+        if (irq1 & ST25R300_IRQ1_RXE) {
+            LOG("  ✓ Response received\r\n");
+
+            // Read ATQA from FIFO
+            status = ST25R300_GetFIFOLength(hst25r, &fifo_len);
+            if (status != ST25R300_OK) return status;
+
+            if (fifo_len >= 2) {
+                status = ST25R300_ReadFIFO(hst25r, atqa, 2);
+                LOG("  ATQA: 0x%02X 0x%02X\r\n", atqa[0], atqa[1]);
+                return status;
+            }
+            return ST25R300_ERROR;
+        }
+
+        if (irq2 & 0x40) { // I_nre (no response)
+            LOG("  No tag detected\r\n");
+            return ST25R300_ERROR;
+        }
+
+        HAL_Delay(1);
+    }
+
+    LOG("  Timeout waiting for response\r\n");
+    return ST25R300_TIMEOUT;
+}
+
+/**
+  * @brief  Configure wake-up mode for low-power card detection
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  period_ms: Wake-up period in milliseconds
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_ConfigureWakeUp(ST25R300_HandleTypeDef *hst25r, uint16_t period_ms) {
+    ST25R300_StatusTypeDef status;
+    uint8_t wut_config;
+
+    LOG("Configuring Wake-Up mode (%d ms period)...\r\n", period_ms);
+
+    // Map period to WUT configuration (Register 0x27, bits 7:4)
+    // See Table 62 in datasheet
+    if (period_ms <= 12) wut_config = 0x00;
+    else if (period_ms <= 25) wut_config = 0x10;
+    else if (period_ms <= 50) wut_config = 0x20;
+    else if (period_ms <= 75) wut_config = 0x30;
+    else if (period_ms <= 100) wut_config = 0x40;
+    else if (period_ms <= 125) wut_config = 0x50;
+    else if (period_ms <= 150) wut_config = 0x60;
+    else if (period_ms <= 200) wut_config = 0x70;
+    else if (period_ms <= 250) wut_config = 0x80;
+    else if (period_ms <= 300) wut_config = 0x90;
+    else if (period_ms <= 350) wut_config = 0xA0;
+    else if (period_ms <= 400) wut_config = 0xB0;
+    else if (period_ms <= 500) wut_config = 0xC0;
+    else if (period_ms <= 800) wut_config = 0xD0;
+    else wut_config = 0xE0; // 1000 ms
+
+    // Write wake-up control register
+    status = ST25R300_WriteRegister(hst25r, 0x27, wut_config);
+    if (status != ST25R300_OK) return status;
+
+    // Configure I-channel detection (Register 0x2A)
+    // Enable all detection ranges (bits 2:0)
+    status = ST25R300_WriteRegister(hst25r, 0x2A, 0x07);
+    if (status != ST25R300_OK) return status;
+
+    // Set I-channel difference threshold (Register 0x2B)
+    status = ST25R300_WriteRegister(hst25r, 0x2B, 0x0A); // Default threshold
+    if (status != ST25R300_OK) return status;
+
+    // Configure Q-channel similarly
+    status = ST25R300_WriteRegister(hst25r, 0x2F, 0x07);
+    if (status != ST25R300_OK) return status;
+
+    status = ST25R300_WriteRegister(hst25r, 0x30, 0x0A);
+    if (status != ST25R300_OK) return status;
+
+    // Enable auto-averaging (Register 0x29, bit 3)
+    status = ST25R300_WriteRegister(hst25r, 0x29, 0x08);
+    if (status != ST25R300_OK) return status;
+
+    // Enable wake-up mode
+    status = ST25R300_WriteRegister(hst25r, ST25R300_REG_OPERATION, ST25R300_OP_WU_EN);
+    if (status != ST25R300_OK) return status;
+
+    LOG("  ✓ Wake-Up mode enabled\r\n");
+    return ST25R300_OK;
+}
+
+/**
+  * @brief  Monitor wake-up events
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @retval true if card detected, false otherwise
+  */
+bool ST25R300_CheckWakeUpEvent(ST25R300_HandleTypeDef *hst25r) {
+    uint8_t irq1, irq2, irq3;
+
+    // Check if IRQ pin is active
+    if (!ST25R300_GetIRQPin(hst25r)) {
+        return false;
+    }
+
+    // Read interrupt status
+    ST25R300_ReadIRQ(hst25r, &irq1, &irq2, &irq3);
+
+    // Check wake-up interrupts
+    if (irq3 & (ST25R300_IRQ3_WUI | ST25R300_IRQ3_WUQ)) {
+        LOG("Wake-Up event detected!\r\n");
+
+        // Read I/Q ADC values to see what changed
+        uint8_t i_adc, q_adc;
+        ST25R300_ReadRegister(hst25r, 0x2D, &i_adc); // I-channel ADC
+        ST25R300_ReadRegister(hst25r, 0x32, &q_adc); // Q-channel ADC
+
+        LOG("  I: %d, Q: %d\r\n", (int8_t)i_adc, (int8_t)q_adc);
+
+        return true;
+    }
+
+    return false;
+}
+
+/**
+  * @brief  Read current consumption for diagnostics
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @param  current_mA: Pointer to store current in mA
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_MeasureCurrent(ST25R300_HandleTypeDef *hst25r, float *current_mA) {
+    ST25R300_StatusTypeDef status;
+    uint8_t cmd_sequence[52];
+    uint8_t fifo_data[208]; // 4 bytes per measurement
+    uint16_t raw_value;
+
+    LOG("Measuring VDD_DR current...\r\n");
+
+    // Enter ready mode and enable receiver
+    status = ST25R300_WriteRegister(hst25r, ST25R300_REG_OPERATION,
+                                     ST25R300_OP_EN | ST25R300_OP_RX_EN);
+    if (status != ST25R300_OK) return status;
+
+    HAL_Delay(10);
+
+    // Clear FIFO and CE memory
+    ST25R300_SendCommand(hst25r, ST25R300_CMD_CLEAR_FIFO);
+
+    // Prepare diagnostic command (command 0x01 = I_VDD_DR)
+    cmd_sequence[0] = 0x01; // Measure VDD_DR current
+    cmd_sequence[1] = 0x00; // Terminator
+
+    // Write command sequence to CE memory
+    // (Implementation depends on CE memory access - see section 5.14.5)
+
+    // Execute diagnostic measurement
+    status = ST25R300_SendCommand(hst25r, 0xF8); // Trigger diagnostic
+    if (status != ST25R300_OK) return status;
+
+    HAL_Delay(50); // Wait for measurement
+
+    // Read result from FIFO
+    uint16_t fifo_len;
+    ST25R300_GetFIFOLength(hst25r, &fifo_len);
+
+    if (fifo_len >= 4) {
+        ST25R300_ReadFIFO(hst25r, fifo_data, 4);
+
+        // Parse result: [cmd, calib_MSB, calib_LSB, RFU]
+        raw_value = (fifo_data[1] << 8) | fifo_data[2];
+
+        // Convert to mA using conversion factor (3.2 mA per LSB)
+        *current_mA = (raw_value & 0x1FF) * 3.2f;
+
+        LOG("  Current: %.2f mA\r\n", *current_mA);
+        return ST25R300_OK;
+    }
+
+    return ST25R300_ERROR;
+}
+
+/**
+  * @brief  Complete example: Detect and read ISO14443-A card
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @retval ST25R300 status
+  */
+ST25R300_StatusTypeDef ST25R300_DetectCard_Example(ST25R300_HandleTypeDef *hst25r) {
+    ST25R300_StatusTypeDef status;
+    uint8_t atqa[2];
+
+    LOG("\r\n========================================\r\n");
+    LOG("  ISO14443-A Card Detection Example\r\n");
+    LOG("========================================\r\n\r\n");
+
+    // Step 1: Configure for ISO14443-A at 106 kbps
+    status = ST25R300_ConfigureISO14443A(hst25r, 0);
+    if (status != ST25R300_OK) return status;
+
+    // Step 2: Enable NFC field
+    status = ST25R300_EnableNFCField(hst25r);
+    if (status != ST25R300_OK) return status;
+
+    // Step 3: Wait guard time (5ms for ISO14443)
+    LOG("\nWaiting guard time...\r\n");
+    HAL_Delay(5);
+
+    // Step 4: Send REQA command
+    status = ST25R300_SendREQA(hst25r, atqa);
+    if (status == ST25R300_OK) {
+        LOG("\n✓ Card detected successfully!\r\n");
+        LOG("  ATQA: 0x%02X%02X\r\n", atqa[1], atqa[0]);
+
+        // Could continue with anti-collision, SELECT, etc.
+    } else {
+        LOG("\nNo card detected\r\n");
+    }
+
+    return status;
+}
+
+/**
+  * @brief  Example: Low-power card detection with wake-up mode
+  * @param  hst25r: Pointer to ST25R300 handle
+  * @retval None
+  */
+void ST25R300_LowPowerDetection_Example(ST25R300_HandleTypeDef *hst25r) {
+    LOG("\r\n========================================\r\n");
+    LOG("  Low-Power Card Detection Example\r\n");
+    LOG("========================================\r\n\r\n");
+
+    // Configure wake-up mode with 100ms period
+    if (ST25R300_ConfigureWakeUp(hst25r, 100) != ST25R300_OK) {
+        LOG("Failed to configure wake-up mode\r\n");
+        return;
+    }
+
+    LOG("Entering low-power mode...\r\n");
+    LOG("Bring a card close to trigger detection\r\n\r\n");
+
+    // Main loop
+    while (1) {
+        // Check for wake-up event
+        if (ST25R300_CheckWakeUpEvent(hst25r)) {
+            // Card detected! Exit wake-up mode and perform full detection
+            LOG("\nExiting wake-up mode for full detection...\r\n");
+
+            // Disable wake-up mode
+            ST25R300_WriteRegister(hst25r, ST25R300_REG_OPERATION, 0x00);
+
+            // Perform normal card detection
+            ST25R300_DetectCard_Example(hst25r);
+
+            // Re-enter wake-up mode
+            LOG("\nRe-entering wake-up mode...\r\n");
+            ST25R300_ConfigureWakeUp(hst25r, 100);
+        }
+
+        // In real application, MCU could enter sleep mode here
+        HAL_Delay(10);
+    }
+}
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_I2C2_Init();
+  MX_SPI1_Init();
+  MX_SPI2_Init();
+  MX_USART1_UART_Init();
+  /* USER CODE BEGIN 2 */
+  ST25R300_Init_HighPower();
+  System_Diagnostics();
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+  RCC_OscInitStruct.MSICalibrationValue = 0;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief I2C2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C2_Init(void)
+{
+
+  /* USER CODE BEGIN I2C2_Init 0 */
+
+  /* USER CODE END I2C2_Init 0 */
+
+  /* USER CODE BEGIN I2C2_Init 1 */
+
+  /* USER CODE END I2C2_Init 1 */
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.Timing = 0x00000608;
+  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C2_Init 2 */
+
+  /* USER CODE END I2C2_Init 2 */
+
+}
+
+/**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+
+  /* USER CODE END SPI1_Init 0 */
+
+  /* USER CODE BEGIN SPI1_Init 1 */
+
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 7;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
+
+  /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
+  * @brief SPI2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI2_Init(void)
+{
+
+  /* USER CODE BEGIN SPI2_Init 0 */
+
+  /* USER CODE END SPI2_Init 0 */
+
+  /* USER CODE BEGIN SPI2_Init 1 */
+
+  /* USER CODE END SPI2_Init 1 */
+  /* SPI2 parameter configuration*/
+  hspi2.Instance = SPI2;
+  hspi2.Init.Mode = SPI_MODE_MASTER;
+  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi2.Init.NSS = SPI_NSS_SOFT;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi2.Init.CRCPolynomial = 7;
+  if (HAL_SPI_Init(&hspi2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI2_Init 2 */
+
+  /* USER CODE END SPI2_Init 2 */
+
+}
+
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+/* USER CODE BEGIN MX_GPIO_Init_1 */
+/* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(SIG_GPIO_Port, SIG_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(ST25_CS_GPIO_Port, ST25_CS_Pin, GPIO_PIN_SET);
+
+  /*Configure GPIO pin : IRQ_Pin */
+  GPIO_InitStruct.Pin = IRQ_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(IRQ_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : SIG_Pin ST25_CS_Pin */
+  GPIO_InitStruct.Pin = SIG_Pin|ST25_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+/* USER CODE BEGIN MX_GPIO_Init_2 */
+/* USER CODE END MX_GPIO_Init_2 */
+}
+
+/* USER CODE BEGIN 4 */
+
+/* USER CODE END 4 */
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: LOG("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */

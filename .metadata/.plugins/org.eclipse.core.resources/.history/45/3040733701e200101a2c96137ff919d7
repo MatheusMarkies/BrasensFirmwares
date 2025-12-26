@@ -1,0 +1,534 @@
+/*
+ * st25r300.c
+ *
+ *  Created on: Dec 25, 2025
+ *      Author: Matheus Markies
+ */
+#include "st25r300.h"
+
+// ============================================================================
+// DEFINES AND MACROS
+// ============================================================================
+
+// SPI Operation Modes (Bit 7 - R/W)
+#define ST25R300_SPI_WRITE                          0x00
+#define ST25R300_SPI_READ                           0x80
+
+// SPI Commands
+#define ST25R300_CMD_MASK                           0x60
+
+// Timeouts
+#define ST25R300_SPI_TIMEOUT                        100  // ms
+#define ST25R300_RESET_DELAY                        2    // ms
+
+// ============================================================================
+// PRIVATE FUNCTIONS - GPIO CONTROL
+// ============================================================================
+
+/**
+ * @brief  Set Chip Select (CS/BSS) pin LOW - Enable SPI
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval None
+ */
+static inline void ST25R300_CS_Low(ST25R300 *dev) {
+	HAL_GPIO_WritePin(dev->CS_port, dev->CS_pin, GPIO_PIN_RESET);
+}
+
+/**
+ * @brief  Set Chip Select (CS/BSS) pin HIGH - Disable SPI
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval None
+ */
+static inline void ST25R300_CS_High(ST25R300 *dev) {
+	HAL_GPIO_WritePin(dev->CS_port, dev->CS_pin, GPIO_PIN_SET);
+}
+
+/**
+ * @brief  Set Reset pin LOW - Enable device
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval None
+ */
+static inline void ST25R300_Reset_Low(ST25R300 *dev) {
+	HAL_GPIO_WritePin(dev->reset_port, dev->reset_pin, GPIO_PIN_RESET);
+}
+
+/**
+ * @brief  Set Reset pin HIGH - Hold device in reset
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval None
+ */
+static inline void ST25R300_Reset_High(ST25R300 *dev) {
+	HAL_GPIO_WritePin(dev->reset_port, dev->reset_pin, GPIO_PIN_SET);
+}
+
+/**
+ * @brief  Read IRQ pin state
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval GPIO_PinState: PIN_SET or PIN_RESET
+ */
+static inline GPIO_PinState ST25R300_IRQ_Read(ST25R300 *dev) {
+	return HAL_GPIO_ReadPin(dev->IRQ_port, dev->IRQ_pin);
+}
+
+// ============================================================================
+// PUBLIC FUNCTIONS - REGISTER ACCESS
+// ============================================================================
+
+/**
+ * @brief  Write a single byte to a register
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  reg: Register address (0x00 to 0x57)
+ * @param  data: Data byte to write
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_WriteRegister(ST25R300 *dev, uint8_t reg,
+		uint8_t data) {
+	HAL_StatusTypeDef status;
+	uint8_t tx_buffer[2];
+
+	// Validate register address
+	if (reg > 0x57) {
+		return HAL_ERROR;
+	}
+
+	// Prepare command byte (bit 7 = 0 for write)
+	tx_buffer[0] = (reg & 0x7F);  // Clear bit 7 for write operation
+	tx_buffer[1] = data;
+
+	// SPI Transaction
+	ST25R300_CS_Low(dev);
+	status = HAL_SPI_Transmit(dev->hSPIx, tx_buffer, 2, ST25R300_SPI_TIMEOUT);
+	ST25R300_CS_High(dev);
+
+	return status;
+}
+
+/**
+ * @brief  Write multiple bytes to consecutive registers (auto-increment)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  reg: Starting register address (0x00 to 0x57)
+ * @param  data: Pointer to data buffer
+ * @param  length: Number of bytes to write
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_WriteRegisters(ST25R300 *dev, uint8_t reg,
+		uint8_t *data, uint16_t length) {
+	HAL_StatusTypeDef status;
+	uint8_t cmd;
+
+	// Validate parameters
+	if (reg > 0x57 || data == NULL || length == 0) {
+		return HAL_ERROR;
+	}
+
+	// Prepare command byte (bit 7 = 0 for write)
+	cmd = (reg & 0x7F);
+
+	// SPI Transaction
+	ST25R300_CS_Low(dev);
+
+	// Send command byte
+	status = HAL_SPI_Transmit(dev->hSPIx, &cmd, 1, ST25R300_SPI_TIMEOUT);
+
+	if (status == HAL_OK) {
+		// Send data bytes (address auto-increments)
+		status = HAL_SPI_Transmit(dev->hSPIx, data, length,
+				ST25R300_SPI_TIMEOUT);
+	}
+
+	ST25R300_CS_High(dev);
+
+	return status;
+}
+
+/**
+ * @brief  Read a single byte from a register
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  reg: Register address (0x00 to 0x57)
+ * @param  data: Pointer to store read data
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_ReadRegister(ST25R300 *dev, uint8_t reg,
+		uint8_t *data) {
+	HAL_StatusTypeDef status;
+	uint8_t cmd;
+	uint8_t dummy = 0x00;
+
+	// Validate parameters
+	if (reg > 0x57 || data == NULL) {
+		return HAL_ERROR;
+	}
+
+	// Prepare command byte (bit 7 = 1 for read)
+	cmd = (reg | 0x80);  // Set bit 7 for read operation
+
+	// SPI Transaction
+	ST25R300_CS_Low(dev);
+
+	// Send command byte
+	status = HAL_SPI_Transmit(dev->hSPIx, &cmd, 1, ST25R300_SPI_TIMEOUT);
+
+	if (status == HAL_OK) {
+		// Send dummy byte and receive data
+		status = HAL_SPI_TransmitReceive(dev->hSPIx, &dummy, data, 1,
+				ST25R300_SPI_TIMEOUT);
+	}
+
+	ST25R300_CS_High(dev);
+
+	return status;
+}
+
+/**
+ * @brief  Read multiple bytes from consecutive registers (auto-increment)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  reg: Starting register address (0x00 to 0x57)
+ * @param  data: Pointer to buffer to store read data
+ * @param  length: Number of bytes to read
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_ReadRegisters(ST25R300 *dev, uint8_t reg,
+		uint8_t *data, uint16_t length) {
+	HAL_StatusTypeDef status;
+	uint8_t cmd;
+
+	// Validate parameters
+	if (reg > 0x57 || data == NULL || length == 0) {
+		return HAL_ERROR;
+	}
+
+	// Prepare command byte (bit 7 = 1 for read)
+	cmd = (reg | 0x80);
+
+	// Prepare dummy buffer for transmit
+	uint8_t *dummy_tx = (uint8_t*) calloc(length, sizeof(uint8_t));
+	if (dummy_tx == NULL) {
+		return HAL_ERROR;
+	}
+
+	// SPI Transaction
+	ST25R300_CS_Low(dev);
+
+	// Send command byte
+	status = HAL_SPI_Transmit(dev->hSPIx, &cmd, 1, ST25R300_SPI_TIMEOUT);
+
+	if (status == HAL_OK) {
+		// Send dummy bytes and receive data (address auto-increments)
+		status = HAL_SPI_TransmitReceive(dev->hSPIx, dummy_tx, data, length,
+				ST25R300_SPI_TIMEOUT);
+	}
+
+	ST25R300_CS_High(dev);
+
+	free(dummy_tx);
+
+	return status;
+}
+
+/**
+ * @brief  Modify specific bits in a register (Read-Modify-Write)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  reg: Register address (0x00 to 0x57)
+ * @param  mask: Bit mask for bits to modify
+ * @param  value: New value for masked bits
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ *
+ * @note   Example: To set bit 3 and clear bit 1:
+ *         ST25R300_ModifyRegister(dev, reg, 0x0A, 0x08)
+ *         mask = 0b00001010, value = 0b00001000
+ */
+HAL_StatusTypeDef ST25R300_ModifyRegister(ST25R300 *dev, uint8_t reg,
+		uint8_t mask, uint8_t value) {
+	HAL_StatusTypeDef status;
+	uint8_t reg_value;
+
+	// Read current register value
+	status = ST25R300_ReadRegister(dev, reg, &reg_value);
+
+	if (status == HAL_OK) {
+		// Clear bits to modify and set new values
+		reg_value = (reg_value & ~mask) | (value & mask);
+
+		// Write modified value back
+		status = ST25R300_WriteRegister(dev, reg, reg_value);
+	}
+
+	return status;
+}
+
+// ============================================================================
+// PUBLIC FUNCTIONS - FIFO ACCESS
+// ============================================================================
+
+/**
+ * @brief  Write data to FIFO
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  data: Pointer to data buffer
+ * @param  length: Number of bytes to write (1-256)
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_WriteFIFO(ST25R300 *dev, uint8_t *data,
+		uint16_t length) {
+	HAL_StatusTypeDef status;
+	uint8_t cmd = 0x5F;  // FIFO write address (bit 7 = 0 for write)
+
+	// Validate parameters
+	if (data == NULL || length == 0 || length > 256) {
+		return HAL_ERROR;
+	}
+
+	// SPI Transaction
+	ST25R300_CS_Low(dev);
+
+	// Send FIFO write command
+	status = HAL_SPI_Transmit(dev->hSPIx, &cmd, 1, ST25R300_SPI_TIMEOUT);
+
+	if (status == HAL_OK) {
+		// Write data to FIFO
+		status = HAL_SPI_Transmit(dev->hSPIx, data, length,
+				ST25R300_SPI_TIMEOUT);
+	}
+
+	ST25R300_CS_High(dev);
+
+	return status;
+}
+
+/**
+ * @brief  Read data from FIFO
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  data: Pointer to buffer to store read data
+ * @param  length: Number of bytes to read (1-256)
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_ReadFIFO(ST25R300 *dev, uint8_t *data,
+		uint16_t length) {
+	HAL_StatusTypeDef status;
+	uint8_t cmd = 0xDF;  // FIFO read address (0x5F | 0x80)
+
+	// Validate parameters
+	if (data == NULL || length == 0 || length > 256) {
+		return HAL_ERROR;
+	}
+
+	// Prepare dummy buffer
+	uint8_t *dummy_tx = (uint8_t*) calloc(length, sizeof(uint8_t));
+	if (dummy_tx == NULL) {
+		return HAL_ERROR;
+	}
+
+	// SPI Transaction
+	ST25R300_CS_Low(dev);
+
+	// Send FIFO read command
+	status = HAL_SPI_Transmit(dev->hSPIx, &cmd, 1, ST25R300_SPI_TIMEOUT);
+
+	if (status == HAL_OK) {
+		// Read data from FIFO
+		status = HAL_SPI_TransmitReceive(dev->hSPIx, dummy_tx, data, length,
+				ST25R300_SPI_TIMEOUT);
+	}
+
+	ST25R300_CS_High(dev);
+
+	free(dummy_tx);
+
+	return status;
+}
+
+// ============================================================================
+// PUBLIC FUNCTIONS - DEVICE CONTROL
+// ============================================================================
+
+/**
+ * @brief  Hardware reset of ST25R300
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval None
+ *
+ * @note   Reset pulse must be at least 10μs HIGH according to datasheet
+ *         After reset, wait at least 138μs before first SPI operation
+ */
+void ST25R300_HardwareReset(ST25R300 *dev) {
+	// Set RESET high (device in reset state)
+	ST25R300_Reset_High(dev);
+	HAL_Delay(ST25R300_RESET_DELAY);
+
+	// Set RESET low (device active)
+	ST25R300_Reset_Low(dev);
+	HAL_Delay(1);  // Wait for device to boot (t_BOOT = 138μs typical)
+}
+
+/**
+ * @brief  Check if IRQ is active
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval uint8_t: 1 if IRQ is active (HIGH), 0 otherwise
+ */
+uint8_t ST25R300_IsIRQ_Active(ST25R300 *dev) {
+	return (ST25R300_IRQ_Read(dev) == GPIO_PIN_SET) ? 1 : 0;
+}
+
+/**
+ * @brief  Initialize ST25R300 GPIO pins and reset device
+ * @param  dev: Pointer to ST25R300 device structure (must be pre-configured)
+ * @retval HAL_StatusTypeDef: HAL_OK if success
+ *
+ * @note   This function assumes GPIOs and SPI are already initialized by CubeMX
+ */
+HAL_StatusTypeDef ST25R300_Init(ST25R300 *dev) {
+	// Validate device structure
+	if (dev == NULL || dev->hSPIx == NULL) {
+		return HAL_ERROR;
+	}
+
+	// Set initial pin states
+	ST25R300_CS_High(dev);      // CS inactive (HIGH)
+	ST25R300_Reset_High(dev);   // Device in reset
+
+	// Perform hardware reset
+	ST25R300_HardwareReset(dev);
+
+	return HAL_OK;
+}
+
+uint16_t ST25R300_Identity(ST25R300 *_st25) {
+	uint8_t read = ST25R300_ReadRegister(_st25, ST25R300_REG_IC_IDENTITY, 0);
+	if ((read & 0xF8) != 0xB0)
+		return ST25_OK;
+	else
+		return ST25_NOT_FOUND;
+}
+
+* @brief  Configure antenna mode (Differential or Single-ended)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  mode: Antenna mode
+ *         @arg ST25R300_ANTENNA_DIFFERENTIAL: Differential antenna (both RFO1 and RFO2)
+ *         @arg ST25R300_ANTENNA_SINGLE: Single-ended antenna (one RFO only)
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ *
+ * @note   In single-ended mode:
+ *         - Only one driver (RFO1 or RFO2) is used
+ *         - Reduces number of external components
+ *         - Output power is reduced compared to differential mode
+ *         - Can multiplex between two antennas by switching RFO selection
+ */
+HAL_StatusTypeDef ST25R300_SetAntennaMode(ST25R300 *dev, ST25R300_AntennaMode_t mode)
+{
+    uint8_t value = (mode == ST25R300_ANTENNA_SINGLE) ? ST25R300_GENERAL_CFG_SINGLE_BIT : 0x00;
+
+    return ST25R300_ModifyRegister(dev,
+                                   ST25R300_REG_GENERAL_CONFIG,
+                                   ST25R300_GENERAL_CFG_SINGLE_BIT,
+                                   value);
+}
+
+/**
+ * @brief  Select which RFO output to use in Single-Ended mode
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  rfo: RFO output selection
+ *         @arg ST25R300_RFO1: Use RFO1 and RFI1
+ *         @arg ST25R300_RFO2: Use RFO2 and RFI2 (field detector sense at RFI2)
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ *
+ * @note   This setting only applies when antenna is in Single-Ended mode
+ * @note   Can be used to switch between two different antennas dynamically
+ */
+HAL_StatusTypeDef ST25R300_SelectRFO(ST25R300 *dev, ST25R300_RFO_Select_t rfo)
+{
+    uint8_t value = (rfo == ST25R300_RFO2) ? ST25R300_GENERAL_CFG_RFO2_BIT : 0x00;
+
+    return ST25R300_ModifyRegister(dev,
+                                   ST25R300_REG_GENERAL_CONFIG,
+                                   ST25R300_GENERAL_CFG_RFO2_BIT,
+                                   value);
+}
+
+/**
+ * @brief  Configure antenna in Single-Ended mode with RFO selection
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  rfo: RFO output selection (RFO1 or RFO2)
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ *
+ * @note   Combined function to set single-ended mode and select RFO in one call
+ */
+HAL_StatusTypeDef ST25R300_ConfigureSingleEndedAntenna(ST25R300 *dev, ST25R300_RFO_Select_t rfo)
+{
+    HAL_StatusTypeDef status;
+    uint8_t config_value;
+
+    // Read current configuration
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_GENERAL_CONFIG, &config_value);
+
+    if (status == HAL_OK)
+    {
+        // Set Single mode bit
+        config_value |= ST25R300_GENERAL_CFG_SINGLE_BIT;
+
+        // Set or clear RFO2 bit based on selection
+        if (rfo == ST25R300_RFO2)
+        {
+            config_value |= ST25R300_GENERAL_CFG_RFO2_BIT;
+        }
+        else
+        {
+            config_value &= ~ST25R300_GENERAL_CFG_RFO2_BIT;
+        }
+
+        // Write back configuration
+        status = ST25R300_WriteRegister(dev, ST25R300_REG_GENERAL_CONFIG, config_value);
+    }
+
+    return status;
+}
+
+/**
+ * @brief  Configure antenna in Differential mode (default)
+ * @param  dev: Pointer to ST25R300 device structure
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ *
+ * @note   In differential mode, both RFO1 and RFO2 drive the antenna
+ */
+HAL_StatusTypeDef ST25R300_ConfigureDifferentialAntenna(ST25R300 *dev)
+{
+    // Clear Single bit to enable differential mode
+    return ST25R300_ModifyRegister(dev,
+                                   ST25R300_REG_GENERAL_CONFIG,
+                                   ST25R300_GENERAL_CFG_SINGLE_BIT,
+                                   0x00);
+}
+
+/**
+ * @brief  Get current antenna configuration
+ * @param  dev: Pointer to ST25R300 device structure
+ * @param  mode: Pointer to store antenna mode
+ * @param  rfo: Pointer to store RFO selection (only valid in single-ended mode)
+ * @retval HAL_StatusTypeDef: HAL_OK if success, HAL_ERROR or HAL_TIMEOUT otherwise
+ */
+HAL_StatusTypeDef ST25R300_GetAntennaConfig(ST25R300 *dev,
+                                           ST25R300_AntennaMode_t *mode,
+                                           ST25R300_RFO_Select_t *rfo)
+{
+    HAL_StatusTypeDef status;
+    uint8_t config_value;
+
+    // Validate parameters
+    if (mode == NULL || rfo == NULL)
+    {
+        return HAL_ERROR;
+    }
+
+    // Read configuration register
+    status = ST25R300_ReadRegister(dev, ST25R300_REG_GENERAL_CONFIG, &config_value);
+
+    if (status == HAL_OK)
+    {
+        // Extract antenna mode
+        *mode = (config_value & ST25R300_GENERAL_CFG_SINGLE_BIT) ?
+                ST25R300_ANTENNA_SINGLE : ST25R300_ANTENNA_DIFFERENTIAL;
+
+        // Extract RFO selection
+        *rfo = (config_value & ST25R300_GENERAL_CFG_RFO2_BIT) ?
+               ST25R300_RFO2 : ST25R300_RFO1;
+    }
+
+    return status;
+}

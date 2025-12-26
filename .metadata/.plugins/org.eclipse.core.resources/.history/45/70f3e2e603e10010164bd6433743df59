@@ -1,0 +1,594 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Main program body
+  ******************************************************************************
+  * @attention
+  *
+  * Copyright (c) 2025 STMicroelectronics.
+  * All rights reserved.
+  *
+  * This software is licensed under terms that can be found in the LICENSE file
+  * in the root directory of this software component.
+  * If no LICENSE file comes with this software, it is provided AS-IS.
+  *
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+/* Includes ------------------------------------------------------------------*/
+#include "main.h"
+
+/* Private includes ----------------------------------------------------------*/
+/* USER CODE BEGIN Includes */
+
+/* USER CODE END Includes */
+
+/* Private typedef -----------------------------------------------------------*/
+/* USER CODE BEGIN PTD */
+
+/* USER CODE END PTD */
+
+/* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
+// Endereços de Registradores ST25R300
+
+
+// --- Registradores ST25R300 ---
+#define ST25_REG_OP_CONTROL      0x00
+#define ST25_REG_GEN_CONFIG      0x01
+#define ST25_REG_REGULATOR_CTRL  0x02
+#define ST25_REG_TX_DRIVER       0x03
+#define ST25_REG_TX_MOD1         0x04
+#define ST25_REG_PROTOCOL        0x14
+#define ST25_REG_FIFO_STATUS1    0x36
+#define ST25_REG_IRQ_STATUS1     0x3C
+#define ST25_FIFO_ADDR           0x5F
+
+// Comandos Diretos [cite: 2775]
+#define CMD_SET_DEFAULT          0xC0
+#define CMD_CLEAR_FIFO           0xC4
+#define CMD_TRANSMIT_W_CRC       0xC5
+#define CMD_ADJUST_REGULATORS    0xD0 // Code 0x68 | 0xC0 (Command Pattern)
+#define CMD_CALIBRATE_RC         0xDC // Code 0xEE | 0xC0
+
+#define ST25_REG_IC_IDENTITY     0x3F
+#define ST25_REG_STATUS1         0x40
+#define ST25_REG_RSSI1           0x4A
+#define ST25_REG_ANALOG_DISPLAY1 0x48
+/* USER CODE END PD */
+
+/* Private macro -------------------------------------------------------------*/
+/* USER CODE BEGIN PM */
+char log_buf[128];
+#define LOG(fmt, ...) do { \
+    sprintf(log_buf, fmt, ##__VA_ARGS__); \
+    HAL_UART_Transmit(&huart1, (uint8_t*)log_buf, strlen(log_buf), 100); \
+} while(0)
+/* USER CODE END PM */
+
+/* Private variables ---------------------------------------------------------*/
+I2C_HandleTypeDef hi2c2;
+
+SPI_HandleTypeDef hspi1;
+SPI_HandleTypeDef hspi2;
+
+UART_HandleTypeDef huart1;
+
+/* USER CODE BEGIN PV */
+
+/* USER CODE END PV */
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_I2C2_Init(void);
+static void MX_SPI1_Init(void);
+static void MX_SPI2_Init(void);
+static void MX_USART1_UART_Init(void);
+/* USER CODE BEGIN PFP */
+
+/* USER CODE END PFP */
+
+/* Private user code ---------------------------------------------------------*/
+/* USER CODE BEGIN 0 */
+// --- Funções Auxiliares SPI ---
+void ST25_WriteReg(uint8_t reg, uint8_t value) {
+    uint8_t data[2] = { (reg & 0x3F), value }; // Bit 7=0 (Write), Bit 6=0 (Reg) [cite: 2564]
+    HAL_GPIO_WritePin(ST25_CS_GPIO_Port, ST25_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi2, data, 2, 100);
+    HAL_GPIO_WritePin(ST25_CS_GPIO_Port, ST25_CS_Pin, GPIO_PIN_SET);
+}
+
+uint8_t ST25_ReadReg(uint8_t reg) {
+    uint8_t tx_data = (reg & 0x3F) | 0x40; // Bit 7=0 (Write Addr), Bit 6=1 (Read Mode pattern) [cite: 2564]
+    uint8_t rx_data = 0;
+    HAL_GPIO_WritePin(ST25_CS_GPIO_Port, ST25_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi2, &tx_data, 1, 100);
+    HAL_SPI_Receive(&hspi2, &rx_data, 1, 100);
+    HAL_GPIO_WritePin(ST25_CS_GPIO_Port, ST25_CS_Pin, GPIO_PIN_SET);
+    return rx_data;
+}
+
+void ST25_DirectCmd(uint8_t cmd) {
+    HAL_GPIO_WritePin(ST25_CS_GPIO_Port, ST25_CS_Pin, GPIO_PIN_RESET);
+    HAL_SPI_Transmit(&hspi2, &cmd, 1, 100);
+    HAL_GPIO_WritePin(ST25_CS_GPIO_Port, ST25_CS_Pin, GPIO_PIN_SET);
+}
+
+// --- Inicialização para Potência Máxima ---
+void ST25R300_Init_HighPower(void) {
+    // 1. Reset Pulse
+    HAL_GPIO_WritePin(RESET_GPIO_Port, RESET_Pin, GPIO_PIN_SET);
+    HAL_Delay(1);
+    HAL_GPIO_WritePin(RESET_GPIO_Port, RESET_Pin, GPIO_PIN_RESET);
+    HAL_Delay(5);
+
+    // 2. Configurar Modo Single-Ended (Hardware RFO1)
+    // Bit 5 = 1 (Single), Bit 4 = 0 (RFO1) -> 0x20
+    ST25_WriteReg(ST25_REG_GEN_CONFIG, 0x20);
+
+    // 3. Ativar Oscilador e Reguladores
+    // Bit 7(en)=1, Bit 4(vdddr)=1 -> 0x88 (Inicial, sem TX ainda) [cite: 3005]
+    ST25_WriteReg(ST25_REG_OP_CONTROL, 0x88);
+    HAL_Delay(10); // Estabilizar cristal 27.12MHz
+
+    // 4. Configurar Protocolo ISO15693 (NFC-V)
+    ST25_WriteReg(ST25_REG_PROTOCOL, 0x05); //
+
+    // 5. Ajustar Drivers para Max Power (Min Resistance)
+    // d_res = 0 (1 Ohm typ) [cite: 3036]
+    ST25_WriteReg(ST25_REG_TX_DRIVER, 0x00);
+
+    // 6. Modulação Suave (AM 10-20%) para Energy Harvesting
+    // Evita cortes abruptos de energia. am_mod = 0x2 ou 0x3.
+    ST25_WriteReg(ST25_REG_TX_MOD1, 0x20); // 10-14% modulation [cite: 3046]
+
+    // 7. Calibrar Reguladores Internos
+    ST25_DirectCmd(CMD_ADJUST_REGULATORS);
+    HAL_Delay(1);
+    ST25_DirectCmd(CMD_CALIBRATE_RC);
+    HAL_Delay(1);
+}
+
+// --- Loop Principal ---
+void NFC_Harvest_And_Read(void) {
+    uint8_t rx_buf[10];
+
+    // A. Fase de Carga (Energy Harvesting)
+    // Ligar TX e RX. Bit 6(tx_en)=1, Bit 5(rx_en)=1 -> 0xE8 [cite: 3005]
+    ST25_WriteReg(ST25_REG_OP_CONTROL, 0xE8);
+
+    // TEMPO DE CARGA: Ajuste conforme o capacitor do sensor (ex: 47uF -> ~200-500ms)
+    HAL_Delay(300);
+
+    // B. Fase de Leitura (Sem desligar o campo!)
+    // Limpar FIFO e IRQs antes de transmitir
+    ST25_DirectCmd(CMD_CLEAR_FIFO);
+    ST25_WriteReg(ST25_REG_IRQ_STATUS1, 0xFF); // Limpar flags escrevendo 1
+
+    // Montar Frame ISO15693 "Read Single Block"
+    // Flags(0x02 - High Data Rate) | Cmd(0x20 - Read Block) | Block(0x00)
+    uint8_t cmd[] = {0x02, 0x20, 0x00};
+
+    // Escrever no FIFO (Endereço 0x5F não incrementa, mas SPI burst funciona)
+    // Para simplificar, mandamos byte a byte ou usamos HAL_SPI_Transmit para 0x5F
+    HAL_GPIO_WritePin(ST25_CS_GPIO_Port, ST25_CS_Pin, GPIO_PIN_RESET);
+    uint8_t fifo_hdr = 0x5F; // 0 (Write) + 5F (FIFO) -> 0001 1111? Nao, address map table 5.
+    // Tabela 5[cite: 2569]: FIFO Write Pattern = 1011 1111 (0xBF)
+    fifo_hdr = 0xBF;
+    HAL_SPI_Transmit(&hspi2, &fifo_hdr, 1, 10);
+    HAL_SPI_Transmit(&hspi2, cmd, 3, 10);
+    HAL_GPIO_WritePin(ST25_CS_GPIO_Port, ST25_CS_Pin, GPIO_PIN_SET);
+
+    // Configurar tamanho da transmissão (Bytes) [cite: 3377]
+    ST25_WriteReg(0x34, 0x00); // MSB Length
+    ST25_WriteReg(0x35, 0x03); // LSB Length = 3 bytes
+
+    // Enviar com CRC e Paridade [cite: 2775]
+    ST25_DirectCmd(CMD_TRANSMIT_W_CRC);
+
+    // Esperar Resposta (Polling no IRQ Status)
+    // Timeout de ~20ms (ISO15693 é lento)
+    for(int i=0; i<50; i++) {
+        uint8_t irq = ST25_ReadReg(ST25_REG_IRQ_STATUS1);
+        if(irq & 0x08) { // Bit 3: I_rxe (End of Receive) [cite: 3429]
+            // Ler FIFO
+            uint8_t len = ST25_ReadReg(ST25_REG_FIFO_STATUS1);
+            if(len > 0) {
+               // Ler dados do FIFO...
+               // Converter 4 bytes para float (seu valor de strain gauge)
+            }
+            break;
+        }
+        HAL_Delay(1);
+    }
+}
+
+void System_Diagnostics(void) {
+    uint8_t val;
+
+    LOG("\r\n=== INICIANDO DIAGNOSTICO DO SISTEMA ===\r\n");
+
+    // 1. Teste de Comunicação SPI e Identificação do Chip
+    LOG("[1] Teste SPI e ID do Chip... ");
+    val = ST25_ReadReg(ST25_REG_IC_IDENTITY);
+
+    // O ST25R300 tem IC Type '10110' (0x16) nos bits 7:3
+    // Esperado: (0x16 << 3) + Rev. Ex: 0xB0 a 0xB7.
+    if ((val & 0xF8) == 0xB0) {
+        LOG("OK (ID: 0x%02X)\r\n", val);
+    } else {
+        LOG("FALHA! (Lido: 0x%02X - Verifique conexoes SPI/Power)\r\n", val);
+        Error_Handler(); // Trava se não encontrar o chip
+    }
+
+    // 2. Inicialização Básica para Teste
+    ST25R300_Init_HighPower(); // Chama sua função de init criada antes
+    LOG("[2] Inicializacao dos Registradores... OK\r\n");
+
+    // 3. Verificação do Oscilador (Cristal 27.12 MHz)
+    LOG("[3] Verificando Oscilador... ");
+    HAL_Delay(10); // Tempo para estabilizar
+    val = ST25_ReadReg(ST25_REG_STATUS1);
+
+    // Bit 4: osc_ok
+    if (val & 0x10) {
+        LOG("ESTAVEL (27.12 MHz travado)\r\n");
+    } else {
+        LOG("INSTAVEL! (Bit osc_ok=0. Verifique cristal Y2 e capacitores)\r\n");
+    }
+
+    // 4. Teste de Ruído Ambiental (Antena)
+    // Lê RSSI com o campo desligado para ver se há interferência externa
+    LOG("[4] Nivel de Ruido (Campo OFF)... ");
+    // Garante que TX está OFF para medir apenas ruído
+    ST25_WriteReg(ST25_REG_OP_CONTROL, 0x20); // Apenas RX enabled, TX off
+    HAL_Delay(5);
+    val = ST25_ReadReg(ST25_REG_RSSI1); // Lê RSSI display register 1
+    LOG("RSSI: %d (Menor e melhor. >20 indica ruido alto)\r\n", val);
+
+    // 5. Teste de Carga da Antena e Reguladores
+    LOG("[5] Teste de Potencia (Campo ON)... ");
+    // Liga TX em potência configurada
+    ST25_WriteReg(ST25_REG_OP_CONTROL, 0xE8); // TX e RX on
+    HAL_Delay(10);
+
+    // Verifica se o regulador está limitando corrente (Antena em curto ou dessintonizada)
+    val = ST25_ReadReg(ST25_REG_ANALOG_DISPLAY1);
+    // Bit 7: ilim (Current Limit)
+    if (val & 0x80) {
+        LOG("ALERTA: Limitacao de Corrente Ativa! (Verifique Antena/Matching)\r\n");
+    } else {
+        LOG("OK (Corrente nominal)\r\n");
+    }
+
+    LOG("=== DIAGNOSTICO CONCLUIDO ===\r\n\r\n");
+}
+/* USER CODE END 0 */
+
+/**
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
+
+  /* USER CODE BEGIN 1 */
+
+  /* USER CODE END 1 */
+
+  /* MCU Configuration--------------------------------------------------------*/
+
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
+
+  /* USER CODE BEGIN Init */
+
+  /* USER CODE END Init */
+
+  /* Configure the system clock */
+  SystemClock_Config();
+
+  /* USER CODE BEGIN SysInit */
+
+  /* USER CODE END SysInit */
+
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_I2C2_Init();
+  MX_SPI1_Init();
+  MX_SPI2_Init();
+  MX_USART1_UART_Init();
+  /* USER CODE BEGIN 2 */
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
+  while (1)
+  {
+    /* USER CODE END WHILE */
+
+    /* USER CODE BEGIN 3 */
+  }
+  /* USER CODE END 3 */
+}
+
+/**
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+  RCC_OscInitStruct.MSICalibrationValue = 0;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+  PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief I2C2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C2_Init(void)
+{
+
+  /* USER CODE BEGIN I2C2_Init 0 */
+
+  /* USER CODE END I2C2_Init 0 */
+
+  /* USER CODE BEGIN I2C2_Init 1 */
+
+  /* USER CODE END I2C2_Init 1 */
+  hi2c2.Instance = I2C2;
+  hi2c2.Init.Timing = 0x00000608;
+  hi2c2.Init.OwnAddress1 = 0;
+  hi2c2.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c2.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c2.Init.OwnAddress2 = 0;
+  hi2c2.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c2.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c2.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c2, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c2, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C2_Init 2 */
+
+  /* USER CODE END I2C2_Init 2 */
+
+}
+
+/**
+  * @brief SPI1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI1_Init(void)
+{
+
+  /* USER CODE BEGIN SPI1_Init 0 */
+
+  /* USER CODE END SPI1_Init 0 */
+
+  /* USER CODE BEGIN SPI1_Init 1 */
+
+  /* USER CODE END SPI1_Init 1 */
+  /* SPI1 parameter configuration*/
+  hspi1.Instance = SPI1;
+  hspi1.Init.Mode = SPI_MODE_MASTER;
+  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi1.Init.NSS = SPI_NSS_SOFT;
+  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi1.Init.CRCPolynomial = 7;
+  if (HAL_SPI_Init(&hspi1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI1_Init 2 */
+
+  /* USER CODE END SPI1_Init 2 */
+
+}
+
+/**
+  * @brief SPI2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_SPI2_Init(void)
+{
+
+  /* USER CODE BEGIN SPI2_Init 0 */
+
+  /* USER CODE END SPI2_Init 0 */
+
+  /* USER CODE BEGIN SPI2_Init 1 */
+
+  /* USER CODE END SPI2_Init 1 */
+  /* SPI2 parameter configuration*/
+  hspi2.Instance = SPI2;
+  hspi2.Init.Mode = SPI_MODE_MASTER;
+  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
+  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
+  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
+  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
+  hspi2.Init.NSS = SPI_NSS_SOFT;
+  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
+  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
+  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
+  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+  hspi2.Init.CRCPolynomial = 7;
+  if (HAL_SPI_Init(&hspi2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN SPI2_Init 2 */
+
+  /* USER CODE END SPI2_Init 2 */
+
+}
+
+/**
+  * @brief USART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART1_Init 0 */
+
+  /* USER CODE END USART1_Init 0 */
+
+  /* USER CODE BEGIN USART1_Init 1 */
+
+  /* USER CODE END USART1_Init 1 */
+  huart1.Instance = USART1;
+  huart1.Init.BaudRate = 115200;
+  huart1.Init.WordLength = UART_WORDLENGTH_8B;
+  huart1.Init.StopBits = UART_STOPBITS_1;
+  huart1.Init.Parity = UART_PARITY_NONE;
+  huart1.Init.Mode = UART_MODE_TX_RX;
+  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART1_Init 2 */
+
+  /* USER CODE END USART1_Init 2 */
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+/* USER CODE BEGIN MX_GPIO_Init_1 */
+/* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(ST25_CS_GPIO_Port, ST25_CS_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : IRQ_Pin */
+  GPIO_InitStruct.Pin = IRQ_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(IRQ_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : ST25_CS_Pin */
+  GPIO_InitStruct.Pin = ST25_CS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(ST25_CS_GPIO_Port, &GPIO_InitStruct);
+
+/* USER CODE BEGIN MX_GPIO_Init_2 */
+/* USER CODE END MX_GPIO_Init_2 */
+}
+
+/* USER CODE BEGIN 4 */
+
+/* USER CODE END 4 */
+
+/**
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
+  /* User can add his own implementation to report the HAL error return state */
+  __disable_irq();
+  while (1)
+  {
+  }
+  /* USER CODE END Error_Handler_Debug */
+}
+
+#ifdef  USE_FULL_ASSERT
+/**
+  * @brief  Reports the name of the source file and the source line number
+  *         where the assert_param error has occurred.
+  * @param  file: pointer to the source file name
+  * @param  line: assert_param error line source number
+  * @retval None
+  */
+void assert_failed(uint8_t *file, uint32_t line)
+{
+  /* USER CODE BEGIN 6 */
+  /* User can add his own implementation to report the file name and line number,
+     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+  /* USER CODE END 6 */
+}
+#endif /* USE_FULL_ASSERT */

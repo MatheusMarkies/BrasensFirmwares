@@ -1,0 +1,413 @@
+/**
+  ******************************************************************************
+  * @file    main.c
+  * @brief   ST25R300 Example Usage and Tests
+  * @note    Configure your SPI, GPIO in CubeMX before use
+  ******************************************************************************
+  */
+
+#include "main.h"
+#include "st25r300.h"
+#include <stdio.h>
+#include <string.h>
+
+/* Private variables ---------------------------------------------------------*/
+SPI_HandleTypeDef hspi1;  // Configure in CubeMX
+UART_HandleTypeDef huart2; // For debug output
+
+ST25R300_HandleTypeDef hst25r300;
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_SPI1_Init(void);
+static void MX_USART2_UART_Init(void);
+
+void ST25R300_BasicTests(void);
+void ST25R300_RegisterTests(void);
+void ST25R300_OperationModeTest(void);
+void ST25R300_IRQTest(void);
+
+/* Printf redirect for debug -------------------------------------------------*/
+#ifdef __GNUC__
+#define PUTCHAR_PROTOTYPE int __io_putchar(int ch)
+#else
+#define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
+#endif
+
+PUTCHAR_PROTOTYPE {
+    HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, HAL_MAX_DELAY);
+    return ch;
+}
+
+/* Main program --------------------------------------------------------------*/
+int main(void) {
+    HAL_Init();
+
+    MX_GPIO_Init();
+    MX_SPI1_Init();
+    MX_USART2_UART_Init();
+
+    printf("\r\n");
+    printf("========================================\r\n");
+    printf("  ST25R300 Test Program\r\n");
+    printf("========================================\r\n\r\n");
+
+    // Configure ST25R300 handle
+    hst25r300.hspi = &hspi1;
+    hst25r300.cs_port = GPIOA;
+    hst25r300.cs_pin = GPIO_PIN_4;
+    hst25r300.irq_port = GPIOB;
+    hst25r300.irq_pin = GPIO_PIN_0;
+    hst25r300.reset_port = GPIOA;
+    hst25r300.reset_pin = GPIO_PIN_8;
+
+    // Initialize ST25R300
+    printf("Initializing ST25R300...\r\n");
+    if (ST25R300_Init(&hst25r300) == ST25R300_OK) {
+        printf("✓ Initialization successful!\r\n\r\n");
+    } else {
+        printf("✗ Initialization failed!\r\n");
+        Error_Handler();
+    }
+
+    // Run tests
+    ST25R300_BasicTests();
+    ST25R300_RegisterTests();
+    ST25R300_OperationModeTest();
+    ST25R300_IRQTest();
+
+    printf("\r\n========================================\r\n");
+    printf("  All Tests Completed!\r\n");
+    printf("========================================\r\n");
+
+    while (1) {
+        HAL_Delay(1000);
+    }
+}
+
+/* Test Functions ------------------------------------------------------------*/
+
+/**
+  * @brief  Run basic connectivity tests
+  */
+void ST25R300_BasicTests(void) {
+    uint8_t ic_type, ic_rev;
+    uint8_t status1, status2;
+
+    printf("========================================\r\n");
+    printf("  BASIC CONNECTIVITY TESTS\r\n");
+    printf("========================================\r\n");
+
+    // Test 1: IC Identity
+    printf("Test 1: IC Identity\r\n");
+    if (ST25R300_GetICIdentity(&hst25r300, &ic_type, &ic_rev) == ST25R300_OK) {
+        printf("  IC Type: 0x%02X ", ic_type);
+        if (ic_type == ST25R300_IC_TYPE_ST25R300) {
+            printf("(ST25R300 ✓)\r\n");
+        } else {
+            printf("(Unknown ✗)\r\n");
+        }
+        printf("  IC Revision: %d\r\n", ic_rev);
+    } else {
+        printf("  ✗ Failed to read IC identity\r\n");
+    }
+
+    // Test 2: Status Registers
+    printf("\nTest 2: Status Registers\r\n");
+    if (ST25R300_GetStatus(&hst25r300, &status1, &status2) == ST25R300_OK) {
+        printf("  Status 1: 0x%02X\r\n", status1);
+        printf("    - OSC_OK: %s\r\n", (status1 & ST25R300_STAT1_OSC_OK) ? "Yes" : "No");
+        printf("    - AGD_OK: %s\r\n", (status1 & ST25R300_STAT1_AGD_OK) ? "Yes" : "No");
+        printf("  Status 2: 0x%02X\r\n", status2);
+    } else {
+        printf("  ✗ Failed to read status\r\n");
+    }
+
+    // Test 3: Register Access
+    printf("\nTest 3: Register Access\r\n");
+    if (ST25R300_TestRegisterAccess(&hst25r300) == ST25R300_OK) {
+        printf("  ✓ Register read/write working\r\n");
+    } else {
+        printf("  ✗ Register access failed\r\n");
+    }
+
+    // Test 4: Command Execution
+    printf("\nTest 4: Direct Commands\r\n");
+    if (ST25R300_TestCommands(&hst25r300) == ST25R300_OK) {
+        printf("  ✓ Commands working\r\n");
+    } else {
+        printf("  ✗ Command execution failed\r\n");
+    }
+
+    // Test 5: FIFO Operations
+    printf("\nTest 5: FIFO Operations\r\n");
+    if (ST25R300_TestFIFO(&hst25r300) == ST25R300_OK) {
+        printf("  ✓ FIFO read/write working\r\n");
+    } else {
+        printf("  ✗ FIFO test failed\r\n");
+    }
+
+    printf("\r\n");
+}
+
+/**
+  * @brief  Test various register operations
+  */
+void ST25R300_RegisterTests(void) {
+    uint8_t data[10];
+
+    printf("========================================\r\n");
+    printf("  REGISTER OPERATION TESTS\r\n");
+    printf("========================================\r\n");
+
+    // Test 1: Single Register Read
+    printf("Test 1: Single Register Read\r\n");
+    if (ST25R300_ReadRegister(&hst25r300, ST25R300_REG_IC_IDENTITY, &data[0]) == ST25R300_OK) {
+        printf("  IC Identity: 0x%02X ✓\r\n", data[0]);
+    } else {
+        printf("  ✗ Failed\r\n");
+    }
+
+    // Test 2: Multiple Register Read (auto-increment)
+    printf("\nTest 2: Multiple Register Read (5 bytes from 0x00)\r\n");
+    if (ST25R300_ReadRegisters(&hst25r300, 0x00, data, 5) == ST25R300_OK) {
+        printf("  Registers 0x00-0x04: ");
+        for (int i = 0; i < 5; i++) {
+            printf("0x%02X ", data[i]);
+        }
+        printf("✓\r\n");
+    } else {
+        printf("  ✗ Failed\r\n");
+    }
+
+    // Test 3: Modify Register (using bit mask)
+    printf("\nTest 3: Modify Register (set/clear bits)\r\n");
+    uint8_t original, modified;
+
+    // Read original
+    ST25R300_ReadRegister(&hst25r300, ST25R300_REG_OPERATION, &original);
+    printf("  Original value: 0x%02X\r\n", original);
+
+    // Modify: set bit 0 (wu_en)
+    if (ST25R300_ModifyRegister(&hst25r300, ST25R300_REG_OPERATION, 0x01, 0x01) == ST25R300_OK) {
+        ST25R300_ReadRegister(&hst25r300, ST25R300_REG_OPERATION, &modified);
+        printf("  After set bit 0: 0x%02X ", modified);
+        if (modified & 0x01) {
+            printf("✓\r\n");
+        } else {
+            printf("✗\r\n");
+        }
+    }
+
+    // Restore original
+    ST25R300_WriteRegister(&hst25r300, ST25R300_REG_OPERATION, original);
+
+    // Test 4: Write Multiple Registers
+    printf("\nTest 4: Write Multiple Registers\r\n");
+    uint8_t test_data[3] = {0x00, 0x00, 0x00};
+    if (ST25R300_WriteRegisters(&hst25r300, ST25R300_REG_OPERATION, test_data, 3) == ST25R300_OK) {
+        printf("  ✓ Multiple register write successful\r\n");
+    } else {
+        printf("  ✗ Failed\r\n");
+    }
+
+    printf("\r\n");
+}
+
+/**
+  * @brief  Test entering different operation modes
+  */
+void ST25R300_OperationModeTest(void) {
+    uint8_t status1;
+
+    printf("========================================\r\n");
+    printf("  OPERATION MODE TESTS\r\n");
+    printf("========================================\r\n");
+
+    // Test 1: Enter Ready Mode
+    printf("Test 1: Enter Ready Mode\r\n");
+
+    // Enable ready mode (en bit)
+    if (ST25R300_WriteRegister(&hst25r300, ST25R300_REG_OPERATION, ST25R300_OP_EN) == ST25R300_OK) {
+        printf("  Command sent...\r\n");
+
+        // Wait for oscillator
+        if (ST25R300_WaitOscillator(&hst25r300, 100) == ST25R300_OK) {
+            printf("  ✓ Oscillator ready!\r\n");
+
+            // Check status
+            ST25R300_ReadRegister(&hst25r300, ST25R300_REG_STATUS_1, &status1);
+            printf("  Status: OSC_OK=%d, AGD_OK=%d\r\n",
+                   (status1 & ST25R300_STAT1_OSC_OK) ? 1 : 0,
+                   (status1 & ST25R300_STAT1_AGD_OK) ? 1 : 0);
+        } else {
+            printf("  ✗ Oscillator timeout\r\n");
+        }
+    }
+
+    // Test 2: Enable VDD_DR regulator
+    printf("\nTest 2: Enable VDD_DR Regulator\r\n");
+    if (ST25R300_ModifyRegister(&hst25r300, ST25R300_REG_OPERATION,
+                                 ST25R300_OP_VDDDR_EN, ST25R300_OP_VDDDR_EN) == ST25R300_OK) {
+        HAL_Delay(1); // Wait 10us minimum
+        printf("  ✓ VDD_DR enabled\r\n");
+    }
+
+    // Test 3: Execute Adjust Regulator command
+    printf("\nTest 3: Adjust Regulators\r\n");
+    if (ST25R300_SendCommand(&hst25r300, ST25R300_CMD_ADJUST_REG) == ST25R300_OK) {
+        HAL_Delay(10); // Wait for adjustment
+        printf("  ✓ Regulator adjustment complete\r\n");
+    }
+
+    // Test 4: Return to Power-Down mode
+    printf("\nTest 4: Return to Power-Down Mode\r\n");
+    if (ST25R300_WriteRegister(&hst25r300, ST25R300_REG_OPERATION, 0x00) == ST25R300_OK) {
+        HAL_Delay(1);
+        ST25R300_ReadRegister(&hst25r300, ST25R300_REG_STATUS_1, &status1);
+        printf("  ✓ Back to PD mode (OSC_OK=%d)\r\n",
+               (status1 & ST25R300_STAT1_OSC_OK) ? 1 : 0);
+    }
+
+    printf("\r\n");
+}
+
+/**
+  * @brief  Test interrupt functionality
+  */
+void ST25R300_IRQTest(void) {
+    uint8_t irq1, irq2, irq3;
+    bool irq_pin;
+
+    printf("========================================\r\n");
+    printf("  INTERRUPT TESTS\r\n");
+    printf("========================================\r\n");
+
+    // Test 1: Check IRQ pin
+    printf("Test 1: IRQ Pin State\r\n");
+    irq_pin = ST25R300_GetIRQPin(&hst25r300);
+    printf("  IRQ Pin: %s\r\n", irq_pin ? "HIGH" : "LOW");
+
+    // Test 2: Read IRQ registers
+    printf("\nTest 2: Read IRQ Registers\r\n");
+    if (ST25R300_ReadIRQ(&hst25r300, &irq1, &irq2, &irq3) == ST25R300_OK) {
+        printf("  IRQ Status 1: 0x%02X\r\n", irq1);
+        printf("  IRQ Status 2: 0x%02X\r\n", irq2);
+        printf("  IRQ Status 3: 0x%02X\r\n", irq3);
+
+        // Decode some flags
+        if (irq3 & ST25R300_IRQ3_OSC) {
+            printf("  - Oscillator ready interrupt\r\n");
+        }
+        if (irq1 & ST25R300_IRQ1_TXE) {
+            printf("  - Transmission end interrupt\r\n");
+        }
+    }
+
+    // Test 3: IRQ Masking
+    printf("\nTest 3: IRQ Mask Configuration\r\n");
+    // Mask all interrupts in register 1
+    if (ST25R300_WriteRegister(&hst25r300, ST25R300_REG_IRQ_MASK_1, 0xFF) == ST25R300_OK) {
+        printf("  ✓ IRQ Mask 1 set to 0xFF (all masked)\r\n");
+    }
+
+    // Restore (unmask all)
+    ST25R300_WriteRegister(&hst25r300, ST25R300_REG_IRQ_MASK_1, 0x00);
+
+    // Test 4: Generate interrupt with command
+    printf("\nTest 4: Generate Interrupt\r\n");
+    // Enter ready mode to generate oscillator interrupt
+    ST25R300_WriteRegister(&hst25r300, ST25R300_REG_OPERATION, ST25R300_OP_EN);
+    HAL_Delay(10);
+
+    irq_pin = ST25R300_GetIRQPin(&hst25r300);
+    printf("  IRQ Pin after mode change: %s\r\n", irq_pin ? "HIGH" : "LOW");
+
+    if (irq_pin) {
+        ST25R300_ReadIRQ(&hst25r300, &irq1, &irq2, &irq3);
+        printf("  IRQ Status 3: 0x%02X ", irq3);
+        if (irq3 & ST25R300_IRQ3_OSC) {
+            printf("(Oscillator ready ✓)\r\n");
+        } else {
+            printf("\r\n");
+        }
+    }
+
+    // Clean up
+    ST25R300_WriteRegister(&hst25r300, ST25R300_REG_OPERATION, 0x00);
+
+    printf("\r\n");
+}
+
+/* Peripheral Initialization (CubeMX Generated) ------------------------------*/
+
+void MX_SPI1_Init(void) {
+    hspi1.Instance = SPI1;
+    hspi1.Init.Mode = SPI_MODE_MASTER;
+    hspi1.Init.Direction = SPI_DIRECTION_2LINES;
+    hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
+    hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;  // CPOL = 0
+    hspi1.Init.CLKPhase = SPI_PHASE_2EDGE;      // CPHA = 1
+    hspi1.Init.NSS = SPI_NSS_SOFT;
+    hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32; // Adjust for your clock
+    hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
+    hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
+    hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+
+    if (HAL_SPI_Init(&hspi1) != HAL_OK) {
+        Error_Handler();
+    }
+}
+
+void MX_GPIO_Init(void) {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+    /* GPIO Ports Clock Enable */
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+
+    /* Configure CS Pin (PA4) */
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_4, GPIO_PIN_SET);
+    GPIO_InitStruct.Pin = GPIO_PIN_4;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /* Configure RESET Pin (PA8) */
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_8, GPIO_PIN_RESET);
+    GPIO_InitStruct.Pin = GPIO_PIN_8;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    /* Configure IRQ Pin (PB0) */
+    GPIO_InitStruct.Pin = GPIO_PIN_0;
+    GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+}
+
+void MX_USART2_UART_Init(void) {
+    huart2.Instance = USART2;
+    huart2.Init.BaudRate = 115200;
+    huart2.Init.WordLength = UART_WORDLENGTH_8B;
+    huart2.Init.StopBits = UART_STOPBITS_1;
+    huart2.Init.Parity = UART_PARITY_NONE;
+    huart2.Init.Mode = UART_MODE_TX_RX;
+    huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+    huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+
+    if (HAL_UART_Init(&huart2) != HAL_OK) {
+        Error_Handler();
+    }
+}
+
+void Error_Handler(void) {
+    __disable_irq();
+    while (1) {
+        // Blink LED or halt
+    }
+}

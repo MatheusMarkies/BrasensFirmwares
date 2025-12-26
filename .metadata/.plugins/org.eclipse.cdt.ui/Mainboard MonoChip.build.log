@@ -1,10 +1,208 @@
-21:05:42 **** Build of configuration Debug for project Mainboard MonoChip ****
+14:31:12 **** Build of configuration Debug for project Mainboard MonoChip ****
 make -j12 all 
-arm-none-eabi-size  Mainboard\ MonoChip.elf 
-   text	   data	    bss	    dec	    hex	filename
-  63112	    512	   5056	  68680	  10c48	Mainboard MonoChip.elf
-Finished building: default.size.stdout
- 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+In file included from ../Core/Src/main.c:28:
+../Core/Inc/LoRa.h:1:1: warning: multi-line comment [-Wcomment]
+    1 | // -------------------------------------------------- \\
+      | ^
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:208:9: warning: implicit declaration of function 'setup'; did you mean 'setbuf'? [-Wimplicit-function-declaration]
+  208 |         setup();
+      |         ^~~~~
+      |         setbuf
+../Core/Src/main.c: In function 'I2C_Scan':
+../Core/Src/main.c:524:9: warning: implicit declaration of function 'DEBUG_PRINT' [-Wimplicit-function-declaration]
+  524 |         DEBUG_PRINT("Scanning I2C bus:\r\n");
+      |         ^~~~~~~~~~~
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:547:6: warning: conflicting types for 'setup'; have 'void()'
+  547 | void setup() {
+      |      ^~~~~
+../Core/Src/main.c:208:9: note: previous implicit declaration of 'setup' with type 'void()'
+  208 |         setup();
+      |         ^~~~~
+../Core/Src/main.c: In function 'setup':
+../Core/Src/main.c:588:9: warning: implicit declaration of function 'BEHAVIOR_Initialize_DataIndices' [-Wimplicit-function-declaration]
+  588 |         BEHAVIOR_Initialize_DataIndices(0);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:595:9: warning: implicit declaration of function 'GSM_PDP_Context_Activate' [-Wimplicit-function-declaration]
+  595 |         GSM_PDP_Context_Activate(apn, user, pwd);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c: In function 'processing_data_in_FRAM':
+../Core/Src/main.c:664:33: warning: implicit declaration of function 'BEHAVIOR_ADD_Item_To_DataIndices' [-Wimplicit-function-declaration]
+  664 |                                 BEHAVIOR_ADD_Item_To_DataIndices('P');
+      |                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c: In function 'loop':
+../Core/Src/main.c:711:41: warning: implicit declaration of function 'BlinkLed' [-Wimplicit-function-declaration]
+  711 |                                         BlinkLed();
+      |                                         ^~~~~~~~
+../Core/Src/main.c:763:50: warning: implicit declaration of function 'BEHAVIOR_Send_Next_Struct_In_FRAM' [-Wimplicit-function-declaration]
+  763 |                         reorganizeStartAddress = BEHAVIOR_Send_Next_Struct_In_FRAM(
+      |                                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:764:41: warning: implicit declaration of function 'BEHAVIOR_GET_Next_Send_Item' [-Wimplicit-function-declaration]
+  764 |                                         BEHAVIOR_GET_Next_Send_Item());
+      |                                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:766:33: warning: implicit declaration of function 'BEHAVIOR_REMOVE_First_Item_From_DataIndices' [-Wimplicit-function-declaration]
+  766 |                                 BEHAVIOR_REMOVE_First_Item_From_DataIndices();
+      |                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:767:33: warning: implicit declaration of function 'BEHAVIOR_Reorganize_FRAM' [-Wimplicit-function-declaration]
+  767 |                                 BEHAVIOR_Reorganize_FRAM();
+      |                                 ^~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:780:6: warning: conflicting types for 'BEHAVIOR_Initialize_DataIndices'; have 'void(uint16_t)' {aka 'void(short unsigned int)'}
+  780 | void BEHAVIOR_Initialize_DataIndices(uint16_t size) {
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:588:9: note: previous implicit declaration of 'BEHAVIOR_Initialize_DataIndices' with type 'void(uint16_t)' {aka 'void(short unsigned int)'}
+  588 |         BEHAVIOR_Initialize_DataIndices(0);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:785:6: error: conflicting types for 'BEHAVIOR_GET_Next_Send_Item'; have 'char()'
+  785 | char BEHAVIOR_GET_Next_Send_Item() {
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:764:41: note: previous implicit declaration of 'BEHAVIOR_GET_Next_Send_Item' with type 'int()'
+  764 |                                         BEHAVIOR_GET_Next_Send_Item());
+      |                                         ^~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:792:6: warning: conflicting types for 'BEHAVIOR_ADD_Item_To_DataIndices'; have 'void(char)'
+  792 | void BEHAVIOR_ADD_Item_To_DataIndices(char item) {
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:664:33: note: previous implicit declaration of 'BEHAVIOR_ADD_Item_To_DataIndices' with type 'void(char)'
+  664 |                                 BEHAVIOR_ADD_Item_To_DataIndices('P');
+      |                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:801:6: warning: conflicting types for 'BEHAVIOR_REMOVE_First_Item_From_DataIndices'; have 'void()'
+  801 | void BEHAVIOR_REMOVE_First_Item_From_DataIndices() {
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:766:33: note: previous implicit declaration of 'BEHAVIOR_REMOVE_First_Item_From_DataIndices' with type 'void()'
+  766 |                                 BEHAVIOR_REMOVE_First_Item_From_DataIndices();
+      |                                 ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:811:10: error: conflicting types for 'BEHAVIOR_Send_Next_Struct_In_FRAM'; have 'uint16_t(char)' {aka 'short unsigned int(char)'}
+  811 | uint16_t BEHAVIOR_Send_Next_Struct_In_FRAM(char next) {
+      |          ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:763:50: note: previous implicit declaration of 'BEHAVIOR_Send_Next_Struct_In_FRAM' with type 'int()'
+  763 |                         reorganizeStartAddress = BEHAVIOR_Send_Next_Struct_In_FRAM(
+      |                                                  ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c: In function 'BEHAVIOR_Send_Next_Struct_In_FRAM':
+../Core/Src/main.c:821:44: warning: implicit declaration of function 'transmission_data_to_json' [-Wimplicit-function-declaration]
+  821 |                         cJSON *data_json = transmission_data_to_json(&data);
+      |                                            ^~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:821:44: warning: initialization of 'cJSON *' from 'int' makes pointer from integer without a cast [-Wint-conversion]
+../Core/Src/main.c:824:33: warning: implicit declaration of function 'GSM_Send_HTTP_POST' [-Wimplicit-function-declaration]
+  824 |                                 GSM_Send_HTTP_POST(jsonDataBuffer);
+      |                                 ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:843:48: warning: implicit declaration of function 'transmission_vibrationpackage_to_json' [-Wimplicit-function-declaration]
+  843 |                         cJSON *vib_data_json = transmission_vibrationpackage_to_json(
+      |                                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:843:48: warning: initialization of 'cJSON *' from 'int' makes pointer from integer without a cast [-Wint-conversion]
+../Core/Src/main.c:859:17: warning: implicit declaration of function 'CHAR_NOT_FOUND_EXCEPTION' [-Wimplicit-function-declaration]
+  859 |                 CHAR_NOT_FOUND_EXCEPTION();
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:881:6: warning: conflicting types for 'BEHAVIOR_Reorganize_FRAM'; have 'void()'
+  881 | void BEHAVIOR_Reorganize_FRAM() {
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:767:33: note: previous implicit declaration of 'BEHAVIOR_Reorganize_FRAM' with type 'void()'
+  767 |                                 BEHAVIOR_Reorganize_FRAM();
+      |                                 ^~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:914:6: warning: conflicting types for 'CHAR_NOT_FOUND_EXCEPTION'; have 'void()'
+  914 | void CHAR_NOT_FOUND_EXCEPTION() {
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:859:17: note: previous implicit declaration of 'CHAR_NOT_FOUND_EXCEPTION' with type 'void()'
+  859 |                 CHAR_NOT_FOUND_EXCEPTION();
+      |                 ^~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c: In function 'READ_MSP_Serial_Commands':
+../Core/Src/main.c:957:49: warning: implicit declaration of function 'sendReady' [-Wimplicit-function-declaration]
+  957 |                                                 sendReady();
+      |                                                 ^~~~~~~~~
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:974:6: warning: conflicting types for 'sendReady'; have 'void()'
+  974 | void sendReady() {
+      |      ^~~~~~~~~
+../Core/Src/main.c:957:49: note: previous implicit declaration of 'sendReady' with type 'void()'
+  957 |                                                 sendReady();
+      |                                                 ^~~~~~~~~
+../Core/Src/main.c:991:8: error: conflicting types for 'transmission_data_to_json'; have 'cJSON *(const Transmission_Data *)'
+  991 | cJSON* transmission_data_to_json(const Transmission_Data *data) {
+      |        ^~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:821:44: note: previous implicit declaration of 'transmission_data_to_json' with type 'int()'
+  821 |                         cJSON *data_json = transmission_data_to_json(&data);
+      |                                            ^~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:1027:8: error: conflicting types for 'transmission_vibrationpackage_to_json'; have 'cJSON *(const Transmission_VibrationPackage *)'
+ 1027 | cJSON* transmission_vibrationpackage_to_json(
+      |        ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:843:48: note: previous implicit declaration of 'transmission_vibrationpackage_to_json' with type 'int()'
+  843 |                         cJSON *vib_data_json = transmission_vibrationpackage_to_json(
+      |                                                ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c: In function 'generateTransmissionDataJSON':
+../Core/Src/main.c:1055:39: warning: format '%s' expects argument of type 'char *', but argument 4 has type 'int' [-Wformat=]
+ 1055 |                         "{\"type\":\"%s\",\"key\":\"%s\",\"rmsAccel\":[%.3f,%.3f,%.3f],\"rmsVel\":[%.3f,%.3f,%.3f],\"temperature\":%.3f,\"battery\":%.3f}",
+      |                                      ~^
+      |                                       |
+      |                                       char *
+      |                                      %d
+ 1056 |                         data->type, data->key, data->rms_accel[0], data->rms_accel[1],
+      |                         ~~~~~~~~~~     
+      |                             |
+      |                             int
+../Core/Src/main.c: In function 'HAL_UART_RxCpltCallback':
+../Core/Src/main.c:1071:17: warning: implicit declaration of function 'GSM_RX_Callback'; did you mean 'MSP_RX_Callback'? [-Wimplicit-function-declaration]
+ 1071 |                 GSM_RX_Callback();
+      |                 ^~~~~~~~~~~~~~~
+      |                 MSP_RX_Callback
+../Core/Src/main.c: In function 'HAL_UART_TxCpltCallback':
+../Core/Src/main.c:1081:17: warning: implicit declaration of function 'GSM_TX_Callback'; did you mean 'MSP_TX_Callback'? [-Wimplicit-function-declaration]
+ 1081 |                 GSM_TX_Callback();
+      |                 ^~~~~~~~~~~~~~~
+      |                 MSP_TX_Callback
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:1085:6: warning: conflicting types for 'GSM_RX_Callback'; have 'void()'
+ 1085 | void GSM_RX_Callback() {
+      |      ^~~~~~~~~~~~~~~
+../Core/Src/main.c:1071:17: note: previous implicit declaration of 'GSM_RX_Callback' with type 'void()'
+ 1071 |                 GSM_RX_Callback();
+      |                 ^~~~~~~~~~~~~~~
+../Core/Src/main.c:1092:6: warning: conflicting types for 'GSM_TX_Callback'; have 'void()'
+ 1092 | void GSM_TX_Callback() {
+      |      ^~~~~~~~~~~~~~~
+../Core/Src/main.c:1081:17: note: previous implicit declaration of 'GSM_TX_Callback' with type 'void()'
+ 1081 |                 GSM_TX_Callback();
+      |                 ^~~~~~~~~~~~~~~
+../Core/Src/main.c:1249:6: warning: conflicting types for 'GSM_PDP_Context_Activate'; have 'void(char *, char *, char *)'
+ 1249 | void GSM_PDP_Context_Activate(char *apn, char *user, char *pwd) {
+      |      ^~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:595:9: note: previous implicit declaration of 'GSM_PDP_Context_Activate' with type 'void(char *, char *, char *)'
+  595 |         GSM_PDP_Context_Activate(apn, user, pwd);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c: In function 'GSM_PDP_Context_Activate':
+../Core/Src/main.c:1262:17: warning: implicit declaration of function 'GSM_Disconnect_TCP' [-Wimplicit-function-declaration]
+ 1262 |                 GSM_Disconnect_TCP();
+      |                 ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:1253:17: warning: variable 'CGACTisOK' set but not used [-Wunused-but-set-variable]
+ 1253 |         uint8_t CGACTisOK = 0;
+      |                 ^~~~~~~~~
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:1320:9: error: conflicting types for 'GSM_Disconnect_TCP'; have 'uint8_t()' {aka 'unsigned char()'}
+ 1320 | uint8_t GSM_Disconnect_TCP() {
+      |         ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:1262:17: note: previous implicit declaration of 'GSM_Disconnect_TCP' with type 'int()'
+ 1262 |                 GSM_Disconnect_TCP();
+      |                 ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c: In function 'GSM_Modem_HTTP_Post':
+../Core/Src/main.c:1422:22: warning: variable 'response' set but not used [-Wunused-but-set-variable]
+ 1422 |                 char response[response_size + 1];
+      |                      ^~~~~~~~
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:1553:7: error: conflicting types for 'GSM_Send_HTTP_POST'; have 'char *(char *)'
+ 1553 | char* GSM_Send_HTTP_POST(char *json) {
+      |       ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:824:33: note: previous implicit declaration of 'GSM_Send_HTTP_POST' with type 'int()'
+  824 |                                 GSM_Send_HTTP_POST(jsonDataBuffer);
+      |                                 ^~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:1632:6: warning: conflicting types for 'BlinkLed'; have 'void(void)'
+ 1632 | void BlinkLed(void) {
+      |      ^~~~~~~~
+../Core/Src/main.c:711:41: note: previous implicit declaration of 'BlinkLed' with type 'void(void)'
+  711 |                                         BlinkLed();
+      |                                         ^~~~~~~~
+make: *** [Core/Src/subdir.mk:43: Core/Src/main.o] Error 1
+"make -j12 all" terminated with exit code 2. Build might be incomplete.
 
-21:05:43 Build Finished. 0 errors, 0 warnings. (took 303ms)
+14:31:13 Build Failed. 7 errors, 35 warnings. (took 1s.136ms)
 
