@@ -57,6 +57,10 @@ void Error_Handler(void);
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
+#define NFC_INTERRUPT_Pin GPIO_PIN_15
+#define NFC_INTERRUPT_GPIO_Port GPIOC
+#define LPD_Pin GPIO_PIN_1
+#define LPD_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 

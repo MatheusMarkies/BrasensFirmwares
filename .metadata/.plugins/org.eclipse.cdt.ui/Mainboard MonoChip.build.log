@@ -1,4 +1,4 @@
-14:31:12 **** Build of configuration Debug for project Mainboard MonoChip ****
+17:13:25 **** Build of configuration Debug for project Mainboard MonoChip ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
 In file included from ../Core/Src/main.c:28:
@@ -204,5 +204,5 @@ In file included from ../Core/Src/main.c:28:
 make: *** [Core/Src/subdir.mk:43: Core/Src/main.o] Error 1
 "make -j12 all" terminated with exit code 2. Build might be incomplete.
 
-14:31:13 Build Failed. 7 errors, 35 warnings. (took 1s.136ms)
+17:13:27 Build Failed. 7 errors, 35 warnings. (took 1s.161ms)
 

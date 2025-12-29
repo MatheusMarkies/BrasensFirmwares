@@ -14,8 +14,11 @@
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
-		<item key="selection" value="ST25R300_DiagnosticMeasurement"/>
+		<item key="selection" value="ST25R300_ReadRSSI"/>
 		<list key="findhistory">
+			<item value="ST25R300_ReadRSSI"/>
+			<item value="printf"/>
+			<item value="DEBUG_PRINT"/>
 			<item value="ST25R300_DiagnosticMeasurement"/>
 			<item value="ST25R300_ReadFIFO"/>
 			<item value="ST25R300_Init"/>
@@ -25,12 +28,9 @@
 			<item value="EstimateAntennaQ"/>
 			<item value="MeasureRSSI"/>
 			<item value="64"/>
-			<item value="printf"/>
 			<item value="snprintf"/>
 			<item value="fram"/>
 			<item value="sendAT"/>
-			<item value="send"/>
-			<item value="hiwdg"/>
 		</list>
 		<list key="replacehistory">
 			<item value="DEBUG_PRINT"/>

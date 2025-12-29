@@ -1,56 +1,10 @@
-11:16:37 **** Incremental Build of configuration Debug for project TorquimeterReader ****
+10:20:16 **** Incremental Build of configuration Debug for project TorquimeterReader ****
 make -j12 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/Legacy" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Device/ST/STM32L0xx/Include" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Include" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-arm-none-eabi-gcc "../Core/Src/st25r300.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/Legacy" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Device/ST/STM32L0xx/Include" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Include" -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/st25r300.d" -MT"Core/Src/st25r300.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/st25r300.o"
-../Core/Src/st25r300.c:8:20: warning: extra tokens at end of #include directive
-    8 | #include <stdlib.h>´
-      |                    ^
-../Core/Src/st25r300.c: In function 'ST25R300_MeasurePower':
-../Core/Src/st25r300.c:873:9: warning: implicit declaration of function 'memset' [-Wimplicit-function-declaration]
-  873 |         memset(power, 0, sizeof(ST25R300_PowerMeasurements_t));
-      |         ^~~~~~
-../Core/Src/st25r300.c:9:1: note: include '<string.h>' or provide a declaration of 'memset'
-    8 | #include <stdlib.h>´
-  +++ |+#include <string.h>
-    9 | 
-../Core/Src/st25r300.c:873:9: warning: incompatible implicit declaration of built-in function 'memset' [-Wbuiltin-declaration-mismatch]
-  873 |         memset(power, 0, sizeof(ST25R300_PowerMeasurements_t));
-      |         ^~~~~~
-../Core/Src/st25r300.c:873:9: note: include '<string.h>' or provide a declaration of 'memset'
-../Core/Src/st25r300.c: In function 'ST25R300_CheckSystemStatus':
-../Core/Src/st25r300.c:1106:9: warning: incompatible implicit declaration of built-in function 'memset' [-Wbuiltin-declaration-mismatch]
- 1106 |         memset(sys_status, 0, sizeof(ST25R300_SystemStatus_t));
-      |         ^~~~~~
-../Core/Src/st25r300.c:1106:9: note: include '<string.h>' or provide a declaration of 'memset'
-../Core/Src/st25r300.c: In function 'ST25R300_RunDiagnostics':
-../Core/Src/st25r300.c:1187:9: warning: incompatible implicit declaration of built-in function 'memset' [-Wbuiltin-declaration-mismatch]
- 1187 |         memset(report, 0, sizeof(ST25R300_DiagnosticReport_t));
-      |         ^~~~~~
-../Core/Src/st25r300.c:1187:9: note: include '<string.h>' or provide a declaration of 'memset'
-../Core/Src/st25r300.c:1188:9: warning: implicit declaration of function 'strcpy' [-Wimplicit-function-declaration]
- 1188 |         strcpy(report->message, "Diagnostic started...\n");
-      |         ^~~~~~
-../Core/Src/st25r300.c:1188:9: note: include '<string.h>' or provide a declaration of 'strcpy'
-../Core/Src/st25r300.c:1188:9: warning: incompatible implicit declaration of built-in function 'strcpy' [-Wbuiltin-declaration-mismatch]
-../Core/Src/main.c: In function 'main':
-../Core/Src/st25r300.c:1188:9: note: include '<string.h>' or provide a declaration of 'strcpy'
-../Core/Src/main.c:192:3: warning: implicit declaration of function 'ST25R300_RunDiagnostics' [-Wimplicit-function-declaration]
-  192 |   ST25R300_RunDiagnostics(&nfc_reader, &report);
-      |   ^~~~~~~~~~~~~~~~~~~~~~~
-../Core/Src/main.c:205:11: warning: implicit declaration of function 'ST25R300_MeasureRSSI' [-Wimplicit-function-declaration]
-  205 |       if (ST25R300_MeasureRSSI(&nfc_reader, &rf_data) == HAL_OK) {
-      |           ^~~~~~~~~~~~~~~~~~~~
-arm-none-eabi-gcc -o "TorquimeterReader.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TorquimeterReader\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterReader.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: TorquimeterReader.elf
- 
 arm-none-eabi-size  TorquimeterReader.elf 
-arm-none-eabi-objdump -h -S TorquimeterReader.elf  > "TorquimeterReader.list"
    text	   data	    bss	    dec	    hex	filename
-  33460	     92	   2324	  35876	   8c24	TorquimeterReader.elf
+  22844	    100	   2340	  25284	   62c4	TorquimeterReader.elf
 Finished building: default.size.stdout
  
-Finished building: TorquimeterReader.list
- 
 
-11:16:38 Build Finished. 0 errors, 9 warnings. (took 907ms)
+10:20:16 Build Finished. 0 errors, 0 warnings. (took 251ms)
 

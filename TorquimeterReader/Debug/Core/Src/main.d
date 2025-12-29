@@ -28,8 +28,7 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  C:/Users/Matheus\ Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_spi.h \
  C:/Users/Matheus\ Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_uart.h \
  C:/Users/Matheus\ Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_uart_ex.h \
- ../Core/Inc/st25r300.h \
- C:/Users/Matheus\ Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Device/ST/STM32L0xx/Include/stm32l053xx.h
+ ../Core/Inc/st25r300.h
 ../Core/Inc/main.h:
 C:/Users/Matheus\ Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal.h:
 ../Core/Inc/stm32l0xx_hal_conf.h:
@@ -61,4 +60,3 @@ C:/Users/Matheus\ Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/S
 C:/Users/Matheus\ Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_uart.h:
 C:/Users/Matheus\ Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/stm32l0xx_hal_uart_ex.h:
 ../Core/Inc/st25r300.h:
-C:/Users/Matheus\ Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Device/ST/STM32L0xx/Include/stm32l053xx.h:

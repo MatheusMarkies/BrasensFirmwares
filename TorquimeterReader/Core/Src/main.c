@@ -21,23 +21,27 @@
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include <stdio.h>
 #include "st25r300.h"
+#include <stdarg.h>  // <--- ESSENCIAL para va_list, va_start e va_end
+#include <stdio.h>   // <--- ESSENCIAL para vsnprintf
+#include <string.h>  // Para outras manipulações de string se necessário
+#include <stdlib.h>  // Removido o acento que estava no seu arquivo
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
-
+void ST25R300_Debug_DEBUG_PRINT(const char *format, ...);
+extern UART_HandleTypeDef huart1;
+#ifndef DEBUG_PRINT
+    #define DEBUG_PRINT(...) ST25R300_Debug_DEBUG_PRINT(__VA_ARGS__)
+#endif
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
 ST25R300 nfc_reader;
-
-#ifndef DEBUG_PRINT
-    #define DEBUG_PRINT(msg) HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), 200)
-#endif
+ST25R300_RSSI rssi_data;
 
 // Buffer para debug UART
 char debug_buf[64];
@@ -74,36 +78,18 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void ST25R300_Monitor_ExternalField(ST25R300 *dev) {
-    uint8_t rssi_val;
-    uint8_t irq_status;
-    char debug_buf[64];
+void ST25R300_Debug_DEBUG_PRINT(const char *format, ...) {
+	char buffer[256]; // Tamanho máximo de uma linha de debug
+	va_list args;
 
-    // --- PASSO 1: MODO "ESCUTA" (RX ON, TX OFF) ---
-    // Reg 0x00 (Operation):
-    // Bit 6 (tx_en) = 0  <- DESLIGA CAMPO PRÓPRIO
-    // Bit 5 (rx_en) = 1  <- LIGA RECEPTOR (Necessário para RSSI)
-    // Bit 3 (en)    = 1  <- Mantém Oscilador ligado
-    // Valor: 0010 1000 = 0x28 (ou 0x38 se quiser manter vdd_dr ligado)
-    ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, 0x78);
+	va_start(args, format);
+	// vsnDEBUG_PRINT preenche o buffer com segurança, respeitando o limite de 128 bytes
+	int len = vsnprintf(buffer, sizeof(buffer), format, args);
+	va_end(args);
 
-    HAL_Delay(10); // Tempo para o receptor estabilizar no silêncio
-
-    // --- PASSO 2: LEITURA DO RSSI (Força do Sinal) ---
-    // Reg 0x4A (RSSI Display I): Mostra a amplitude do sinal na fase I
-    // Valores típicos: Ruído de fundo ~10-20. Celular encostado >100.
-    ST25R300_ReadRegister(dev, ST25R300_REG_RSSI_I, &rssi_val);
-
-    // --- PASSO 3: LEITURA DO STATUS (Detector de Hardware) ---
-    // Reg 0x40 (Status 1): Verifica se o hardware "achou" que é campo válido
-    ST25R300_ReadRegister(dev, ST25R300_REG_STATUS_1, &irq_status);
-
-    //if (rssi_val > 30) {
-        sprintf(debug_buf, "Campo Externo: RSSI=%d | Detec.HW=%d\r\n",
-                rssi_val, (irq_status & 0x01));
-        DEBUG_PRINT(debug_buf);
-    //}
-
+	if (len > 0) {
+		HAL_UART_Transmit(&huart1, (uint8_t*) buffer, len, 200);
+	}
 }
 /* USER CODE END 0 */
 
@@ -148,65 +134,50 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 	/* USER CODE BEGIN 2 */
-  DEBUG_PRINT("\n\n");
-  DEBUG_PRINT("╔═══════════════════════════════════════════════╗\n");
-  DEBUG_PRINT("║     ST25R300 NFC READER DIAGNOSTICS         ║\n");
-  DEBUG_PRINT("╚═══════════════════════════════════════════════╝\n");
+  if (ST25R300_Init(&nfc_reader)) {
+      DEBUG_PRINT("ST25R300 inicializado com sucesso!\r\n");
 
-  // NÃO chamar ST25R300_SoftReset() aqui! Ele interfere com a inicialização
+      // Configura para modo RX
+      if (ST25R300_ConfigureRxMode(&nfc_reader)) {
+          DEBUG_PRINT("Modo RX configurado!\r\n");
 
-  // Initialize device (agora com reguladores corretos)
-  if (ST25R300_Init(&nfc_reader) != HAL_OK) {
-      DEBUG_PRINT("\n✗ CRITICAL: Initialization FAILED!\n");
-      Error_Handler();
-  }
-
-  // Verify identity
-  if (ST25R300_Identity(&nfc_reader) == ST25_OK) {
-      DEBUG_PRINT("✓ ST25R300 Identified!\n\n");
-  } else {
-      DEBUG_PRINT("✗ ST25R300 Identification Failed\n");
-      Error_Handler();
-  }
-
-  // Configure antenna (single-ended no RFO1)
-  if (ST25R300_ConfigureSingleEndedAntenna(&nfc_reader, ST25R300_RFO1) != HAL_OK) {
-      DEBUG_PRINT("✗ WARNING: Antenna configuration failed\n");
-  }
-
-  // Display antenna configuration
-  ST25R300_AntennaMode_t mode;
-  ST25R300_RFO_Select_t rfo;
-
-  if (ST25R300_GetAntennaConfig(&nfc_reader, &mode, &rfo) == HAL_OK) {
-      if (mode == ST25R300_ANTENNA_DIFFERENTIAL) {
-          DEBUG_PRINT("Antenna Mode: Differential\n");
-      } else {
-          DEBUG_PRINT("Antenna Mode: Single-Ended\n");
-          DEBUG_PRINT("Active Output: %s\n", (rfo == ST25R300_RFO1) ? "RFO1/RFI1" : "RFO2/RFI2");
+          // Habilita RX
+          if (ST25R300_EnableRx(&nfc_reader)) {
+              DEBUG_PRINT("RX habilitado - Pronto para medir RSSI!\r\n");
+          }
       }
+  } else {
+      DEBUG_PRINT("ERRO: Falha na inicialização do ST25R300!\r\n");
   }
-
-  // Run comprehensive diagnostics
-  ST25R300_DiagnosticReport_t report;
-  ST25R300_RunDiagnostics(&nfc_reader, &report);
 
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
   while (1) {
-      ST25R300_RFMeasurements_t rf_data;
+	    static uint32_t last_read = 0;
 
-      // Liga o receptor para poder "ouvir"
-      ST25R300_WriteRegister(&nfc_reader, ST25R300_REG_OPERATION, 0x38); // en, vdddr, rx_en
+	    // Lê RSSI a cada 100ms
+	    if (HAL_GetTick() - last_read >= 100) {
+	        last_read = HAL_GetTick();
 
-      // Usa a função da biblioteca que envia o comando 0xF9 internamente
-      if (ST25R300_MeasureRSSI(&nfc_reader, &rf_data) == HAL_OK) {
-          DEBUG_PRINT("RSSI I: %d | RSSI Q: %d\r\n", rf_data.rssi_i, rf_data.rssi_q);
-      }
+	        if (ST25R300_ReadRSSI(&nfc_reader, &rssi_data)) {
+	        	int db_int = (int)rssi_data.rssi_dbm;
+	        	int db_dec = (int)((rssi_data.rssi_dbm - (float)db_int) * 10.0f);
+	        	if (db_dec < 0) db_dec = -db_dec;
+	        	const char* sign = (rssi_data.rssi_dbm < 0 && db_int == 0) ? "-" : "";
 
-      HAL_Delay(500);
+	        	DEBUG_PRINT("RSSI - I: %3d, Q: %3d, Total: %3d, dBm: %s%d.%d\r\n",
+	        	            rssi_data.rssi_i,
+	        	            rssi_data.rssi_q,
+	        	            rssi_data.rssi_total,
+	        	            sign,
+	        	            db_int,
+	        	            db_dec);
+	        } else {
+	            DEBUG_PRINT("ERRO: Falha na leitura do RSSI!\r\n");
+	        }
+	    }
   }
   /* USER CODE END 3 */
 }
@@ -499,7 +470,7 @@ void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
   /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+     ex: DEBUG_PRINT("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */
