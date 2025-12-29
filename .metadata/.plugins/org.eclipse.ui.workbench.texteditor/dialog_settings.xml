@@ -14,8 +14,16 @@
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
-		<item key="selection" value="ST25R300_ReadRSSI"/>
+		<item key="selection" value="USE_FULL_ASSERT"/>
 		<list key="findhistory">
+			<item value="USE_FULL_ASSERT"/>
+			<item value="HAL_LPTIM_Init"/>
+			<item value="Prescaler "/>
+			<item value="HAL_RTCEx_WakeUpTimerEventCallback"/>
+			<item value="last_send_attempt_timestamp"/>
+			<item value="raw_val "/>
+			<item value="ADS_FSR_VOLTAGE"/>
+			<item value="hea"/>
 			<item value="ST25R300_ReadRSSI"/>
 			<item value="printf"/>
 			<item value="DEBUG_PRINT"/>
@@ -23,14 +31,6 @@
 			<item value="ST25R300_ReadFIFO"/>
 			<item value="ST25R300_Init"/>
 			<item value="init"/>
-			<item value="ST25R300 COMPREHENSIVE DIAGNOSTIC TES"/>
-			<item value="clear"/>
-			<item value="EstimateAntennaQ"/>
-			<item value="MeasureRSSI"/>
-			<item value="64"/>
-			<item value="snprintf"/>
-			<item value="fram"/>
-			<item value="sendAT"/>
 		</list>
 		<list key="replacehistory">
 			<item value="DEBUG_PRINT"/>
