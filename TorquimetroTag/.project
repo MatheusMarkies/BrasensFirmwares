@@ -130,5 +130,10 @@
 			<type>1</type>
 			<location>C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_uart_ex.c</location>
 		</link>
+		<link>
+			<name>Drivers/STM32L0xx_HAL_Driver/stm32l0xx_hal_wwdg.c</name>
+			<type>1</type>
+			<location>C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_wwdg.c</location>
+		</link>
 	</linkedResources>
 </projectDescription>

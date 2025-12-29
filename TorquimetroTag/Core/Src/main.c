@@ -34,18 +34,20 @@
 /* USER CODE END PTD */
 
 /* Private define ------------------------------------------------------------*/
+/* USER CODE BEGIN PD */
 #define LSB_UV 63
 #define USTRAIN_PER_BIT_x1000 131
-// ===============================================================================
-//                          ENDEREÇOS E DEFINES DE SISTEMA
-// ===============================================================================
-#define ADS1115_ADDR  (0x48 << 1) // ADDR = GND
-#define ST25DV_ADDR   (0x53 << 1) // Endereço de Memória de Usuário
+
+#define ADS1115_ADDR  (0x48 << 1)
+#define ST25DV_ADDR   (0x53 << 1)
 
 #define ADS_REG_CONV  0x00
 #define ADS_REG_CONF  0x01
 
 #define CHARGING_INTERVAL_MS 2 * 60 * 1000
+static uint8_t wakeup_counter = 0;
+static uint8_t wakeup_cycles = CHARGING_INTERVAL_MS / 7.5;
+
 #define READING_SAMPLING_INTERVAL_MS 10
 
 #define SAMPLES_FOR_TARING 10
@@ -57,14 +59,12 @@ int32_t voltage_uV = 0;
 uint32_t last_charging_process = 0;
 
 typedef enum {
-	FREE = 0,
-	CHARGING = 1,
-	TARING = 2,
-	READING = 3,
-	PROCESSING = 4,
+	CHARGING = 1, TARING = 2, READING = 3, PROCESSING = 4,
 } Process_State;
 
-Process_State state = FREE;
+uint8_t isTared = 0;
+
+Process_State state = CHARGING;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -74,7 +74,12 @@ Process_State state = FREE;
 
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
+
 UART_HandleTypeDef hlpuart1;
+
+RTC_HandleTypeDef hrtc;
+
+WWDG_HandleTypeDef hwwdg;
 
 /* USER CODE BEGIN PV */
 #define DEBUG_PRINT(msg) HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 200)
@@ -85,6 +90,8 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_LPUART1_UART_Init(void);
 static void MX_I2C1_Init(void);
+static void MX_RTC_Init(void);
+static void MX_WWDG_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -135,9 +142,40 @@ void debug_print_int(int32_t v) {
 	HAL_UART_Transmit(&hlpuart1, (uint8_t*) &buf[i + 1], 11 - i, 100);
 }
 
-void return_to_charging(){
+void return_to_charging() {
 	last_charging_process = HAL_GetTick();
 	state = CHARGING;
+}
+
+void rtc_start_wakeup(uint16_t ticks) {
+	HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
+
+	HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, ticks,
+	RTC_WAKEUPCLOCK_RTCCLK_DIV16);
+}
+
+void enter_stop_mode(void) {
+	HAL_SuspendTick();
+
+	HAL_PWR_EnterSTOPMode(
+	PWR_LOWPOWERREGULATOR_ON,
+	PWR_STOPENTRY_WFI);
+
+	HAL_ResumeTick();
+}
+
+void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
+	wakeup_counter++;
+
+	if (wakeup_counter >= wakeup_cycles) {
+		wakeup_counter = 0;
+		if (!isTared)
+			state = TARING;
+		else
+			state = READING;
+	} else {
+		state = CHARGING;
+	}
 }
 
 /* USER CODE END 0 */
@@ -171,30 +209,26 @@ int main(void) {
 	MX_GPIO_Init();
 	MX_LPUART1_UART_Init();
 	MX_I2C1_Init();
+	MX_RTC_Init();
+	MX_WWDG_Init();
 	/* USER CODE BEGIN 2 */
-
 	int32_t offset = 0;
 	int32_t average = 0;
 	int32_t sum = 0;
 	int count = 0;
-
-	state = FREE;
 	//last_charging_process = HAL_GetTick();
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
-		/* USER CODE END WHILE */
 
-		if(state == FREE || state == CHARGING)
-		if (HAL_GetTick() - last_charging_process >= CHARGING_INTERVAL_MS) {
-			if(state == FREE)
-				state = TARING;
-			else state = READING;
-		}
-
-		if(state == TARING){
+		switch (state) {
+		case CHARGING:
+			rtc_start_wakeup(15000);
+			enter_stop_mode();
+			break;
+		case TARING:
 			int16_t raw_adc = ADS1115_Read() * -1;
 
 			if (abs(raw_adc) > 0) {
@@ -202,7 +236,7 @@ int main(void) {
 					sum += raw_adc;
 					count++;
 					offset = sum / count;
-				}else{
+				} else {
 					count = 0;
 					sum = 0;
 
@@ -210,14 +244,13 @@ int main(void) {
 					debug_print_int(offset);
 					DEBUG_PRINT("\r\n");
 
-					return_to_charging();
+					state = CHARGING;
 				}
 			}
 
 			HAL_Delay(READING_SAMPLING_INTERVAL_MS);
-		}
-
-		if(state == READING){
+			break;
+		case READING:
 			int16_t raw_adc = ADS1115_Read() * -1;
 
 			if (abs(raw_adc) > 0) {
@@ -241,12 +274,15 @@ int main(void) {
 					debug_print_int(strain_uE);
 					DEBUG_PRINT(" uE\r\n");
 
-					return_to_charging();
+					state = CHARGING;
 				}
 			}
 
 			HAL_Delay(READING_SAMPLING_INTERVAL_MS);
+			break;
 		}
+
+		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
 	}
@@ -269,7 +305,9 @@ void SystemClock_Config(void) {
 	/** Initializes the RCC Oscillators according to the specified parameters
 	 * in the RCC_OscInitTypeDef structure.
 	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI
+			| RCC_OSCILLATORTYPE_MSI;
+	RCC_OscInitStruct.LSIState = RCC_LSI_ON;
 	RCC_OscInitStruct.MSIState = RCC_MSI_ON;
 	RCC_OscInitStruct.MSICalibrationValue = 0;
 	RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;
@@ -291,9 +329,10 @@ void SystemClock_Config(void) {
 		Error_Handler();
 	}
 	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPUART1
-			| RCC_PERIPHCLK_I2C1;
+			| RCC_PERIPHCLK_I2C1 | RCC_PERIPHCLK_RTC;
 	PeriphClkInit.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK1;
 	PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+	PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
 	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
 		Error_Handler();
 	}
@@ -359,10 +398,10 @@ static void MX_LPUART1_UART_Init(void) {
 
 	/* USER CODE END LPUART1_Init 1 */
 	hlpuart1.Instance = LPUART1;
-	hlpuart1.Init.BaudRate = 9600;
-	hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
-	hlpuart1.Init.Parity = UART_PARITY_NONE;
+	hlpuart1.Init.BaudRate = 115200;
+	hlpuart1.Init.WordLength = UART_WORDLENGTH_7B;
 	hlpuart1.Init.StopBits = UART_STOPBITS_1;
+	hlpuart1.Init.Parity = UART_PARITY_NONE;
 	hlpuart1.Init.Mode = UART_MODE_TX_RX;
 	hlpuart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
 	hlpuart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
@@ -373,6 +412,75 @@ static void MX_LPUART1_UART_Init(void) {
 	/* USER CODE BEGIN LPUART1_Init 2 */
 
 	/* USER CODE END LPUART1_Init 2 */
+
+}
+
+/**
+ * @brief RTC Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_RTC_Init(void) {
+
+	/* USER CODE BEGIN RTC_Init 0 */
+
+	/* USER CODE END RTC_Init 0 */
+
+	/* USER CODE BEGIN RTC_Init 1 */
+
+	/* USER CODE END RTC_Init 1 */
+
+	/** Initialize RTC Only
+	 */
+	hrtc.Instance = RTC;
+	hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+	hrtc.Init.AsynchPrediv = 127;
+	hrtc.Init.SynchPrediv = 255;
+	hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+	hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_NONE;
+	hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+	hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+	if (HAL_RTC_Init(&hrtc) != HAL_OK) {
+		Error_Handler();
+	}
+
+	/** Enable the WakeUp
+	 */
+	if (HAL_RTCEx_SetWakeUpTimer(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN RTC_Init 2 */
+
+	/* USER CODE END RTC_Init 2 */
+
+}
+
+/**
+ * @brief WWDG Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_WWDG_Init(void) {
+
+	/* USER CODE BEGIN WWDG_Init 0 */
+
+	/* USER CODE END WWDG_Init 0 */
+
+	/* USER CODE BEGIN WWDG_Init 1 */
+
+	/* USER CODE END WWDG_Init 1 */
+	hwwdg.Instance = WWDG;
+	hwwdg.Init.Prescaler = WWDG_PRESCALER_1;
+	hwwdg.Init.Window = 64;
+	hwwdg.Init.Counter = 64;
+	hwwdg.Init.EWIMode = WWDG_EWI_DISABLE;
+	if (HAL_WWDG_Init(&hwwdg) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN WWDG_Init 2 */
+
+	/* USER CODE END WWDG_Init 2 */
 
 }
 
