@@ -42,14 +42,11 @@
 #define ADS_REG_CONV  0x00
 #define ADS_REG_CONF  0x01
 
-#define CHARGING_INTERVAL_MS 2 * 60 * 1000
+#define CHARGING_INTERVAL_TICKS 120
 static uint16_t  wakeup_counter = 0;
-static uint16_t  wakeup_cycles = 9;//CHARGING_INTERVAL_MS / (8 * 1000);
+static uint16_t  wakeup_cycles = 2;//CHARGING_INTERVAL_MS / (8 * 1000);
 
-#define READING_SAMPLING_INTERVAL_MS 10
-#define LSI_FREQ_HZ                 37000UL
-#define LPTIM_PRESCALER_DIV         32UL
-#define LPTIM_TICK_US   (1000000UL / (LSI_FREQ_HZ / LPTIM_PRESCALER_DIV))
+#define READING_SAMPLING_INTERVAL_MS 4
 
 #define SAMPLES_FOR_TARING 10
 #define SAMPLES_FOR_READING 10
@@ -76,8 +73,6 @@ Process_State state = CHARGING;
 /* Private variables ---------------------------------------------------------*/
 I2C_HandleTypeDef hi2c1;
 
-LPTIM_HandleTypeDef hlptim1;
-
 UART_HandleTypeDef hlpuart1;
 
 RTC_HandleTypeDef hrtc;
@@ -91,7 +86,6 @@ void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_RTC_Init(void);
-static void MX_LPTIM1_Init(void);
 static void MX_LPUART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
@@ -149,7 +143,7 @@ void rtc_start_wakeup(uint16_t ticks) {
 	__HAL_RTC_WAKEUPTIMER_CLEAR_FLAG(&hrtc, RTC_FLAG_WUTF);
 	__HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
 
-	HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, ticks, RTC_WAKEUPCLOCK_RTCCLK_DIV16);
+	HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, ticks, RTC_WAKEUPCLOCK_CK_SPRE_16BITS);
 }
 
 void enter_stop_mode(void) {
@@ -176,37 +170,6 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
 		}
 	} else {
 		state = CHARGING;
-	}
-}
-
-static uint16_t LPTIM_CalcTicks_ms(uint32_t period_ms) {
-	uint32_t period_us = period_ms * 1000UL;
-
-	uint32_t ticks = period_us / LPTIM_TICK_US;
-
-	if (ticks == 0)
-		ticks = 1;
-
-	if (ticks > 0xFFFF)
-		ticks = 0xFFFF;
-
-	return (uint16_t) ticks;
-}
-
-void Start_Reading_Sampling(void) {
-	uint16_t ticks = LPTIM_CalcTicks_ms(READING_SAMPLING_INTERVAL_MS);
-
-	__HAL_LPTIM_DISABLE(&hlptim1);
-	__HAL_LPTIM_ENABLE(&hlptim1);
-
-	HAL_LPTIM_Counter_Start_IT(&hlptim1, ticks);
-}
-
-void HAL_LPTIM_AutoReloadMatchCallback(LPTIM_HandleTypeDef *hlptim) {
-	if (hlptim->Instance == LPTIM1) {
-		if (state == READING) {
-			state = PROCESSING;
-		}
 	}
 }
 
@@ -242,7 +205,6 @@ int main(void)
   MX_GPIO_Init();
   MX_I2C1_Init();
   MX_RTC_Init();
-  MX_LPTIM1_Init();
   MX_LPUART1_UART_Init();
   /* USER CODE BEGIN 2 */
 	int32_t offset = 0;
@@ -258,12 +220,13 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-
 		switch (state) {
 		case CHARGING:
-			rtc_start_wakeup(15000);
+			rtc_start_wakeup(CHARGING_INTERVAL_TICKS);
 			enter_stop_mode();
 			break;
+
+
 		case TARING:
 			raw_adc = ADS1115_Read() * -1;
 
@@ -300,7 +263,7 @@ int main(void)
 			sum += raw_adc;
 			count++;
 
-			if (count >= 10) {
+			if (count >= SAMPLES_FOR_READING) {
 				average = sum / count;
 
 				int32_t delta_bits = average - offset;
@@ -355,7 +318,7 @@ void SystemClock_Config(void)
   RCC_OscInitStruct.LSIState = RCC_LSI_ON;
   RCC_OscInitStruct.MSIState = RCC_MSI_ON;
   RCC_OscInitStruct.MSICalibrationValue = 0;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_3;
   RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
   if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
   {
@@ -376,12 +339,10 @@ void SystemClock_Config(void)
     Error_Handler();
   }
   PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPUART1|RCC_PERIPHCLK_I2C1
-                              |RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_LPTIM1;
+                              |RCC_PERIPHCLK_RTC;
   PeriphClkInit.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK1;
   PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
   PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
-  PeriphClkInit.LptimClockSelection = RCC_LPTIM1CLKSOURCE_PCLK;
-
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
@@ -404,7 +365,7 @@ static void MX_I2C1_Init(void)
 
   /* USER CODE END I2C1_Init 1 */
   hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00000608;
+  hi2c1.Init.Timing = 0x00000000;
   hi2c1.Init.OwnAddress1 = 0;
   hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
   hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
@@ -433,38 +394,6 @@ static void MX_I2C1_Init(void)
   /* USER CODE BEGIN I2C1_Init 2 */
 
   /* USER CODE END I2C1_Init 2 */
-
-}
-
-/**
-  * @brief LPTIM1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_LPTIM1_Init(void)
-{
-
-  /* USER CODE BEGIN LPTIM1_Init 0 */
-
-  /* USER CODE END LPTIM1_Init 0 */
-
-  /* USER CODE BEGIN LPTIM1_Init 1 */
-
-  /* USER CODE END LPTIM1_Init 1 */
-  hlptim1.Instance = LPTIM1;
-  hlptim1.Init.Clock.Source = LPTIM_CLOCKSOURCE_APBCLOCK_LPOSC;
-  hlptim1.Init.Clock.Prescaler = LPTIM_PRESCALER_DIV32;
-  hlptim1.Init.Trigger.Source = LPTIM_TRIGSOURCE_SOFTWARE;
-  hlptim1.Init.OutputPolarity = LPTIM_OUTPUTPOLARITY_HIGH;
-  hlptim1.Init.UpdateMode = LPTIM_UPDATE_IMMEDIATE;
-  hlptim1.Init.CounterSource = LPTIM_COUNTERSOURCE_INTERNAL;
-  if (HAL_LPTIM_Init(&hlptim1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN LPTIM1_Init 2 */
-
-  /* USER CODE END LPTIM1_Init 2 */
 
 }
 

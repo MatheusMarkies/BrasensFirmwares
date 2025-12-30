@@ -1,4 +1,4 @@
-00:19:19 **** Incremental Build of configuration Debug for project TorquimetroTag ****
+09:36:43 **** Incremental Build of configuration Debug for project TorquimetroTag ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g -DDEBUG -DUSE_HAL_DRIVER -DSTM32L011xx -c -I../Core/Inc -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/Legacy" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Device/ST/STM32L0xx/Include" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Include" -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
 arm-none-eabi-gcc -o "TorquimetroTag.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TorquimetroTag\STM32L011F4UX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimetroTag.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
@@ -7,22 +7,15 @@ Finished building target: TorquimetroTag.elf
 arm-none-eabi-size  TorquimetroTag.elf 
 arm-none-eabi-objdump -h -S TorquimetroTag.elf  > "TorquimetroTag.list"
    text	   data	    bss	    dec	    hex	filename
-  10664	     16	   1888	  12568	   3118	TorquimetroTag.elf
+  10144	     16	   1840	  12000	   2ee0	TorquimetroTag.elf
 Finished building: default.size.stdout
  
 Finished building: TorquimetroTag.list
  
-00:19:22 **** Incremental Build of configuration Debug for project TorquimetroTag ****
+09:36:45 **** Incremental Build of configuration Debug for project TorquimetroTag ****
 make -j12 all 
 arm-none-eabi-size  TorquimetroTag.elf 
    text	   data	    bss	    dec	    hex	filename
-  10664	     16	   1888	  12568	   3118	TorquimetroTag.elf
-Finished building: default.size.stdout
- 
-00:22:33 **** Incremental Build of configuration Debug for project TorquimetroTag ****
-make -j12 all 
-arm-none-eabi-size  TorquimetroTag.elf 
-   text	   data	    bss	    dec	    hex	filename
-  10664	     16	   1888	  12568	   3118	TorquimetroTag.elf
+  10144	     16	   1840	  12000	   2ee0	TorquimetroTag.elf
 Finished building: default.size.stdout
  
