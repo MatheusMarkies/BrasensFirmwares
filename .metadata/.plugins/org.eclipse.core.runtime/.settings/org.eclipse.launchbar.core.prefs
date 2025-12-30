@@ -9,3 +9,4 @@ org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:G4_STEPPER_SPI/activeLaunchMode
 org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:G4_STEPPER_SPI/activeLaunchTarget=null\:---
 org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:Mainboard\ MonoChip\ Debug/activeLaunchMode=run
 org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:Mainboard\ MonoChip\ Debug/activeLaunchTarget=null\:---
+org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TorquimetroTag\ Debug/activeLaunchMode=run

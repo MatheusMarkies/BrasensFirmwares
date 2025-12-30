@@ -44,7 +44,7 @@
 
 #define CHARGING_INTERVAL_MS 2 * 60 * 1000
 static uint16_t  wakeup_counter = 0;
-static uint16_t  wakeup_cycles = CHARGING_INTERVAL_MS / 8;
+static uint16_t  wakeup_cycles = 9;//CHARGING_INTERVAL_MS / (8 * 1000);
 
 #define READING_SAMPLING_INTERVAL_MS 10
 #define LSI_FREQ_HZ                 37000UL
@@ -78,10 +78,12 @@ I2C_HandleTypeDef hi2c1;
 
 LPTIM_HandleTypeDef hlptim1;
 
+UART_HandleTypeDef hlpuart1;
+
 RTC_HandleTypeDef hrtc;
 
 /* USER CODE BEGIN PV */
-//#define DEBUG_PRINT(msg) HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 200)
+#define DEBUG_PRINT(msg) HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 200)
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -90,6 +92,7 @@ static void MX_GPIO_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_LPTIM1_Init(void);
+static void MX_LPUART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -119,7 +122,7 @@ int16_t ADS1115_Read(void) {
 	}
 	return -1;
 }
-/*
+
 void debug_print_int(int32_t v) {
 	char buf[12];
 	int i = 10;
@@ -139,20 +142,24 @@ void debug_print_int(int32_t v) {
 
 	HAL_UART_Transmit(&hlpuart1, (uint8_t*) &buf[i + 1], 11 - i, 100);
 }
-*/
+
 void rtc_start_wakeup(uint16_t ticks) {
 	HAL_RTCEx_DeactivateWakeUpTimer(&hrtc);
 
-	HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, ticks,
-	RTC_WAKEUPCLOCK_RTCCLK_DIV16);
+	__HAL_RTC_WAKEUPTIMER_CLEAR_FLAG(&hrtc, RTC_FLAG_WUTF);
+	__HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+
+	HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, ticks, RTC_WAKEUPCLOCK_RTCCLK_DIV16);
 }
 
 void enter_stop_mode(void) {
+	__HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+
 	HAL_SuspendTick();
 
-	HAL_PWR_EnterSTOPMode(
-	PWR_LOWPOWERREGULATOR_ON,
-	PWR_STOPENTRY_WFI);
+	HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+
+	SystemClock_Config();
 
 	HAL_ResumeTick();
 }
@@ -162,10 +169,11 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
 
 	if (wakeup_counter >= wakeup_cycles) {
 		wakeup_counter = 0;
-		if (!isTared)
+		if (!isTared) {
 			state = TARING;
-		else
+		} else {
 			state = READING;
+		}
 	} else {
 		state = CHARGING;
 	}
@@ -235,12 +243,16 @@ int main(void)
   MX_I2C1_Init();
   MX_RTC_Init();
   MX_LPTIM1_Init();
+  MX_LPUART1_UART_Init();
   /* USER CODE BEGIN 2 */
 	int32_t offset = 0;
 	int32_t average = 0;
 	int32_t sum = 0;
 	int count = 0;
-	//last_charging_process = HAL_GetTick();
+	int16_t raw_adc = 0;
+
+	DEBUG_PRINT("Starting...\r\n");
+
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -253,39 +265,37 @@ int main(void)
 			enter_stop_mode();
 			break;
 		case TARING:
-			int16_t raw_adc = ADS1115_Read() * -1;
+			raw_adc = ADS1115_Read() * -1;
 
 			if (abs(raw_adc) > 0) {
-				if (count <= SAMPLES_FOR_TARING) {
+				if (count < SAMPLES_FOR_TARING) {  // Mudei <= para
 					sum += raw_adc;
 					count++;
 					offset = sum / count;
 				} else {
 					count = 0;
 					sum = 0;
-/*
+
 					DEBUG_PRINT("offset:\r");
 					debug_print_int(offset);
 					DEBUG_PRINT("\r\n");
-*/
+
+					isTared = 1;
+
 					state = CHARGING;
 				}
+			} else {
+
 			}
 
 			HAL_Delay(READING_SAMPLING_INTERVAL_MS);
 			break;
 		case READING:
-			Start_Reading_Sampling();
-
-			HAL_SuspendTick();
-			HAL_PWR_EnterSTOPMode(
-			PWR_LOWPOWERREGULATOR_ON,
-			PWR_STOPENTRY_WFI);
-			HAL_ResumeTick();
+			state = PROCESSING;
 			break;
 
-		case PROCESSING: {
-			int16_t raw_adc = ADS1115_Read() * -1;
+		case PROCESSING:
+			raw_adc = ADS1115_Read() * -1;
 
 			sum += raw_adc;
 			count++;
@@ -300,21 +310,20 @@ int main(void)
 
 				sum = 0;
 				count = 0;
-/*
+
 				DEBUG_PRINT("voltage_uV:\r");
 				debug_print_int(voltage_uV);
 				DEBUG_PRINT("\r\n");
 				DEBUG_PRINT("strain_uE:\r");
 				debug_print_int(strain_uE);
 				DEBUG_PRINT("\r\n");
-*/
+
 				state = CHARGING;
-			} else {
-				state = READING;
 			}
 
+			HAL_Delay(READING_SAMPLING_INTERVAL_MS);
 			break;
-		}
+
 
 		}
 
@@ -366,8 +375,9 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_I2C1|RCC_PERIPHCLK_RTC
-                              |RCC_PERIPHCLK_LPTIM1;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPUART1|RCC_PERIPHCLK_I2C1
+                              |RCC_PERIPHCLK_RTC|RCC_PERIPHCLK_LPTIM1;
+  PeriphClkInit.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK1;
   PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
   PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
   PeriphClkInit.LptimClockSelection = RCC_LPTIM1CLKSOURCE_PCLK;
@@ -459,6 +469,40 @@ static void MX_LPTIM1_Init(void)
 }
 
 /**
+  * @brief LPUART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_LPUART1_UART_Init(void)
+{
+
+  /* USER CODE BEGIN LPUART1_Init 0 */
+
+  /* USER CODE END LPUART1_Init 0 */
+
+  /* USER CODE BEGIN LPUART1_Init 1 */
+
+  /* USER CODE END LPUART1_Init 1 */
+  hlpuart1.Instance = LPUART1;
+  hlpuart1.Init.BaudRate = 9600;
+  hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
+  hlpuart1.Init.StopBits = UART_STOPBITS_1;
+  hlpuart1.Init.Parity = UART_PARITY_NONE;
+  hlpuart1.Init.Mode = UART_MODE_TX;
+  hlpuart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  hlpuart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  hlpuart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&hlpuart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN LPUART1_Init 2 */
+
+  /* USER CODE END LPUART1_Init 2 */
+
+}
+
+/**
   * @brief RTC Initialization Function
   * @param None
   * @retval None
@@ -491,7 +535,7 @@ static void MX_RTC_Init(void)
 
   /** Enable the WakeUp
   */
-  if (HAL_RTCEx_SetWakeUpTimer(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
+  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
   {
     Error_Handler();
   }
@@ -527,14 +571,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(LPD_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : PA4 */
-  GPIO_InitStruct.Pin = GPIO_PIN_4;
-  GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_VERY_HIGH;
-  GPIO_InitStruct.Alternate = GPIO_AF6_LPUART1;
-  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */

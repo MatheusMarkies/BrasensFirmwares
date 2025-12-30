@@ -14,8 +14,9 @@
 		<item key="wholeword" value="false"/>
 		<item key="incremental" value="false"/>
 		<item key="isRegEx" value="false"/>
-		<item key="selection" value="USE_FULL_ASSERT"/>
+		<item key="selection" value=""/>
 		<list key="findhistory">
+			<item value="RTC_WKUP_IRQHandler"/>
 			<item value="USE_FULL_ASSERT"/>
 			<item value="HAL_LPTIM_Init"/>
 			<item value="Prescaler "/>
@@ -30,7 +31,6 @@
 			<item value="ST25R300_DiagnosticMeasurement"/>
 			<item value="ST25R300_ReadFIFO"/>
 			<item value="ST25R300_Init"/>
-			<item value="init"/>
 		</list>
 		<list key="replacehistory">
 			<item value="DEBUG_PRINT"/>
