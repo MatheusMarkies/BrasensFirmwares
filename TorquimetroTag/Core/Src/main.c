@@ -24,6 +24,7 @@
 #include <stdio.h>
 #include "string.h"
 #include <stdlib.h>
+#include <stdint.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -55,6 +56,26 @@ int32_t strain_uE = 0;
 int32_t voltage_uV = 0;
 
 uint32_t last_charging_process = 0;
+
+#define ST25DV_ADDR         (0x53 << 1)  // Device select E2=0 (User memory, Dynamic, Mailbox)
+#define ST25DV_SYS_ADDR     (0x57 << 1)  // Device select E2=1 (System config)
+
+// Fast Transfer Mode Registers (Dynamic)
+#define ST25DV_MB_CTRL_DYN_REG    0x2006  // Mailbox control register
+#define ST25DV_MB_LEN_DYN_REG     0x2007  // Message length register
+#define ST25DV_MAILBOX_RAM        0x2008  // Start of 256-byte mailbox
+
+// MB_CTRL_Dyn bits
+#define MB_CTRL_MB_EN             (1 << 0)  // Enable FTM
+#define MB_CTRL_HOST_PUT_MSG      (1 << 1)  // I2C put message
+#define MB_CTRL_RF_PUT_MSG        (1 << 2)  // RF put message
+
+// System Config Registers
+#define ST25DV_MB_MODE_REG        0x000D  // Mailbox mode config
+#define MB_MODE_ENABLE            0x01
+
+// Timeout for operations
+#define ST25DV_TIMEOUT            100
 
 typedef enum {
 	CHARGING = 1, TARING = 2, READING = 3, PROCESSING = 4,
@@ -173,6 +194,98 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
 	}
 }
 
+int8_t ST25DV_EnableFTM(void) {
+    uint8_t mb_ctrl;
+
+    // Read current MB_CTRL_Dyn register
+    if (HAL_I2C_Mem_Read(&hi2c1, ST25DV_ADDR, ST25DV_MB_CTRL_DYN_REG,
+                         I2C_MEMADD_SIZE_16BIT, &mb_ctrl, 1, ST25DV_TIMEOUT) != HAL_OK) {
+        DEBUG_PRINT("Error reading MB_CTRL\r\n");
+        return -1;
+    }
+
+    // Enable FTM if not already enabled
+    if (!(mb_ctrl & MB_CTRL_MB_EN)) {
+        mb_ctrl |= MB_CTRL_MB_EN;
+
+        if (HAL_I2C_Mem_Write(&hi2c1, ST25DV_ADDR, ST25DV_MB_CTRL_DYN_REG,
+                              I2C_MEMADD_SIZE_16BIT, &mb_ctrl, 1, ST25DV_TIMEOUT) != HAL_OK) {
+            DEBUG_PRINT("Error enabling FTM\r\n");
+            return -1;
+        }
+
+        DEBUG_PRINT("FTM enabled\r\n");
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Check if mailbox is free (no RF message to read)
+ * @retval 1 if free, 0 if busy, -1 if error
+ */
+int8_t ST25DV_IsMailboxFree(void) {
+    uint8_t mb_ctrl;
+
+    if (HAL_I2C_Mem_Read(&hi2c1, ST25DV_ADDR, ST25DV_MB_CTRL_DYN_REG,
+                         I2C_MEMADD_SIZE_16BIT, &mb_ctrl, 1, ST25DV_TIMEOUT) != HAL_OK) {
+        return -1;
+    }
+
+    // Mailbox is free if HOST_PUT_MSG is 0 (no RF message waiting)
+    return (mb_ctrl & MB_CTRL_HOST_PUT_MSG) ? 0 : 1;
+}
+
+/**
+ * @brief Send int32_t via NFC using Fast Transfer Mode Mailbox
+ * @param value: The int32_t value to send
+ * @retval 0 if success, negative if error
+ */
+int8_t ST25DV_SendInt32(int32_t value) {
+    uint8_t data[4];
+    int8_t mailbox_status;
+
+    DEBUG_PRINT("Sending int32 via NFC: ");
+    debug_print_int(value);
+
+    // Step 1: Enable Fast Transfer Mode
+    if (ST25DV_EnableFTM() != 0) {
+        DEBUG_PRINT("FTM enable failed\r\n");
+        return -1;
+    }
+
+    // Step 2: Check if mailbox is free
+    mailbox_status = ST25DV_IsMailboxFree();
+    if (mailbox_status < 0) {
+        DEBUG_PRINT("Error checking mailbox status\r\n");
+        return -2;
+    }
+    if (mailbox_status == 0) {
+        DEBUG_PRINT("Mailbox busy, RF message not read yet\r\n");
+        return -3;
+    }
+
+    // Step 3: Convert int32_t to byte array (little-endian)
+    data[0] = (uint8_t)(value & 0xFF);
+    data[1] = (uint8_t)((value >> 8) & 0xFF);
+    data[2] = (uint8_t)((value >> 16) & 0xFF);
+    data[3] = (uint8_t)((value >> 24) & 0xFF);
+
+    // Step 4: Write data to mailbox (must start at address 0x2008)
+    if (HAL_I2C_Mem_Write(&hi2c1, ST25DV_ADDR, ST25DV_MAILBOX_RAM,
+                          I2C_MEMADD_SIZE_16BIT, data, 4, ST25DV_TIMEOUT) != HAL_OK) {
+        DEBUG_PRINT("Error writing to mailbox\r\n");
+        return -4;
+    }
+
+    DEBUG_PRINT("Data written to NFC mailbox\r\n");
+
+    // Note: MB_LEN_Dyn and HOST_PUT_MSG bit are automatically updated by ST25DV
+    // after successful mailbox write
+
+    return 0;
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -212,6 +325,8 @@ int main(void)
 	int32_t sum = 0;
 	int count = 0;
 	int16_t raw_adc = 0;
+
+	ST25DV_EnableFTM();
 
 	DEBUG_PRINT("Starting...\r\n");
 
@@ -280,6 +395,10 @@ int main(void)
 				DEBUG_PRINT("strain_uE:\r");
 				debug_print_int(strain_uE);
 				DEBUG_PRINT("\r\n");
+
+				if (ST25DV_SendInt32(voltage_uV) == 0) {
+				                DEBUG_PRINT("Voltage sent via NFC\r\n");
+				            }
 
 				state = CHARGING;
 			}
