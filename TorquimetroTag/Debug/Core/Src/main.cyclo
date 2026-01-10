@@ -5,7 +5,7 @@
 ../Core/Src/main.c:197:8:ST25DV_EnableFTM	4
 ../Core/Src/main.c:227:8:ST25DV_IsMailboxFree	2
 ../Core/Src/main.c:244:8:ST25DV_SendInt32	5
-../Core/Src/main.c:423:6:SystemClock_Config	4
+../Core/Src/main.c:421:6:SystemClock_Config	4
 ../Core/Src/main.c:170:6:enter_stop_mode	1
-../Core/Src/main.c:295:5:main	15
-../Core/Src/main.c:635:6:Error_Handler	1
+../Core/Src/main.c:295:5:main	16
+../Core/Src/main.c:622:6:Error_Handler	1

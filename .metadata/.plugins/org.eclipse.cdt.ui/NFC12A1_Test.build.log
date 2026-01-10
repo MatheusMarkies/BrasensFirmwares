@@ -1,0 +1,10 @@
+09:49:21 **** Incremental Build of configuration Debug for project NFC12A1_Test ****
+make -j12 all 
+arm-none-eabi-size  NFC12A1_Test.elf 
+   text	   data	    bss	    dec	    hex	filename
+  15312	    100	   2260	  17672	   4508	NFC12A1_Test.elf
+Finished building: default.size.stdout
+ 
+
+09:49:21 Build Finished. 0 errors, 0 warnings. (took 254ms)
+

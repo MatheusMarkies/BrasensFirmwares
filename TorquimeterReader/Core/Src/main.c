@@ -31,7 +31,7 @@
 /* Private typedef -----------------------------------------------------------*/
 /* USER CODE BEGIN PTD */
 void ST25R300_Debug_DEBUG_PRINT(const char *format, ...);
-extern UART_HandleTypeDef huart1;
+extern UART_HandleTypeDef huart2;
 #ifndef DEBUG_PRINT
     #define DEBUG_PRINT(...) ST25R300_Debug_DEBUG_PRINT(__VA_ARGS__)
 #endif
@@ -60,6 +60,7 @@ SPI_HandleTypeDef hspi1;
 SPI_HandleTypeDef hspi2;
 
 UART_HandleTypeDef huart1;
+UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
@@ -72,6 +73,7 @@ static void MX_I2C2_Init(void);
 static void MX_SPI1_Init(void);
 static void MX_SPI2_Init(void);
 static void MX_USART1_UART_Init(void);
+static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
@@ -88,7 +90,7 @@ void ST25R300_Debug_DEBUG_PRINT(const char *format, ...) {
 	va_end(args);
 
 	if (len > 0) {
-		HAL_UART_Transmit(&huart1, (uint8_t*) buffer, len, 200);
+		HAL_UART_Transmit(&huart2, (uint8_t*) buffer, len, 200);
 	}
 }
 /* USER CODE END 0 */
@@ -111,12 +113,12 @@ int main(void)
 
   /* USER CODE BEGIN Init */
 	nfc_reader.CS_port = GPIOB;
-	nfc_reader.CS_pin = ST25_CS_Pin;
+	nfc_reader.CS_pin = GPIO_PIN_6;
 	nfc_reader.reset_port = GPIOA;
-	nfc_reader.reset_pin = GPIO_PIN_3;
+	nfc_reader.reset_pin = GPIO_PIN_9;
 	nfc_reader.IRQ_port = GPIOA;
 	nfc_reader.IRQ_pin = GPIO_PIN_0;
-	nfc_reader.hSPIx = &hspi2;
+	nfc_reader.hSPIx = &hspi1;
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -132,6 +134,7 @@ int main(void)
   MX_SPI1_Init();
   MX_SPI2_Init();
   MX_USART1_UART_Init();
+  MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 	/* USER CODE BEGIN 2 */
   if (ST25R300_Init(&nfc_reader)) {
@@ -154,30 +157,11 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1) {
-	    static uint32_t last_read = 0;
+  while (1)
+  {
+    /* USER CODE END WHILE */
 
-	    // Lê RSSI a cada 100ms
-	    if (HAL_GetTick() - last_read >= 100) {
-	        last_read = HAL_GetTick();
-
-	        if (ST25R300_ReadRSSI(&nfc_reader, &rssi_data)) {
-	        	int db_int = (int)rssi_data.rssi_dbm;
-	        	int db_dec = (int)((rssi_data.rssi_dbm - (float)db_int) * 10.0f);
-	        	if (db_dec < 0) db_dec = -db_dec;
-	        	const char* sign = (rssi_data.rssi_dbm < 0 && db_int == 0) ? "-" : "";
-
-	        	DEBUG_PRINT("RSSI - I: %3d, Q: %3d, Total: %3d, dBm: %s%d.%d\r\n",
-	        	            rssi_data.rssi_i,
-	        	            rssi_data.rssi_q,
-	        	            rssi_data.rssi_total,
-	        	            sign,
-	        	            db_int,
-	        	            db_dec);
-	        } else {
-	            DEBUG_PRINT("ERRO: Falha na leitura do RSSI!\r\n");
-	        }
-	    }
+    /* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
@@ -222,8 +206,9 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1;
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART1|RCC_PERIPHCLK_USART2;
   PeriphClkInit.Usart1ClockSelection = RCC_USART1CLKSOURCE_PCLK2;
+  PeriphClkInit.Usart2ClockSelection = RCC_USART2CLKSOURCE_PCLK1;
   if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
   {
     Error_Handler();
@@ -390,6 +375,41 @@ static void MX_USART1_UART_Init(void)
 }
 
 /**
+  * @brief USART2 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_USART2_UART_Init(void)
+{
+
+  /* USER CODE BEGIN USART2_Init 0 */
+
+  /* USER CODE END USART2_Init 0 */
+
+  /* USER CODE BEGIN USART2_Init 1 */
+
+  /* USER CODE END USART2_Init 1 */
+  huart2.Instance = USART2;
+  huart2.Init.BaudRate = 115200;
+  huart2.Init.WordLength = UART_WORDLENGTH_8B;
+  huart2.Init.StopBits = UART_STOPBITS_1;
+  huart2.Init.Parity = UART_PARITY_NONE;
+  huart2.Init.Mode = UART_MODE_TX_RX;
+  huart2.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart2.Init.OverSampling = UART_OVERSAMPLING_16;
+  huart2.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  huart2.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&huart2) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN USART2_Init 2 */
+
+  /* USER CODE END USART2_Init 2 */
+
+}
+
+/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -405,9 +425,6 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(SIG_GPIO_Port, SIG_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(ST25_CS_GPIO_Port, ST25_CS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin : IRQ_Pin */
@@ -415,13 +432,6 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(IRQ_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pin : SIG_Pin */
-  GPIO_InitStruct.Pin = SIG_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(SIG_GPIO_Port, &GPIO_InitStruct);
 
   /*Configure GPIO pin : PB0 */
   GPIO_InitStruct.Pin = GPIO_PIN_0;

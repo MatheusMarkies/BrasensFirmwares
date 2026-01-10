@@ -9,6 +9,7 @@
 		<item key="SmartImportRootWizardPage.STORE_NESTED_PROJECTS" value="true"/>
 		<item key="SmartImportRootWizardPage.STORE_CONFIGURE_NATURES" value="true"/>
 		<list key="org.eclipse.ui.internal.wizards.datatransfer.SmartImportRootWizardPage.knownSources">
+			<item value="D:\Projetos\STM32 Workspace\FormulaFirmwares\Route-ECU-Firmware"/>
 			<item value="D:\BrasensFirmwares\VibSensor 3.0 HAL"/>
 			<item value="D:\BrasensFirmwares\Mainboard MonoChip"/>
 			<item value="D:\Projetos\BrasensFirmwares\BrasensFirmwares\Mainboard MonoChip"/>

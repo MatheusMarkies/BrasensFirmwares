@@ -59,8 +59,6 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define IRQ_Pin GPIO_PIN_0
 #define IRQ_GPIO_Port GPIOA
-#define SIG_Pin GPIO_PIN_3
-#define SIG_GPIO_Port GPIOA
 #define ST25_CS_Pin GPIO_PIN_12
 #define ST25_CS_GPIO_Port GPIOB
 

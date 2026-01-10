@@ -1,10 +1,10 @@
-17:20:21 **** Incremental Build of configuration Debug for project TorquimetroTag ****
+13:57:53 **** Incremental Build of configuration Debug for project TorquimetroTag ****
 make -j12 all 
 arm-none-eabi-size  TorquimetroTag.elf 
    text	   data	    bss	    dec	    hex	filename
-  11708	     16	   1840	  13564	   34fc	TorquimetroTag.elf
+  11716	     16	   1840	  13572	   3504	TorquimetroTag.elf
 Finished building: default.size.stdout
  
 
-17:20:21 Build Finished. 0 errors, 0 warnings. (took 308ms)
+13:57:53 Build Finished. 0 errors, 0 warnings. (took 253ms)
 

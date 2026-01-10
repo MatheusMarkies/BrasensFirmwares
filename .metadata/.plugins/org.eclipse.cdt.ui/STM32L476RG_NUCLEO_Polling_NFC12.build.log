@@ -1,0 +1,12 @@
+09:50:45 **** Incremental Build of configuration Debug for project STM32L476RG_NUCLEO_Polling_NFC12 ****
+make -j12 all 
+arm-none-eabi-size  STM32L476RG_NUCLEO_Polling_NFC12.elf 
+   text	   data	    bss	    dec	    hex	filename
+  89072	    324	  24060	 113456	  1bb30	STM32L476RG_NUCLEO_Polling_NFC12.elf
+Finished building: default.size.stdout
+ 
+arm-none-eabi-objcopy -O binary "STM32L476RG_NUCLEO_Polling_NFC12.elf" "../../Binary/STM32L476RG_NUCLEO_Polling_NFC12.bin"
+ 
+
+09:50:46 Build Finished. 0 errors, 0 warnings. (took 967ms)
+

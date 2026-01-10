@@ -1,28 +1,23 @@
-17:19:23 **** Incremental Build of configuration Debug for project TorquimetroTag ****
+09:49:17 **** Build of configuration Debug for project NFC12A1_Test ****
 make -j12 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g -DDEBUG -DUSE_HAL_DRIVER -DSTM32L011xx -c -I../Core/Inc -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/Legacy" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Device/ST/STM32L0xx/Include" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Include" -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-arm-none-eabi-gcc -o "TorquimetroTag.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TorquimetroTag\STM32L011F4UX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimetroTag.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: TorquimetroTag.elf
- 
-arm-none-eabi-size  TorquimetroTag.elf 
-arm-none-eabi-objdump -h -S TorquimetroTag.elf  > "TorquimetroTag.list"
+arm-none-eabi-size  NFC12A1_Test.elf 
    text	   data	    bss	    dec	    hex	filename
-  11708	     16	   1840	  13564	   34fc	TorquimetroTag.elf
+  15312	    100	   2260	  17672	   4508	NFC12A1_Test.elf
 Finished building: default.size.stdout
  
-Finished building: TorquimetroTag.list
- 
-17:19:49 **** Incremental Build of configuration Debug for project TorquimetroTag ****
+09:49:21 **** Incremental Build of configuration Debug for project NFC12A1_Test ****
 make -j12 all 
-arm-none-eabi-size  TorquimetroTag.elf 
+arm-none-eabi-size  NFC12A1_Test.elf 
    text	   data	    bss	    dec	    hex	filename
-  11708	     16	   1840	  13564	   34fc	TorquimetroTag.elf
+  15312	    100	   2260	  17672	   4508	NFC12A1_Test.elf
 Finished building: default.size.stdout
  
-17:20:21 **** Incremental Build of configuration Debug for project TorquimetroTag ****
+09:50:45 **** Incremental Build of configuration Debug for project STM32L476RG_NUCLEO_Polling_NFC12 ****
 make -j12 all 
-arm-none-eabi-size  TorquimetroTag.elf 
+arm-none-eabi-size  STM32L476RG_NUCLEO_Polling_NFC12.elf 
    text	   data	    bss	    dec	    hex	filename
-  11708	     16	   1840	  13564	   34fc	TorquimetroTag.elf
+  89072	    324	  24060	 113456	  1bb30	STM32L476RG_NUCLEO_Polling_NFC12.elf
 Finished building: default.size.stdout
+ 
+arm-none-eabi-objcopy -O binary "STM32L476RG_NUCLEO_Polling_NFC12.elf" "../../Binary/STM32L476RG_NUCLEO_Polling_NFC12.bin"
  
