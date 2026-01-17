@@ -173,15 +173,20 @@ static void nfcv(rfalNfcvListenDevice *nfcvDev)
        O ST25DV requer endereçamento (UID) para comandos de sistema/mailbox */
     uint8_t reqFlag = RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS;
 
-    err = rfalST25xVPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
+    /* 1. Verificar se há mensagem no Mailbox e qual o tamanho */
+    /* Este comando é muito rápido. Se não houver msg, ou MB desativado, retorna erro */
+    err = rfalSt25xvPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
 
     if (err == ERR_NONE)
     {
+        /* O ST25DV reporta (Tamanho - 1). Ex: Se tem 1 byte, retorna 0. */
         uint16_t actualMessageLen = mbLen + 1;
 
         platformLog("Msg detectada no Mailbox: %d bytes\r\n", actualMessageLen);
 
-        err = rfalST25xVPollerReadMessage(reqFlag, nfcvDev->InvRes.UID, 0, actualMessageLen, rxBuf, sizeof(rxBuf), &rcvLen);
+        /* 2. Ler o conteúdo da mensagem */
+        /* Offset 0, lendo 'actualMessageLen' bytes */
+        err = rfalSt25xvPollerReadMessage(reqFlag, nfcvDev->InvRes.UID, 0, actualMessageLen, rxBuf, sizeof(rxBuf), &rcvLen);
 
         if (err == ERR_NONE)
         {
@@ -192,9 +197,15 @@ static void nfcv(rfalNfcvListenDevice *nfcvDev)
             }
             platformLog("\r\n");
 
+            /* Exemplo de conversão para Torque (Assumindo 2 bytes, Big Endian) */
             if(rcvLen >= 2)
             {
+                // Se o sensor enviar High Byte primeiro:
                 uint16_t rawTorque = (rxBuf[0] << 8) | rxBuf[1];
+
+                // Se o sensor enviar Low Byte primeiro (Little Endian), use:
+                // uint16_t rawTorque = (rxBuf[1] << 8) | rxBuf[0];
+
                 platformLog(">> Leitura do Sensor: %d\r\n", rawTorque);
             }
         }
@@ -208,7 +219,7 @@ static void nfcv(rfalNfcvListenDevice *nfcvDev)
         /* Erros comuns aqui:
            ERR_PROTO: O Mailbox não está ativado na configuração da Tag.
            ERR_TIMEOUT: A tag saiu do campo. */
-         platformLog("Nenhuma mensagem no Mailbox ou recurso desativado (Erro %d)\r\n", err);
+        // platformLog("Nenhuma mensagem no Mailbox ou recurso desativado (Erro %d)\r\n", err);
     }
 
 #endif /* RFAL_FEATURE_NFCV */

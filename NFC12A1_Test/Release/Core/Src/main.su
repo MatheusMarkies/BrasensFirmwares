@@ -1,7 +1,8 @@
+../Core/Src/main.c:164:13:nfcv	304	static
 ../Core/Src/main.c:105:13:notif	16	static
 ../Core/Src/main.c:85:9:BSP_NFC0XCOMM_SendRecv	16	static
 ../Core/Src/main.c:129:6:ini	8	static
-../Core/Src/main.c:211:6:stop	8	static
-../Core/Src/main.c:378:6:SystemClock_Config	72	static,ignoring_inline_asm
-../Core/Src/main.c:222:5:main	80	static,ignoring_inline_asm
-../Core/Src/main.c:515:6:Error_Handler	0	static,ignoring_inline_asm
+../Core/Src/main.c:227:6:stop	8	static
+../Core/Src/main.c:394:6:SystemClock_Config	72	static,ignoring_inline_asm
+../Core/Src/main.c:238:5:main	56	static,ignoring_inline_asm
+../Core/Src/main.c:531:6:Error_Handler	0	static,ignoring_inline_asm

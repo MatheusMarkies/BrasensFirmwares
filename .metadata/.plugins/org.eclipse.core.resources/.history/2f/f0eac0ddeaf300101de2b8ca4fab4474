@@ -165,54 +165,87 @@ static void nfcv(rfalNfcvListenDevice *nfcvDev)
 {
 #if RFAL_FEATURE_NFCV
     ReturnCode err;
-    uint8_t mbLen;       // Armazena o comprimento retornado pela tag (Len - 1)
-    uint8_t rxBuf[256];  // Buffer para receber os dados do sensor
-    uint16_t rcvLen;     // Quantidade real de bytes recebidos da RFAL
+    uint8_t mbLen;
+    uint8_t mbData[256];
+    uint16_t rcvLen;
 
-    /* Configura flag para modo endereçado (Addressed) e High Data Rate
-       O ST25DV requer endereçamento (UID) para comandos de sistema/mailbox */
+    /* Senha padrão de fábrica da ST (64 bits de zeros) */
+    uint8_t password[8] = {0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00};
+
     uint8_t reqFlag = RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS;
 
+    /* 1. Tenta ler o tamanho da mensagem (Check inicial) */
     err = rfalST25xVPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
 
-    if (err == ERR_NONE)
+    /* SE FALHAR: Tenta Desbloquear e Habilitar o Mailbox */
+    if (err != ERR_NONE)
     {
-        uint16_t actualMessageLen = mbLen + 1;
+        platformLog("Mailbox inativo ou protegido. Tentando desbloquear...\r\n");
 
-        platformLog("Msg detectada no Mailbox: %d bytes\r\n", actualMessageLen);
+        /* PASSO A: Apresentar Senha de Configuração (Password 0) */
+        /* Isso abre a sessão para escrita em registradores de sistema */
+        err = rfalST25xVPollerPresentPassword(reqFlag, nfcvDev->InvRes.UID, 0, password, sizeof(password));
 
-        err = rfalST25xVPollerReadMessage(reqFlag, nfcvDev->InvRes.UID, 0, actualMessageLen, rxBuf, sizeof(rxBuf), &rcvLen);
-
-        if (err == ERR_NONE)
+        if(err == ERR_NONE)
         {
-            platformLog("DADOS BRUTOS (Hex): ");
-            for(int i=0; i<rcvLen; i++)
-            {
-                platformLog("%02X ", rxBuf[i]);
-            }
-            platformLog("\r\n");
+            platformLog("Senha aceita! Habilitando Mailbox...\r\n");
 
-            if(rcvLen >= 2)
+            /* PASSO B: Escrever no MB_CTRL_Dyn (Endereço 0x0D) -> Valor 0x01 (Enable) */
+            err = rfalST25xVPollerWriteDynamicConfiguration(reqFlag, nfcvDev->InvRes.UID, 0x0D, 0x01);
+
+            if(err == ERR_NONE)
             {
-                uint16_t rawTorque = (rxBuf[0] << 8) | rxBuf[1];
-                platformLog(">> Leitura do Sensor: %d\r\n", rawTorque);
+                platformLog("Sucesso! Reiniciando leitura...\r\n");
+                HAL_Delay(10);
+                /* Tenta ler de novo */
+                err = rfalST25xVPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
+            }
+            else
+            {
+                platformLog("Erro ao escrever config: %d (Verifique energia/distância)\r\n", err);
             }
         }
         else
         {
-            platformLog("Erro ao ler o corpo da mensagem: %d\r\n", err);
+            platformLog("Falha na autenticação (Erro %d). A senha da tag foi alterada?\r\n", err);
         }
     }
-    else
+
+    /* 2. Leitura da Mensagem (Se tudo estiver OK) */
+    if (err == ERR_NONE)
     {
-        /* Erros comuns aqui:
-           ERR_PROTO: O Mailbox não está ativado na configuração da Tag.
-           ERR_TIMEOUT: A tag saiu do campo. */
-         platformLog("Nenhuma mensagem no Mailbox ou recurso desativado (Erro %d)\r\n", err);
+        if (mbLen > 0)
+        {
+            uint16_t actualMessageLen = mbLen + 1;
+
+            err = rfalST25xVPollerReadMessage(reqFlag, nfcvDev->InvRes.UID, 0, actualMessageLen, mbData, sizeof(mbData), &rcvLen);
+
+            if (err == ERR_NONE)
+            {
+                if(rcvLen >= 2)
+                {
+                    uint16_t rawTorque = (mbData[0] << 8) | mbData[1];
+                    platformLog(">> TORQUE: %d\r\n", rawTorque);
+                }
+                else
+                {
+                    platformLog("Dados recebidos: %02X...\r\n", mbData[0]);
+                }
+            }
+            else
+            {
+                platformLog("Erro ao ler dados: %d\r\n", err);
+            }
+        }
+        else
+        {
+            platformLog("Mailbox Ativo e Vazio (Sensor ainda não enviou dados)\r\n");
+        }
     }
 
 #endif /* RFAL_FEATURE_NFCV */
 }
+
 void stop(void)
 {
   rfalNfcDeactivate( RFAL_NFC_DEACTIVATE_IDLE );

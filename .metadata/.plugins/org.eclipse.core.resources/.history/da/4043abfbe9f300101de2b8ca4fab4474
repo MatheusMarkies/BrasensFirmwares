@@ -165,50 +165,67 @@ static void nfcv(rfalNfcvListenDevice *nfcvDev)
 {
 #if RFAL_FEATURE_NFCV
     ReturnCode err;
-    uint8_t mbLen;       // Armazena o comprimento retornado pela tag (Len - 1)
-    uint8_t rxBuf[256];  // Buffer para receber os dados do sensor
-    uint16_t rcvLen;     // Quantidade real de bytes recebidos da RFAL
+    uint8_t mbLen;
+    uint8_t mbData[256];
+    uint16_t rcvLen;
 
-    /* Configura flag para modo endereçado (Addressed) e High Data Rate
-       O ST25DV requer endereçamento (UID) para comandos de sistema/mailbox */
+    /* Configura flag para modo endereçado (obrigatório para ST25DV) */
     uint8_t reqFlag = RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS;
 
+    /* 1. Tenta ler o tamanho da mensagem */
     err = rfalST25xVPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
 
+    /* SE FALHAR (Erro 5/Timeout), tenta HABILITAR o Mailbox */
+    if (err != ERR_NONE)
+    {
+        platformLog("Mailbox inativo. Tentando habilitar via RF...\r\n");
+
+        /* Endereço 0x0D = MB_CTRL_Dyn. Valor 0x01 = Habilitar Mailbox (Bit 0) */
+        err = rfalST25xVPollerWriteDynamicConfiguration(reqFlag, nfcvDev->InvRes.UID, 0x0D, 0x01);
+
+        if(err == ERR_NONE)
+        {
+            platformLog("Mailbox Habilitado com sucesso! Lendo novamente...\r\n");
+            HAL_Delay(10); // Pequeno delay para a tag processar
+            /* Tenta ler de novo */
+            err = rfalST25xVPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
+        }
+        else
+        {
+            platformLog("Falha ao habilitar Mailbox (Erro %d)\r\n", err);
+        }
+    }
+
+    /* 2. Se agora estiver OK, lê a mensagem */
     if (err == ERR_NONE)
     {
-        uint16_t actualMessageLen = mbLen + 1;
-
-        platformLog("Msg detectada no Mailbox: %d bytes\r\n", actualMessageLen);
-
-        err = rfalST25xVPollerReadMessage(reqFlag, nfcvDev->InvRes.UID, 0, actualMessageLen, rxBuf, sizeof(rxBuf), &rcvLen);
-
-        if (err == ERR_NONE)
+        if (mbLen > 0)
         {
-            platformLog("DADOS BRUTOS (Hex): ");
-            for(int i=0; i<rcvLen; i++)
-            {
-                platformLog("%02X ", rxBuf[i]);
-            }
-            platformLog("\r\n");
+            uint16_t actualMessageLen = mbLen + 1;
+            platformLog("Msg detectada: %d bytes\r\n", actualMessageLen);
 
-            if(rcvLen >= 2)
+            err = rfalST25xVPollerReadMessage(reqFlag, nfcvDev->InvRes.UID, 0, actualMessageLen, mbData, sizeof(mbData), &rcvLen);
+
+            if (err == ERR_NONE)
             {
-                uint16_t rawTorque = (rxBuf[0] << 8) | rxBuf[1];
-                platformLog(">> Leitura do Sensor: %d\r\n", rawTorque);
+                /* Conversão para Torque (Ex: 2 bytes Big Endian) */
+                if(rcvLen >= 2)
+                {
+                    uint16_t rawTorque = (mbData[0] << 8) | mbData[1];
+                    platformLog(">> TORQUE: %d\r\n", rawTorque);
+                }
+                else
+                {
+                    platformLog("Dados: %02X...\r\n", mbData[0]);
+                }
             }
         }
         else
         {
-            platformLog("Erro ao ler o corpo da mensagem: %d\r\n", err);
+            // O Mailbox está ativo, mas o sensor ainda não escreveu nada nele.
+            // Isso é normal se o sensor estiver esperando o campo estabilizar.
+            platformLog("Mailbox Vazio (Aguardando dados do sensor...)\r\n");
         }
-    }
-    else
-    {
-        /* Erros comuns aqui:
-           ERR_PROTO: O Mailbox não está ativado na configuração da Tag.
-           ERR_TIMEOUT: A tag saiu do campo. */
-         platformLog("Nenhuma mensagem no Mailbox ou recurso desativado (Erro %d)\r\n", err);
     }
 
 #endif /* RFAL_FEATURE_NFCV */
