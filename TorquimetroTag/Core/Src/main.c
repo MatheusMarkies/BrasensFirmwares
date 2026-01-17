@@ -25,6 +25,8 @@
 #include "string.h"
 #include <stdlib.h>
 #include <stdint.h>
+
+#include "st25dv_driver.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,7 +40,6 @@
 #define USTRAIN_PER_BIT_x1000 131
 
 #define ADS1115_ADDR  (0x48 << 1)
-#define ST25DV_ADDR   (0x53 << 1)
 
 #define ADS_REG_CONV  0x00
 #define ADS_REG_CONF  0x01
@@ -57,26 +58,6 @@ int32_t voltage_uV = 0;
 
 uint32_t last_charging_process = 0;
 
-#define ST25DV_ADDR         (0x53 << 1)  // Device select E2=0 (User memory, Dynamic, Mailbox)
-#define ST25DV_SYS_ADDR     (0x57 << 1)  // Device select E2=1 (System config)
-
-// Fast Transfer Mode Registers (Dynamic)
-#define ST25DV_MB_CTRL_DYN_REG    0x2006  // Mailbox control register
-#define ST25DV_MB_LEN_DYN_REG     0x2007  // Message length register
-#define ST25DV_MAILBOX_RAM        0x2008  // Start of 256-byte mailbox
-
-// MB_CTRL_Dyn bits
-#define MB_CTRL_MB_EN             (1 << 0)  // Enable FTM
-#define MB_CTRL_HOST_PUT_MSG      (1 << 1)  // I2C put message
-#define MB_CTRL_RF_PUT_MSG        (1 << 2)  // RF put message
-
-// System Config Registers
-#define ST25DV_MB_MODE_REG        0x000D  // Mailbox mode config
-#define MB_MODE_ENABLE            0x01
-
-// Timeout for operations
-#define ST25DV_TIMEOUT            100
-
 typedef enum {
 	CHARGING = 1, TARING = 2, READING = 3, PROCESSING = 4,
 } Process_State;
@@ -84,6 +65,7 @@ typedef enum {
 uint8_t isTared = 0;
 
 Process_State state = CHARGING;
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -100,20 +82,81 @@ RTC_HandleTypeDef hrtc;
 
 /* USER CODE BEGIN PV */
 #define DEBUG_PRINT(msg) HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 200)
+void I2C_Scanner(I2C_HandleTypeDef *hi2c);
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_I2C1_Init(void);
 static void MX_RTC_Init(void);
 static void MX_LPUART1_UART_Init(void);
+static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+/* Função auxiliar para converter byte em Hex (ex: 0x2A) sem usar sprintf */
+/* Requer um buffer de pelo menos 3 bytes (2 digitos + \0) */
+void Uint8ToHexStr(uint8_t num, char* str) {
+    const char hexDigits[] = "0123456789ABCDEF";
+    str[0] = hexDigits[(num >> 4) & 0x0F]; // Nibble alto
+    str[1] = hexDigits[num & 0x0F];        // Nibble baixo
+    str[2] = '\0';                         // Terminador nulo
+}
+
+/* Função auxiliar para converter Inteiro em String decimal simples */
+void IntToDecStr(uint8_t num, char* str) {
+    uint8_t i = 0;
+    if(num >= 100) str[i++] = (num / 100) + '0';
+    if(num >= 10)  str[i++] = ((num / 10) % 10) + '0';
+    str[i++] = (num % 10) + '0';
+    str[i] = '\0';
+}
+
+void I2C_Scanner(I2C_HandleTypeDef *hi2c) {
+    // Reduzido de 64 bytes para apenas 4 bytes!
+    char smallBuf[4];
+    uint8_t devices_found = 0;
+
+    DEBUG_PRINT("\r\n--- Scanning I2C bus ---\r\n");
+
+    for(uint8_t addr = 1; addr < 128; addr++) {
+        /* O HAL usa o endereço deslocado (shifted) à esquerda */
+        if(HAL_I2C_IsDeviceReady(hi2c, (uint16_t)(addr << 1), 2, 10) == HAL_OK) {
+
+            // Imprime em partes para não precisar de um buffer gigante
+            DEBUG_PRINT("Device found at: 0x");
+
+            // Converte endereço 7-bit
+            Uint8ToHexStr(addr, smallBuf);
+            DEBUG_PRINT(smallBuf);
+
+            DEBUG_PRINT(" (8-bit: 0x");
+
+            // Converte endereço 8-bit (write address)
+            Uint8ToHexStr(addr << 1, smallBuf);
+            DEBUG_PRINT(smallBuf);
+
+            DEBUG_PRINT(")\r\n");
+
+            devices_found++;
+        }
+    }
+
+    if(devices_found == 0) {
+        DEBUG_PRINT("No I2C devices found!\r\n");
+    } else {
+        DEBUG_PRINT("\r\nTotal devices found: ");
+        IntToDecStr(devices_found, smallBuf);
+        DEBUG_PRINT(smallBuf);
+        DEBUG_PRINT("\r\n");
+    }
+
+    DEBUG_PRINT("--- Scan Complete ---\r\n");
+}
+
 int16_t ADS1115_Read(void) {
 	uint8_t config[3];
 	uint8_t data[2];
@@ -194,145 +237,130 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
 	}
 }
 
-int8_t ST25DV_EnableFTM(void) {
-	uint8_t mb_ctrl;
-
-	// Read current MB_CTRL_Dyn register
-	if (HAL_I2C_Mem_Read(&hi2c1, ST25DV_ADDR, ST25DV_MB_CTRL_DYN_REG,
-	I2C_MEMADD_SIZE_16BIT, &mb_ctrl, 1, ST25DV_TIMEOUT) != HAL_OK) {
-		DEBUG_PRINT("Error reading MB_CTRL\r\n");
-		return -1;
-	}
-
-	// Enable FTM if not already enabled
-	if (!(mb_ctrl & MB_CTRL_MB_EN)) {
-		mb_ctrl |= MB_CTRL_MB_EN;
-
-		if (HAL_I2C_Mem_Write(&hi2c1, ST25DV_ADDR, ST25DV_MB_CTRL_DYN_REG,
-		I2C_MEMADD_SIZE_16BIT, &mb_ctrl, 1, ST25DV_TIMEOUT) != HAL_OK) {
-			DEBUG_PRINT("Error enabling FTM\r\n");
-			return -1;
-		}
-
-		DEBUG_PRINT("FTM enabled\r\n");
-	}
-
-	return 0;
+int32_t platform_i2c_write(uint8_t addr, uint16_t reg, uint8_t *data,
+		uint16_t len) {
+	return HAL_I2C_Mem_Write(&hi2c1, addr << 1, reg, I2C_MEMADD_SIZE_16BIT,
+			data, len, 100);
 }
 
-/**
- * @brief Check if mailbox is free (no RF message to read)
- * @retval 1 if free, 0 if busy, -1 if error
- */
-int8_t ST25DV_IsMailboxFree(void) {
-	uint8_t mb_ctrl;
-
-	if (HAL_I2C_Mem_Read(&hi2c1, ST25DV_ADDR, ST25DV_MB_CTRL_DYN_REG,
-	I2C_MEMADD_SIZE_16BIT, &mb_ctrl, 1, ST25DV_TIMEOUT) != HAL_OK) {
-		return -1;
-	}
-
-	// Mailbox is free if HOST_PUT_MSG is 0 (no RF message waiting)
-	return (mb_ctrl & MB_CTRL_HOST_PUT_MSG) ? 0 : 1;
+int32_t platform_i2c_read(uint8_t addr, uint16_t reg, uint8_t *data,
+		uint16_t len) {
+	return HAL_I2C_Mem_Read(&hi2c1, addr << 1, reg, I2C_MEMADD_SIZE_16BIT, data,
+			len, 100);
 }
 
-/**
- * @brief Send int32_t via NFC using Fast Transfer Mode Mailbox
- * @param value: The int32_t value to send
- * @retval 0 if success, negative if error
- */
-int8_t ST25DV_SendInt32(int32_t value) {
-	uint8_t data[4];
-	int8_t mailbox_status;
-
-	DEBUG_PRINT("Sending int32 via NFC: ");
-	debug_print_int(value);
-
-	// Step 1: Enable Fast Transfer Mode
-	if (ST25DV_EnableFTM() != 0) {
-		DEBUG_PRINT("FTM enable failed\r\n");
-		return -1;
-	}
-
-	// Step 2: Check if mailbox is free
-	mailbox_status = ST25DV_IsMailboxFree();
-	if (mailbox_status < 0) {
-		DEBUG_PRINT("Error checking mailbox status\r\n");
-		return -2;
-	}
-	if (mailbox_status == 0) {
-		DEBUG_PRINT("Mailbox busy, RF message not read yet\r\n");
-		return -3;
-	}
-
-	// Step 3: Convert int32_t to byte array (little-endian)
-	data[0] = (uint8_t) (value & 0xFF);
-	data[1] = (uint8_t) ((value >> 8) & 0xFF);
-	data[2] = (uint8_t) ((value >> 16) & 0xFF);
-	data[3] = (uint8_t) ((value >> 24) & 0xFF);
-
-	// Step 4: Write data to mailbox (must start at address 0x2008)
-	if (HAL_I2C_Mem_Write(&hi2c1, ST25DV_ADDR, ST25DV_MAILBOX_RAM,
-	I2C_MEMADD_SIZE_16BIT, data, 4, ST25DV_TIMEOUT) != HAL_OK) {
-		DEBUG_PRINT("Error writing to mailbox\r\n");
-		return -4;
-	}
-
-	DEBUG_PRINT("Data written to NFC mailbox\r\n");
-
-	// Note: MB_LEN_Dyn and HOST_PUT_MSG bit are automatically updated by ST25DV
-	// after successful mailbox write
-
-	return 0;
+void platform_set_lpd(uint8_t state) {
+	HAL_GPIO_WritePin(LPD_GPIO_Port, LPD_Pin,
+			state ? GPIO_PIN_SET : GPIO_PIN_RESET);
 }
 
+void platform_delay(uint32_t ms) {
+	HAL_Delay(ms);
+}
+
+st25dv_io_t st25_driver = { .i2c_write = platform_i2c_write, .i2c_read =
+		platform_i2c_read, .set_lpd_pin = platform_set_lpd, .delay_ms =
+		platform_delay };
+
+void Setup_NFC(void) {
+	int32_t status;
+
+	DEBUG_PRINT("--- Iniciando Setup NFC ---\r\n");
+
+	uint8_t chip_id = 0;
+
+	status = ST25DV_ReadID(&st25_driver, &chip_id);
+	if (status == 0) {
+
+	} else {
+		DEBUG_PRINT("Erro ao ler ID do ST25DV!\r\n");
+	}
+
+	DEBUG_PRINT("--- Iniciando Setup NFC ---\r\n");
+
+	// 1. Inicialização Básica
+	status = ST25DV_Init(&st25_driver);
+	if (status == 0) {
+		DEBUG_PRINT("ST25DV Init: SUCESSO\r\n");
+	} else {
+		DEBUG_PRINT("ST25DV Init: FALHA (Chip nao responde)\r\n");
+		return;
+	}
+
+	status = ST25DV_EH_Enable_Dyn(&st25_driver);
+	if (status == 0) {
+		DEBUG_PRINT("ST25DV Energy Harvesting: HABILITADO\r\n");
+	} else {
+		DEBUG_PRINT("ST25DV Energy Harvesting: FALHA ao habilitar\r\n");
+	}
+
+	status = ST25DV_MB_Init(&st25_driver);
+	if (status == 0) {
+		DEBUG_PRINT("ST25DV Mailbox: INICIALIZADO\r\n");
+	} else {
+		DEBUG_PRINT(
+				"ST25DV Mailbox: FALHA (Verifique senha ou acesso E2=1)\r\n");
+	}
+
+	DEBUG_PRINT("--- Setup NFC Finalizado ---\r\n");
+}
+
+void Loop_NFC(void) {
+	if (ST25DV_Field_On(&st25_driver)) {
+		uint8_t msg[] = "Ola RF";
+		ST25DV_MB_WriteMessage(&st25_driver, msg, sizeof(msg));
+	}
+}
 /* USER CODE END 0 */
 
 /**
- * @brief  The application entry point.
- * @retval int
- */
-int main(void) {
+  * @brief  The application entry point.
+  * @retval int
+  */
+int main(void)
+{
 
-	/* USER CODE BEGIN 1 */
+  /* USER CODE BEGIN 1 */
 
-	/* USER CODE END 1 */
+  /* USER CODE END 1 */
 
-	/* MCU Configuration--------------------------------------------------------*/
+  /* MCU Configuration--------------------------------------------------------*/
 
-	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-	HAL_Init();
+  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+  HAL_Init();
 
-	/* USER CODE BEGIN Init */
+  /* USER CODE BEGIN Init */
 
-	/* USER CODE END Init */
+  /* USER CODE END Init */
 
-	/* Configure the system clock */
-	SystemClock_Config();
+  /* Configure the system clock */
+  SystemClock_Config();
 
-	/* USER CODE BEGIN SysInit */
-	/* USER CODE END SysInit */
+  /* USER CODE BEGIN SysInit */
+  /* USER CODE END SysInit */
 
-	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-	MX_I2C1_Init();
-	MX_RTC_Init();
-	MX_LPUART1_UART_Init();
-	/* USER CODE BEGIN 2 */
+  /* Initialize all configured peripherals */
+  MX_GPIO_Init();
+  MX_RTC_Init();
+  MX_LPUART1_UART_Init();
+  MX_I2C1_Init();
+  /* USER CODE BEGIN 2 */
+	DEBUG_PRINT("--- Iniciando! ---\r\n");
+	I2C_Scanner(&hi2c1);
+	Setup_NFC();
+
 	int32_t offset = 0;
 	int32_t average = 0;
 	int32_t sum = 0;
 	int count = 0;
 	int16_t raw_adc = 0;
 
-	ST25DV_EnableFTM();
-
 	DEBUG_PRINT("Starting...\r\n");
 
-	/* USER CODE END 2 */
+  /* USER CODE END 2 */
 
-	/* Infinite loop */
-	/* USER CODE BEGIN WHILE */
+  /* Infinite loop */
+  /* USER CODE BEGIN WHILE */
 	while (1) {
 		switch (state) {
 		case CHARGING:
@@ -394,10 +422,6 @@ int main(void) {
 					DEBUG_PRINT("strain_uE:\r");
 					debug_print_int(strain_uE);
 					DEBUG_PRINT("\r\n");
-
-					if (ST25DV_SendInt32(voltage_uV) == 0) {
-						DEBUG_PRINT("Voltage sent via NFC\r\n");
-					}
 				}
 				state = CHARGING;
 			}
@@ -407,208 +431,227 @@ int main(void) {
 
 		}
 
-		/* USER CODE END WHILE */
+    /* USER CODE END WHILE */
 
-		/* USER CODE BEGIN 3 */
+    /* USER CODE BEGIN 3 */
 	}
-	/* USER CODE END 3 */
+  /* USER CODE END 3 */
 }
 
 /**
- * @brief System Clock Configuration
- * @retval None
- */
-void SystemClock_Config(void) {
-	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
-	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
-	RCC_PeriphCLKInitTypeDef PeriphClkInit = { 0 };
+  * @brief System Clock Configuration
+  * @retval None
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
 
-	/** Configure the main internal regulator output voltage
-	 */
-	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+  /** Configure the main internal regulator output voltage
+  */
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-	/** Initializes the RCC Oscillators according to the specified parameters
-	 * in the RCC_OscInitTypeDef structure.
-	 */
-	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI
-			| RCC_OSCILLATORTYPE_MSI;
-	RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-	RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-	RCC_OscInitStruct.MSICalibrationValue = 0;
-	RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_3;
-	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
-		Error_Handler();
-	}
+  /** Initializes the RCC Oscillators according to the specified parameters
+  * in the RCC_OscInitTypeDef structure.
+  */
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+  RCC_OscInitStruct.MSICalibrationValue = 0;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_3;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-	/** Initializes the CPU, AHB and APB buses clocks
-	 */
-	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
-			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
-	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
-	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+  /** Initializes the CPU, AHB and APB buses clocks
+  */
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
+                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK) {
-		Error_Handler();
-	}
-	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPUART1
-			| RCC_PERIPHCLK_I2C1 | RCC_PERIPHCLK_RTC;
-	PeriphClkInit.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK1;
-	PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
-	PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
-	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
-		Error_Handler();
-	}
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPUART1|RCC_PERIPHCLK_I2C1
+                              |RCC_PERIPHCLK_RTC;
+  PeriphClkInit.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK1;
+  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
 }
 
 /**
- * @brief I2C1 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_I2C1_Init(void) {
+  * @brief I2C1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_I2C1_Init(void)
+{
 
-	/* USER CODE BEGIN I2C1_Init 0 */
+  /* USER CODE BEGIN I2C1_Init 0 */
 
-	/* USER CODE END I2C1_Init 0 */
+  /* USER CODE END I2C1_Init 0 */
 
-	/* USER CODE BEGIN I2C1_Init 1 */
+  /* USER CODE BEGIN I2C1_Init 1 */
 
-	/* USER CODE END I2C1_Init 1 */
-	hi2c1.Instance = I2C1;
-	hi2c1.Init.Timing = 0x00000000;
-	hi2c1.Init.OwnAddress1 = 0;
-	hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-	hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-	hi2c1.Init.OwnAddress2 = 0;
-	hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-	hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-	hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-	if (HAL_I2C_Init(&hi2c1) != HAL_OK) {
-		Error_Handler();
-	}
+  /* USER CODE END I2C1_Init 1 */
+  hi2c1.Instance = I2C1;
+  hi2c1.Init.Timing = 0x00000000;
+  hi2c1.Init.OwnAddress1 = 0;
+  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+  hi2c1.Init.OwnAddress2 = 0;
+  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-	/** Configure Analogue filter
-	 */
-	if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE)
-			!= HAL_OK) {
-		Error_Handler();
-	}
+  /** Configure Analogue filter
+  */
+  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
+  {
+    Error_Handler();
+  }
 
-	/** Configure Digital filter
-	 */
-	if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN I2C1_Init 2 */
+  /** Configure Digital filter
+  */
+  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN I2C1_Init 2 */
 
-	/* USER CODE END I2C1_Init 2 */
-
-}
-
-/**
- * @brief LPUART1 Initialization Function
- * @param None
- * @retval None
- */
-static void MX_LPUART1_UART_Init(void) {
-
-	/* USER CODE BEGIN LPUART1_Init 0 */
-
-	/* USER CODE END LPUART1_Init 0 */
-
-	/* USER CODE BEGIN LPUART1_Init 1 */
-
-	/* USER CODE END LPUART1_Init 1 */
-	hlpuart1.Instance = LPUART1;
-	hlpuart1.Init.BaudRate = 9600;
-	hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
-	hlpuart1.Init.StopBits = UART_STOPBITS_1;
-	hlpuart1.Init.Parity = UART_PARITY_NONE;
-	hlpuart1.Init.Mode = UART_MODE_TX;
-	hlpuart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-	hlpuart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-	hlpuart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-	if (HAL_UART_Init(&hlpuart1) != HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN LPUART1_Init 2 */
-
-	/* USER CODE END LPUART1_Init 2 */
+  /* USER CODE END I2C1_Init 2 */
 
 }
 
 /**
- * @brief RTC Initialization Function
- * @param None
- * @retval None
- */
-static void MX_RTC_Init(void) {
+  * @brief LPUART1 Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_LPUART1_UART_Init(void)
+{
 
-	/* USER CODE BEGIN RTC_Init 0 */
+  /* USER CODE BEGIN LPUART1_Init 0 */
 
-	/* USER CODE END RTC_Init 0 */
+  /* USER CODE END LPUART1_Init 0 */
 
-	/* USER CODE BEGIN RTC_Init 1 */
+  /* USER CODE BEGIN LPUART1_Init 1 */
 
-	/* USER CODE END RTC_Init 1 */
+  /* USER CODE END LPUART1_Init 1 */
+  hlpuart1.Instance = LPUART1;
+  hlpuart1.Init.BaudRate = 9600;
+  hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
+  hlpuart1.Init.StopBits = UART_STOPBITS_1;
+  hlpuart1.Init.Parity = UART_PARITY_NONE;
+  hlpuart1.Init.Mode = UART_MODE_TX;
+  hlpuart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  hlpuart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  hlpuart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+  if (HAL_UART_Init(&hlpuart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN LPUART1_Init 2 */
 
-	/** Initialize RTC Only
-	 */
-	hrtc.Instance = RTC;
-	hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
-	hrtc.Init.AsynchPrediv = 127;
-	hrtc.Init.SynchPrediv = 255;
-	hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
-	hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_NONE;
-	hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
-	hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
-	if (HAL_RTC_Init(&hrtc) != HAL_OK) {
-		Error_Handler();
-	}
-
-	/** Enable the WakeUp
-	 */
-	if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16)
-			!= HAL_OK) {
-		Error_Handler();
-	}
-	/* USER CODE BEGIN RTC_Init 2 */
-
-	/* USER CODE END RTC_Init 2 */
+  /* USER CODE END LPUART1_Init 2 */
 
 }
 
 /**
- * @brief GPIO Initialization Function
- * @param None
- * @retval None
- */
-static void MX_GPIO_Init(void) {
-	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
-	/* USER CODE BEGIN MX_GPIO_Init_1 */
-	/* USER CODE END MX_GPIO_Init_1 */
+  * @brief RTC Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_RTC_Init(void)
+{
 
-	/* GPIO Ports Clock Enable */
-	__HAL_RCC_GPIOC_CLK_ENABLE();
-	__HAL_RCC_GPIOA_CLK_ENABLE();
+  /* USER CODE BEGIN RTC_Init 0 */
 
-	/*Configure GPIO pin : NFC_INTERRUPT_Pin */
-	GPIO_InitStruct.Pin = NFC_INTERRUPT_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(NFC_INTERRUPT_GPIO_Port, &GPIO_InitStruct);
+  /* USER CODE END RTC_Init 0 */
 
-	/*Configure GPIO pin : LPD_Pin */
-	GPIO_InitStruct.Pin = LPD_Pin;
-	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(LPD_GPIO_Port, &GPIO_InitStruct);
+  /* USER CODE BEGIN RTC_Init 1 */
 
-	/* USER CODE BEGIN MX_GPIO_Init_2 */
-	/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE END RTC_Init 1 */
+
+  /** Initialize RTC Only
+  */
+  hrtc.Instance = RTC;
+  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+  hrtc.Init.AsynchPrediv = 127;
+  hrtc.Init.SynchPrediv = 255;
+  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+  hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_NONE;
+  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+  if (HAL_RTC_Init(&hrtc) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  /** Enable the WakeUp
+  */
+  if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
+  {
+    Error_Handler();
+  }
+  /* USER CODE BEGIN RTC_Init 2 */
+
+  /* USER CODE END RTC_Init 2 */
+
+}
+
+/**
+  * @brief GPIO Initialization Function
+  * @param None
+  * @retval None
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+/* USER CODE BEGIN MX_GPIO_Init_1 */
+/* USER CODE END MX_GPIO_Init_1 */
+
+  /* GPIO Ports Clock Enable */
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LPD_GPIO_Port, LPD_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : NFC_INTERRUPT_Pin */
+  GPIO_InitStruct.Pin = NFC_INTERRUPT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(NFC_INTERRUPT_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : LPD_Pin */
+  GPIO_InitStruct.Pin = LPD_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LPD_GPIO_Port, &GPIO_InitStruct);
+
+  /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
+
+/* USER CODE BEGIN MX_GPIO_Init_2 */
+/* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -616,16 +659,17 @@ static void MX_GPIO_Init(void) {
 /* USER CODE END 4 */
 
 /**
- * @brief  This function is executed in case of error occurrence.
- * @retval None
- */
-void Error_Handler(void) {
-	/* USER CODE BEGIN Error_Handler_Debug */
+  * @brief  This function is executed in case of error occurrence.
+  * @retval None
+  */
+void Error_Handler(void)
+{
+  /* USER CODE BEGIN Error_Handler_Debug */
 	/* User can add his own implementation to report the HAL error return state */
 	__disable_irq();
 	while (1) {
 	}
-	/* USER CODE END Error_Handler_Debug */
+  /* USER CODE END Error_Handler_Debug */
 }
 
 #ifdef  USE_FULL_ASSERT

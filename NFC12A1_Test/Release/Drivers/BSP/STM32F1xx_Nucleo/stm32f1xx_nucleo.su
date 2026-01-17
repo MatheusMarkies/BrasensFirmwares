@@ -1,0 +1,12 @@
+../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c:90:9:BSP_GetVersion	0	static
+../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c:107:9:BSP_PB_Init	40	static
+../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c:147:9:BSP_PB_DeInit	8	static
+../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c:165:9:BSP_PB_GetState	8	static
+../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c:174:6:BSP_PB_IRQHandler	0	static
+../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c:184:13:BSP_PB_Callback	0	static
+../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c:197:13:BUTTON_USER_EXTI_Callback	8	static
+../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c:271:9:BSP_COM_DeInit	16	static
+../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c:308:26:MX_USART2_UART_Init	8	static
+../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c:233:9:BSP_COM_Init	40	static
+../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c:410:9:BSP_COM_SelectLogPort	0	static
+../Drivers/BSP/STM32F1xx_Nucleo/stm32f1xx_nucleo.c:456:5:__io_putchar	24	static

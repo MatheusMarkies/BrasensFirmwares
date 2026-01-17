@@ -1,31 +1,41 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2026 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2026 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
-#include "st25r300.h"
-#include <stdarg.h>  // <--- ESSENCIAL para va_list, va_start e va_end
-#include <stdio.h>   // <--- ESSENCIAL para vsnprintf
-#include <string.h>  // Para outras manipulações de string se necessário
-#include <stdlib.h>  // Removido o acento que estava no seu arquivo
+#include <stdint.h>
+#include <stdbool.h>
+#include "st_errno.h"
+
+#include "utils.h"
+#include "rfal_nfc.h"
+#include "rfal_t2t.h"
+#include "rfal_st25xv.h"
+
+#include "rfal_platform.h"
+
+#include "st25r500_irq.h"
+
+#include "nfc_conf.h"
+#include <runtime_logger.h>
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -35,58 +45,173 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-void ST25R300_Debug_DEBUG_PRINT(const char *format, ...);
-extern UART_HandleTypeDef huart2;
-#ifndef DEBUG_PRINT
-    #define DEBUG_PRINT(...) ST25R300_Debug_DEBUG_PRINT(__VA_ARGS__)
-#endif
+#define DEMO_ST_NOTINIT               0
+#define DEMO_ST_START_DISCOVERY       1
+#define DEMO_ST_DISCOVERY             2
+
+#define DEMO_NFCV_BLOCK_LEN           4     /*!< NFCV Block len                         */
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
-ST25R300 nfc_reader;
-ST25R300_RSSI rssi_data;
 
-char debug_buf[64];
-char uart_buf[100];
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-SPI_HandleTypeDef hspi1;
-SPI_HandleTypeDef hspi2;
-
-UART_HandleTypeDef huart1;
 UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
+uint8_t globalCommProtectCnt = 0;
 
+static rfalNfcDiscoverParam discParam;
+static uint8_t              state = DEMO_ST_NOTINIT;
+static bool                 multiSel = false;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
 static void MX_USART2_UART_Init(void);
-static void MX_SPI1_Init(void);
-static void MX_SPI2_Init(void);
-static void MX_USART1_UART_Init(void);
 /* USER CODE BEGIN PFP */
-
+static void notif(rfalNfcState st);
+static void nfcv(rfalNfcvListenDevice *nfcvDev);
+bool demoIni(void);
+void demoCycle(void);
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void ST25R300_Debug_DEBUG_PRINT(const char *format, ...) {
-	char buffer[256]; // Tamanho máximo de uma linha de debug
-	va_list args;
+int32_t BSP_NFC0XCOMM_SendRecv(const uint8_t *const pTxData, uint8_t *const pRxData, uint16_t Length)
+{
+  HAL_StatusTypeDef status = HAL_ERROR;
 
-	va_start(args, format);
-	// vsnDEBUG_PRINT preenche o buffer com segurança, respeitando o limite de 128 bytes
-	int len = vsnprintf(buffer, sizeof(buffer), format, args);
-	va_end(args);
+  if((pTxData != NULL) && (pRxData != NULL))
+  {
+    status = HAL_SPI_TransmitReceive(&hspi1, (uint8_t *)pTxData, (uint8_t *)pRxData, Length, 2000);
+  }
+  else if ((pTxData != NULL) && (pRxData == NULL))
+  {
+    status = HAL_SPI_Transmit(&hspi1, (uint8_t *)pTxData, Length, 2000);
+  }
+  else if ((pTxData == NULL) && (pRxData != NULL))
+  {
+    status = HAL_SPI_Receive(&hspi1, (uint8_t *)pRxData, Length, 2000);
+  }
 
-	if (len > 0) {
-		HAL_UART_Transmit(&huart2, (uint8_t*) buffer, len, 200);
-	}
+  return (status == HAL_OK) ? ERR_NONE : ERR_IO;
+}
+
+static void notif(rfalNfcState st)
+{
+    uint8_t       devCnt;
+    rfalNfcDevice *dev;
+
+    if( st == RFAL_NFC_STATE_POLL_SELECT )
+    {
+        if( (!multiSel) )
+        {
+            multiSel = true;
+            rfalNfcGetDevicesFound( &dev, &devCnt );
+            rfalNfcSelect( 0 );
+        }
+        else
+        {
+            rfalNfcDeactivate( RFAL_NFC_DEACTIVATE_DISCOVERY );
+        }
+    }
+    else if( st == RFAL_NFC_STATE_START_DISCOVERY )
+    {
+        multiSel = false;
+    }
+}
+
+bool ini(void)
+{
+  ReturnCode err;
+
+  /* 1. Inicializa a Stack RFAL */
+  err = rfalNfcInitialize();
+  if( err != RFAL_ERR_NONE )
+  {
+    return false;
+  }
+
+  /* 2. Carrega parâmetros padrão */
+  rfalNfcDefaultDiscParams( &discParam );
+
+  /* 3. Configurações Específicas para o Sensor */
+  discParam.devLimit      = 1U;         /* Queremos apenas 1 dispositivo (o sensor) */
+  discParam.totalDuration = 1000U;      /* Ciclo de polling de 1 segundo */
+  discParam.wakeupEnabled = false;      /* Começa em modo ativo (sem Low Power por enquanto) */
+  discParam.notifyCb      = notif;  /* Mantém o callback de notificações de estado */
+
+  /* 4. OTIMIZAÇÃO: Ativa APENAS o Polling para NFC-V (ISO15693) */
+  /* Isso remove o tempo gasto procurando por cartões bancários ou celulares */
+  discParam.techs2Find    = RFAL_NFC_POLL_TECH_V;
+
+  /* 5. Inicia a máquina de estados de descoberta */
+  err = rfalNfcDiscover( &discParam );
+  if( err != RFAL_ERR_NONE )
+  {
+      return false;
+  }
+
+  state = DEMO_ST_START_DISCOVERY;
+  return true;
+}
+
+static void nfcv(rfalNfcvListenDevice *nfcvDev)
+{
+#if RFAL_FEATURE_NFCV
+
+  ReturnCode            err;
+  uint16_t              rcvLen;
+  uint8_t               blockNum = 1;
+  uint8_t               rxBuf[ 1 + DEMO_NFCV_BLOCK_LEN + RFAL_CRC_LEN ];                        /* Flags + Block Data + CRC */
+  uint8_t               *uid;
+  uint8_t               reqFlag;
+#if DEMO_NFCV_WRITE_TAG
+  uint8_t               wrData[DEMO_NFCV_BLOCK_LEN] = { 0x11, 0x22, 0x33, 0x99 };             /* Write block example */
+#endif /* DEMO_NFCV_WRITE_TAG */
+
+  uid     = nfcvDev->InvRes.UID;
+  reqFlag = RFAL_NFCV_REQ_FLAG_DEFAULT;
+
+#if DEMO_NFCV_USE_SELECT_MODE
+  /*
+  * Activate selected state
+  */
+  err = rfalNfcvPollerSelect( reqFlag, nfcvDev->InvRes.UID );
+  platformLog(" Select %s \r\n", (err != RFAL_ERR_NONE) ? "FAIL (revert to addressed mode)": "OK" );
+  if( err == RFAL_ERR_NONE )
+  {
+      reqFlag = (RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_SELECT);
+      uid     = NULL;
+  }
+#endif /* DEMO_NFCV_USE_SELECT_MODE */
+
+  /*
+  * Read block using Read Single Block command
+  * with addressed mode (uid != NULL) or selected mode (uid == NULL)
+  */
+  err = rfalNfcvPollerReadSingleBlock(reqFlag, uid, blockNum, rxBuf, sizeof(rxBuf), &rcvLen);
+  platformLog(" Read Block: %s %s\r\n", (err != RFAL_ERR_NONE) ? "FAIL": "OK Data:", (err != RFAL_ERR_NONE) ? "" : hex2Str( &rxBuf[1], DEMO_NFCV_BLOCK_LEN));
+
+#if DEMO_NFCV_WRITE_TAG /* Writing example */
+  err = rfalNfcvPollerWriteSingleBlock(reqFlag, uid, blockNum, wrData, sizeof(wrData));
+  platformLog(" Write Block: %s Data: %s\r\n", (err != RFAL_ERR_NONE) ? "FAIL": "OK", hex2Str( wrData, DEMO_NFCV_BLOCK_LEN) );
+  err = rfalNfcvPollerReadSingleBlock(reqFlag, uid, blockNum, rxBuf, sizeof(rxBuf), &rcvLen);
+  platformLog(" Read Block: %s %s\r\n", (err != RFAL_ERR_NONE) ? "FAIL": "OK Data:", (err != RFAL_ERR_NONE) ? "" : hex2Str( &rxBuf[1], DEMO_NFCV_BLOCK_LEN));
+#endif /* DEMO_NFCV_WRITE_TAG */
+
+#endif /* RFAL_FEATURE_NFCV */
+}
+
+void stop(void)
+{
+  rfalNfcDeactivate( RFAL_NFC_DEACTIVATE_IDLE );
+  state = DEMO_ST_NOTINIT;
 }
 /* USER CODE END 0 */
 
@@ -107,13 +232,7 @@ int main(void)
   HAL_Init();
 
   /* USER CODE BEGIN Init */
-	nfc_reader.CS_port = GPIOB;
-	nfc_reader.CS_pin = GPIO_PIN_6;
-	nfc_reader.reset_port = GPIOA;
-	nfc_reader.reset_pin = GPIO_PIN_9;
-	nfc_reader.IRQ_port = GPIOA;
-	nfc_reader.IRQ_pin = GPIO_PIN_0;
-	nfc_reader.hSPIx = &hspi1;
+
   /* USER CODE END Init */
 
   /* Configure the system clock */
@@ -126,58 +245,129 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART2_UART_Init();
-  MX_SPI1_Init();
-  MX_SPI2_Init();
-  MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-  if (ST25R300_Init(&nfc_reader)) {
-      DEBUG_PRINT("ST25R300 inicializado com sucesso!\r\n");
+  BSP_NFC0XCOMM_Init();
 
-      // Configura para modo RX
-      if (ST25R300_ConfigureRxMode(&nfc_reader)) {
-          DEBUG_PRINT("Modo RX configurado!\r\n");
+  logUsartInit(&huart2);
+  USR_INT_LINE.Line = USR_INT_LINE_NUM;
+  USR_INT_LINE.PendingCallback = st25r500Isr;
 
-          // Habilita RX
-          if (ST25R300_EnableRx(&nfc_reader)) {
-              DEBUG_PRINT("RX habilitado - Pronto para medir RSSI!\r\n");
-          }
-      }
-  } else {
-      DEBUG_PRINT("ERRO: Falha na inicialização do ST25R300!\r\n");
+   /* Configure interrupt callback */
+  (void)HAL_EXTI_GetHandle(&USR_INT_LINE, USR_INT_LINE.Line);
+  //(void)HAL_EXTI_RegisterCallback(&USR_INT_LINE, HAL_EXTI_COMMON_CB_ID, BSP_NFC0XCOMM_IRQ_Callback);
+
+#ifdef ST25R500
+  platformLog("Welcome to X-NUCLEO-NFC12A1\r\n");
+#endif /* ST25R500 */
+
+  /* Initialize RFAL */
+  if (!ini())
+  {
+    /*
+    * in case the rfal initialization failed signal it by flashing all LED
+    * and stopping all operations
+    */
+    platformLog("Initialization failed..\r\n");
+    while (1)
+    {
+      platformLedToogle(PLATFORM_LED_A_PORT, PLATFORM_LED_A_PIN);
+      platformLedToogle(PLATFORM_LED_B_PORT, PLATFORM_LED_B_PIN);
+      platformLedToogle(PLATFORM_LED_F_PORT, PLATFORM_LED_F_PIN);
+      platformLedToogle(PLATFORM_LED_V_PORT, PLATFORM_LED_V_PIN);
+      platformLedToogle(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN);
+
+      platformDelay(100);
+    }
+  }
+  else
+  {
+    platformLog("Initialization succeeded..\r\n");
+    for (int i = 0; i < 6; i++)
+    {
+      platformLedToogle(PLATFORM_LED_A_PORT, PLATFORM_LED_A_PIN);
+      platformLedToogle(PLATFORM_LED_B_PORT, PLATFORM_LED_B_PIN);
+      platformLedToogle(PLATFORM_LED_F_PORT, PLATFORM_LED_F_PIN);
+      platformLedToogle(PLATFORM_LED_V_PORT, PLATFORM_LED_V_PIN);
+      platformLedToogle(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN);
+
+      platformDelay(200);
+    }
+
+    platformLedOff(PLATFORM_LED_A_PORT, PLATFORM_LED_A_PIN);
+    platformLedOff(PLATFORM_LED_B_PORT, PLATFORM_LED_B_PIN);
+    platformLedOff(PLATFORM_LED_F_PORT, PLATFORM_LED_F_PIN);
+    platformLedOff(PLATFORM_LED_V_PORT, PLATFORM_LED_V_PIN);
+    platformLedOff(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN);
+
   }
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
-	    static uint32_t last_read = 0;
+	while (1) {
+	    static rfalNfcDevice *nfcDevice;
+	    rfalNfcState currentState;
 
-	    // Lê RSSI a cada 100ms
-	    if (HAL_GetTick() - last_read >= 100) {
-	        last_read = HAL_GetTick();
+	    rfalNfcWorker();                                    /* Mantém a stack RFAL rodando */
 
-	        if (ST25R300_ReadRSSI(&nfc_reader, &rssi_data)) {
-	        	int db_int = (int)rssi_data.rssi_dbm;
-	        	int db_dec = (int)((rssi_data.rssi_dbm - (float)db_int) * 10.0f);
-	        	if (db_dec < 0) db_dec = -db_dec;
-	        	const char* sign = (rssi_data.rssi_dbm < 0 && db_int == 0) ? "-" : "";
+	    /* Lógica do botão de Wake-up (Opcional, mantida para debug) */
+	#if defined(PLATFORM_USER_BUTTON_PORT) && defined(PLATFORM_USER_BUTTON_PIN)
+	    if( platformGpioIsLow(PLATFORM_USER_BUTTON_PORT, PLATFORM_USER_BUTTON_PIN))
+	    {
+	        discParam.wakeupEnabled = !discParam.wakeupEnabled;
+	        state = DEMO_ST_START_DISCOVERY;
+	        platformLog("Toggling Wake Up mode %s\r\n", discParam.wakeupEnabled ? "ON": "OFF");
+	        rfalNfcDeactivate( RFAL_NFC_DEACTIVATE_IDLE );
+	        rfalNfcDiscover( &discParam );
+	        while( platformGpioIsLow(PLATFORM_USER_BUTTON_PORT, PLATFORM_USER_BUTTON_PIN) );
+	    }
+	#endif
 
-	        	DEBUG_PRINT("RSSI - I: %3d, Q: %3d, Total: %3d, dBm: %s%d.%d\r\n",
-	        	            rssi_data.rssi_i,
-	        	            rssi_data.rssi_q,
-	        	            rssi_data.rssi_total,
-	        	            sign,
-	        	            db_int,
-	        	            db_dec);
-	        } else {
-	            DEBUG_PRINT("ERRO: Falha na leitura do RSSI!\r\n");
-	        }
+	    switch( state )
+	    {
+	        case DEMO_ST_START_DISCOVERY:
+	            platformLedOff(PLATFORM_LED_V_PORT, PLATFORM_LED_V_PIN);
+	            platformLedOff(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN);
+	            multiSel = false;
+	            state    = DEMO_ST_DISCOVERY;
+	            break;
+
+	        case DEMO_ST_DISCOVERY:
+	            currentState = rfalNfcGetState();
+
+	            if( rfalNfcIsDevActivated( currentState ) )
+	            {
+	                rfalNfcGetActiveDevice( &nfcDevice );
+
+	                /* FILTRO: Só processa se for NFC-V (Torquímetro) */
+	                if( nfcDevice->type == RFAL_NFC_LISTEN_TYPE_NFCV )
+	                {
+	                    uint8_t devUID[RFAL_NFCV_UID_LEN];
+	                    platformLedOn(PLATFORM_LED_V_PORT, PLATFORM_LED_V_PIN);
+
+	                    ST_MEMCPY( devUID, nfcDevice->nfcid, nfcDevice->nfcidLen );
+	                    REVERSE_BYTES( devUID, RFAL_NFCV_UID_LEN );
+
+	                    platformLog("Torquímetro Detectado! UID: %s\r\n", hex2Str(devUID, RFAL_NFCV_UID_LEN));
+
+	                    /* Chama a função que você vai usar para ler os dados do sensor */
+	                    nfcv( &nfcDevice->dev.nfcv );
+	                }
+
+	                /* Reinicia a descoberta após processar */
+	                rfalNfcDeactivate( RFAL_NFC_DEACTIVATE_DISCOVERY );
+	                state = DEMO_ST_START_DISCOVERY;
+	            }
+	            break;
+
+	        case DEMO_ST_NOTINIT:
+	        default:
+	            break;
 	    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+	}
   /* USER CODE END 3 */
 }
 
@@ -217,115 +407,6 @@ void SystemClock_Config(void)
   {
     Error_Handler();
   }
-}
-
-/**
-  * @brief SPI1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_SPI1_Init(void)
-{
-
-  /* USER CODE BEGIN SPI1_Init 0 */
-
-  /* USER CODE END SPI1_Init 0 */
-
-  /* USER CODE BEGIN SPI1_Init 1 */
-
-  /* USER CODE END SPI1_Init 1 */
-  /* SPI1 parameter configuration*/
-  hspi1.Instance = SPI1;
-  hspi1.Init.Mode = SPI_MODE_MASTER;
-  hspi1.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi1.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi1.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi1.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi1.Init.NSS = SPI_NSS_SOFT;
-  hspi1.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-  hspi1.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi1.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi1.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi1.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN SPI1_Init 2 */
-
-  /* USER CODE END SPI1_Init 2 */
-
-}
-
-/**
-  * @brief SPI2 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_SPI2_Init(void)
-{
-
-  /* USER CODE BEGIN SPI2_Init 0 */
-
-  /* USER CODE END SPI2_Init 0 */
-
-  /* USER CODE BEGIN SPI2_Init 1 */
-
-  /* USER CODE END SPI2_Init 1 */
-  /* SPI2 parameter configuration*/
-  hspi2.Instance = SPI2;
-  hspi2.Init.Mode = SPI_MODE_MASTER;
-  hspi2.Init.Direction = SPI_DIRECTION_2LINES;
-  hspi2.Init.DataSize = SPI_DATASIZE_8BIT;
-  hspi2.Init.CLKPolarity = SPI_POLARITY_LOW;
-  hspi2.Init.CLKPhase = SPI_PHASE_1EDGE;
-  hspi2.Init.NSS = SPI_NSS_SOFT;
-  hspi2.Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_2;
-  hspi2.Init.FirstBit = SPI_FIRSTBIT_MSB;
-  hspi2.Init.TIMode = SPI_TIMODE_DISABLE;
-  hspi2.Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
-  hspi2.Init.CRCPolynomial = 10;
-  if (HAL_SPI_Init(&hspi2) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN SPI2_Init 2 */
-
-  /* USER CODE END SPI2_Init 2 */
-
-}
-
-/**
-  * @brief USART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USART1_UART_Init(void)
-{
-
-  /* USER CODE BEGIN USART1_Init 0 */
-
-  /* USER CODE END USART1_Init 0 */
-
-  /* USER CODE BEGIN USART1_Init 1 */
-
-  /* USER CODE END USART1_Init 1 */
-  huart1.Instance = USART1;
-  huart1.Init.BaudRate = 115200;
-  huart1.Init.WordLength = UART_WORDLENGTH_8B;
-  huart1.Init.StopBits = UART_STOPBITS_1;
-  huart1.Init.Parity = UART_PARITY_NONE;
-  huart1.Init.Mode = UART_MODE_TX_RX;
-  huart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  huart1.Init.OverSampling = UART_OVERSAMPLING_16;
-  if (HAL_UART_Init(&huart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USART1_Init 2 */
-
-  /* USER CODE END USART1_Init 2 */
-
 }
 
 /**
@@ -369,8 +450,9 @@ static void MX_USART2_UART_Init(void)
 static void MX_GPIO_Init(void)
 {
   GPIO_InitTypeDef GPIO_InitStruct = {0};
-/* USER CODE BEGIN MX_GPIO_Init_1 */
-/* USER CODE END MX_GPIO_Init_1 */
+  /* USER CODE BEGIN MX_GPIO_Init_1 */
+
+  /* USER CODE END MX_GPIO_Init_1 */
 
   /* GPIO Ports Clock Enable */
   __HAL_RCC_GPIOC_CLK_ENABLE();
@@ -378,18 +460,48 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, LED1_Pin|LED2_Pin|LED4_Pin|RESET_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOB, LED3_Pin|LED5_Pin|LED6_Pin|NFC_NSS_Pin, GPIO_PIN_RESET);
+
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
+  /*Configure GPIO pins : IRQ_Pin PA10 */
+  GPIO_InitStruct.Pin = IRQ_Pin|GPIO_PIN_10;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : LED1_Pin LED2_Pin LED4_Pin RESET_Pin */
+  GPIO_InitStruct.Pin = LED1_Pin|LED2_Pin|LED4_Pin|RESET_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+  /*Configure GPIO pins : LED3_Pin LED5_Pin LED6_Pin NFC_NSS_Pin */
+  GPIO_InitStruct.Pin = LED3_Pin|LED5_Pin|LED6_Pin|NFC_NSS_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
   /* EXTI interrupt init*/
+  HAL_NVIC_SetPriority(EXTI0_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_IRQn);
+
   HAL_NVIC_SetPriority(EXTI15_10_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI15_10_IRQn);
 
-/* USER CODE BEGIN MX_GPIO_Init_2 */
-/* USER CODE END MX_GPIO_Init_2 */
+  /* USER CODE BEGIN MX_GPIO_Init_2 */
+
+  /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -403,15 +515,13 @@ static void MX_GPIO_Init(void)
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	while (1) {
+	}
   /* USER CODE END Error_Handler_Debug */
 }
-
-#ifdef  USE_FULL_ASSERT
+#ifdef USE_FULL_ASSERT
 /**
   * @brief  Reports the name of the source file and the source line number
   *         where the assert_param error has occurred.

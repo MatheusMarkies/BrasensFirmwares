@@ -1,0 +1,12 @@
+../Middlewares/ST/rfal/Src/rfal_nfcf.c:158:13:rfalNfcfComputeValidSENF	64	static
+../Middlewares/ST/rfal/Src/rfal_nfcf.c:239:12:rfalNfcfPollerInitialize	24	static
+../Middlewares/ST/rfal/Src/rfal_nfcf.c:259:12:rfalNfcfPollerPoll	40	static
+../Middlewares/ST/rfal/Src/rfal_nfcf.c:265:12:rfalNfcfPollerCheckPresence	16	static
+../Middlewares/ST/rfal/Src/rfal_nfcf.c:276:12:rfalNfcfPollerStartCheckPresence	24	static
+../Middlewares/ST/rfal/Src/rfal_nfcf.c:288:12:rfalNfcfPollerGetCheckPresenceStatus	8	static
+../Middlewares/ST/rfal/Src/rfal_nfcf.c:295:12:rfalNfcfPollerCollisionResolution	32	static
+../Middlewares/ST/rfal/Src/rfal_nfcf.c:307:12:rfalNfcfPollerStartCollisionResolution	32	static
+../Middlewares/ST/rfal/Src/rfal_nfcf.c:337:12:rfalNfcfPollerGetCollisionResolutionStatus	32	static
+../Middlewares/ST/rfal/Src/rfal_nfcf.c:415:12:rfalNfcfPollerCheck	136	static
+../Middlewares/ST/rfal/Src/rfal_nfcf.c:503:12:rfalNfcfPollerUpdate	56	static
+../Middlewares/ST/rfal/Src/rfal_nfcf.c:603:6:rfalNfcfListenerIsT3TReq	24	static

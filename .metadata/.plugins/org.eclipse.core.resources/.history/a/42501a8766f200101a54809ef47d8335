@@ -1,0 +1,16 @@
+../Middlewares/ST/rfal/Src/rfal_nfc.c:138:12:rfalNfcInitialize	16	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:164:12:rfalNfcDiscover	16	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:242:12:rfalNfcDeactivate	24	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:278:12:rfalNfcSelect	16	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:294:14:rfalNfcGetState	4	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:300:12:rfalNfcGetDevicesFound	16	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:321:12:rfalNfcGetActiveDevice	16	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:347:6:rfalNfcWorker	32	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:620:12:rfalNfcDataExchangeStart	128	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:757:12:rfalNfcDataExchangeGetStatus	8	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:852:19:rfalNfcPollTechDetection	24	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:1178:19:rfalNfcPollCollResolution	88	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:1494:19:rfalNfcPollActivation	48	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:1862:19:rfalNfcListenActivation	80	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:2071:19:rfalNfcNfcDepActivate	168	static
+../Middlewares/ST/rfal/Src/rfal_nfc.c:2170:19:rfalNfcDeactivation	16	static

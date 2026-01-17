@@ -1,0 +1,10 @@
+../Middlewares/ST/rfal/Src/rfal_dpo.c:92:6:rfalDpoInitialize	8	static
+../Middlewares/ST/rfal/Src/rfal_dpo.c:119:6:rfalDpoSetMeasureCallback	16	static
+../Middlewares/ST/rfal/Src/rfal_dpo.c:126:6:rfalDpoSetAdjustCallback	16	static
+../Middlewares/ST/rfal/Src/rfal_dpo.c:133:12:rfalDpoTableWrite	24	static
+../Middlewares/ST/rfal/Src/rfal_dpo.c:175:12:rfalDpoTableRead	24	static
+../Middlewares/ST/rfal/Src/rfal_dpo.c:198:12:rfalDpoAdjust	24	static
+../Middlewares/ST/rfal/Src/rfal_dpo.c:298:6:rfalDpoSetEnabled	16	static
+../Middlewares/ST/rfal/Src/rfal_dpo.c:310:6:rfalDpoIsEnabled	4	static
+../Middlewares/ST/rfal/Src/rfal_dpo.c:317:6:rfalDpoReqAdj	4	static
+../Middlewares/ST/rfal/Src/rfal_dpo.c:324:12:rfalDpoGetInfo	16	static

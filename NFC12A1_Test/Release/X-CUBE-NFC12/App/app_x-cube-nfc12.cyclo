@@ -1,0 +1,5 @@
+../X-CUBE-NFC12/App/app_x-cube-nfc12.c:186:13:BSP_NFC0XCOMM_IRQ_Callback	1
+../X-CUBE-NFC12/App/app_x-cube-nfc12.c:74:6:MX_X_CUBE_NFC12_Process	1
+../X-CUBE-NFC12/App/app_x-cube-nfc12.c:83:6:MX_NFC12_PollingDemo_Init	3
+../X-CUBE-NFC12/App/app_x-cube-nfc12.c:50:6:MX_X_CUBE_NFC12_Init	1
+../X-CUBE-NFC12/App/app_x-cube-nfc12.c:149:9:BSP_NFC0XCOMM_SendRecv	5

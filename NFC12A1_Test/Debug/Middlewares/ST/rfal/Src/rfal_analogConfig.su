@@ -1,0 +1,9 @@
+../Middlewares/ST/rfal/Src/rfal_analogConfig.c:106:6:rfalAnalogConfigInitialize	4	static
+../Middlewares/ST/rfal/Src/rfal_analogConfig.c:124:6:rfalAnalogConfigIsReady	4	static
+../Middlewares/ST/rfal/Src/rfal_analogConfig.c:131:12:rfalAnalogConfigListWriteRaw	16	static
+../Middlewares/ST/rfal/Src/rfal_analogConfig.c:172:12:rfalAnalogConfigListWrite	16	static
+../Middlewares/ST/rfal/Src/rfal_analogConfig.c:236:12:rfalAnalogConfigListReadRaw	24	static
+../Middlewares/ST/rfal/Src/rfal_analogConfig.c:262:12:rfalAnalogConfigListRead	32	static
+../Middlewares/ST/rfal/Src/rfal_analogConfig.c:295:12:rfalSetAnalogConfig	32	static
+../Middlewares/ST/rfal/Src/rfal_analogConfig.c:345:10:rfalAnalogConfigGenModeID	24	static
+../Middlewares/ST/rfal/Src/rfal_analogConfig.c:436:28:rfalAnalogConfigSearch	32	static

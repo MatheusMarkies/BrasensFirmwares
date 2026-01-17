@@ -29,6 +29,7 @@ extern "C" {
 /* Includes ------------------------------------------------------------------*/
 #include "stm32f1xx_hal.h"
 
+#include "nfc_conf.h"
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
@@ -60,16 +61,35 @@ void Error_Handler(void);
 #define B1_Pin GPIO_PIN_13
 #define B1_GPIO_Port GPIOC
 #define B1_EXTI_IRQn EXTI15_10_IRQn
+#define IRQ_Pin GPIO_PIN_0
+#define IRQ_GPIO_Port GPIOA
+#define IRQ_EXTI_IRQn EXTI0_IRQn
+#define LED1_Pin GPIO_PIN_1
+#define LED1_GPIO_Port GPIOA
 #define USART_TX_Pin GPIO_PIN_2
 #define USART_TX_GPIO_Port GPIOA
 #define USART_RX_Pin GPIO_PIN_3
 #define USART_RX_GPIO_Port GPIOA
+#define LED2_Pin GPIO_PIN_4
+#define LED2_GPIO_Port GPIOA
+#define LED3_Pin GPIO_PIN_0
+#define LED3_GPIO_Port GPIOB
+#define LED5_Pin GPIO_PIN_10
+#define LED5_GPIO_Port GPIOB
+#define LED4_Pin GPIO_PIN_8
+#define LED4_GPIO_Port GPIOA
+#define RESET_Pin GPIO_PIN_9
+#define RESET_GPIO_Port GPIOA
 #define TMS_Pin GPIO_PIN_13
 #define TMS_GPIO_Port GPIOA
 #define TCK_Pin GPIO_PIN_14
 #define TCK_GPIO_Port GPIOA
 #define SWO_Pin GPIO_PIN_3
 #define SWO_GPIO_Port GPIOB
+#define LED6_Pin GPIO_PIN_4
+#define LED6_GPIO_Port GPIOB
+#define NFC_NSS_Pin GPIO_PIN_6
+#define NFC_NSS_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 

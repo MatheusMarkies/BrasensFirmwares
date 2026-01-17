@@ -1,0 +1,13 @@
+/*
+ * st25r300_hal.h
+ *
+ *  Created on: 15 de jan. de 2026
+ *      Author: Matheus Markies
+ */
+
+#ifndef INC_ST25R300_HAL_H_
+#define INC_ST25R300_HAL_H_
+
+
+
+#endif /* INC_ST25R300_HAL_H_ */

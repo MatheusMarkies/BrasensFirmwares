@@ -1,0 +1,7 @@
+../X-CUBE-NFC12/Target/demo_polling.c:190:13:demoNotif	16	static
+../X-CUBE-NFC12/Target/demo_polling.c:168:10:demoGetDiscoverTechs2Find	0	static
+../X-CUBE-NFC12/Target/demo_polling.c:178:10:demoGetDiscoverTotalDuration	0	static
+../X-CUBE-NFC12/Target/demo_polling.c:240:6:demoIni	8	static
+../X-CUBE-NFC12/Target/demo_polling.c:340:6:demoCycle	120	static
+../X-CUBE-NFC12/Target/demo_polling.c:529:6:demoStop	8	static
+../X-CUBE-NFC12/Target/demo_polling.c:816:12:demoTransceiveBlocking	16	static

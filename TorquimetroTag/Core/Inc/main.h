@@ -59,8 +59,11 @@ void Error_Handler(void);
 /* Private defines -----------------------------------------------------------*/
 #define NFC_INTERRUPT_Pin GPIO_PIN_15
 #define NFC_INTERRUPT_GPIO_Port GPIOC
+#define NFC_INTERRUPT_EXTI_IRQn EXTI4_15_IRQn
 #define LPD_Pin GPIO_PIN_1
 #define LPD_GPIO_Port GPIOA
+#define DEBUG_TX_Pin GPIO_PIN_4
+#define DEBUG_TX_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 

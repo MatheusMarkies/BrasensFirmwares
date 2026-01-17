@@ -1,0 +1,2 @@
+../Middlewares/ST/rfal/Src/rfal_crc.c:39:10:rfalCrcCalculateCcitt	2
+../Middlewares/ST/rfal/Src/rfal_crc.c:57:17:rfalCrcUpdateCcitt	1

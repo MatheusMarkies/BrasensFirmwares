@@ -1,0 +1,4 @@
+../Core/Src/runtime_logger.c:52:6:logUsartInit	0	static
+../Core/Src/runtime_logger.c:64:9:logUsartTx	4	static
+../Core/Src/runtime_logger.c:81:5:logUsart	272	static
+../Core/Src/runtime_logger.c:105:7:hex2Str	20	static

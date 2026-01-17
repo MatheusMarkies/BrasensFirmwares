@@ -1,0 +1,6 @@
+../X-CUBE-NFC12/Target/timer.c:65:10:timerCalculateTimer	8	static
+../X-CUBE-NFC12/Target/timer.c:71:6:timerIsExpired	8	static
+../X-CUBE-NFC12/Target/timer.c:77:10:timerGetRemaining	8	static
+../X-CUBE-NFC12/Target/timer.c:86:6:timerDelay	8	static
+../X-CUBE-NFC12/Target/timer.c:96:6:timerStopwatchStart	8	static
+../X-CUBE-NFC12/Target/timer.c:102:10:timerStopwatchMeasure	8	static

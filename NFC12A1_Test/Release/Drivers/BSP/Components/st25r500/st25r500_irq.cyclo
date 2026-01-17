@@ -1,0 +1,12 @@
+../Drivers/BSP/Components/st25r500/st25r500_irq.c:61:6:st25r500InitInterrupts	1
+../Drivers/BSP/Components/st25r500/st25r500_irq.c:87:6:st25r500CheckForReceivedInterrupts	3
+../Drivers/BSP/Components/st25r500/st25r500_irq.c:74:6:st25r500Isr	2
+../Drivers/BSP/Components/st25r500/st25r500_irq.c:125:6:st25r500ModifyInterrupts	3
+../Drivers/BSP/Components/st25r500/st25r500_irq.c:151:10:st25r500WaitForInterruptsTimed	5
+../Drivers/BSP/Components/st25r500/st25r500_irq.c:181:10:st25r500GetInterrupt	3
+../Drivers/BSP/Components/st25r500/st25r500_irq.c:206:6:st25r500EnableInterrupts	1
+../Drivers/BSP/Components/st25r500/st25r500_irq.c:198:6:st25r500ClearAndEnableInterrupts	1
+../Drivers/BSP/Components/st25r500/st25r500_irq.c:213:6:st25r500DisableInterrupts	1
+../Drivers/BSP/Components/st25r500/st25r500_irq.c:220:6:st25r500ClearInterrupts	2
+../Drivers/BSP/Components/st25r500/st25r500_irq.c:234:6:st25r500IRQCallbackSet	1
+../Drivers/BSP/Components/st25r500/st25r500_irq.c:242:6:st25r500IRQCallbackRestore	1

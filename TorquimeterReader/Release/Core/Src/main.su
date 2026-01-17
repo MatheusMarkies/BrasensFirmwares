@@ -1,0 +1,4 @@
+../Core/Src/main.c:83:6:ST25R300_Debug_DEBUG_PRINT	272	static
+../Core/Src/main.c:173:6:SystemClock_Config	120	static,ignoring_inline_asm
+../Core/Src/main.c:102:5:main	56	static,ignoring_inline_asm
+../Core/Src/main.c:461:6:Error_Handler	0	static,ignoring_inline_asm

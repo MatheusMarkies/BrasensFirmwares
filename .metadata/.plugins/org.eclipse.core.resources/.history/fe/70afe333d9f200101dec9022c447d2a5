@@ -1,0 +1,423 @@
+/*
+ * st25r300.c
+ *
+ *  Created on: Dec 25, 2025
+ *      Author: Matheus Markies
+ */
+#include "st25r300_hal.h"
+#include <math.h>
+
+/* Macros auxiliares */
+#define CS_LOW()    HAL_GPIO_WritePin(dev->CS_port, dev->CS_pin, GPIO_PIN_RESET)
+#define CS_HIGH()   HAL_GPIO_WritePin(dev->CS_port, dev->CS_pin, GPIO_PIN_SET)
+#define RESET_LOW() HAL_GPIO_WritePin(dev->reset_port, dev->reset_pin, GPIO_PIN_RESET)
+#define RESET_HIGH() HAL_GPIO_WritePin(dev->reset_port, dev->reset_pin, GPIO_PIN_SET)
+
+/**
+ * @brief Lê um registro do ST25R300
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @param reg_addr Endereço do registro (0x00-0x57)
+ * @param data Ponteiro para armazenar o dado lido
+ * @return true se sucesso, false se erro
+ */
+bool ST25R300_ReadRegister(ST25R300 *dev, uint8_t reg_addr, uint8_t *data) {
+    if (!dev || !data || reg_addr > 0x57) return false;
+
+    uint8_t tx_data[2] = {0x80 | reg_addr, 0xFF};  // Bit 7=1 para leitura
+    uint8_t rx_data[2] = {0};
+
+    CS_LOW();
+    HAL_StatusTypeDef status = HAL_SPI_TransmitReceive(dev->hSPIx, tx_data, rx_data, 2, ST25R300_TIMEOUT_MS);
+    CS_HIGH();
+
+    if (status == HAL_OK) {
+        *data = rx_data[1];
+        return true;
+    }
+    return false;
+}
+
+/**
+ * @brief Escreve em um registro do ST25R300
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @param reg_addr Endereço do registro (0x00-0x57)
+ * @param data Dado a ser escrito
+ * @return true se sucesso, false se erro
+ */
+bool ST25R300_WriteRegister(ST25R300 *dev, uint8_t reg_addr, uint8_t data) {
+    if (!dev || reg_addr > 0x57) return false;
+
+    uint8_t tx_data[2] = {reg_addr, data};  // Bit 7=0 para escrita
+
+    CS_LOW();
+    HAL_StatusTypeDef status = HAL_SPI_Transmit(dev->hSPIx, tx_data, 2, ST25R300_TIMEOUT_MS);
+    CS_HIGH();
+
+    return (status == HAL_OK);
+}
+
+/**
+ * @brief Envia um comando direto ao ST25R300
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @param cmd Código do comando (0x60-0xF9)
+ * @return true se sucesso, false se erro
+ */
+bool ST25R300_SendCommand(ST25R300 *dev, uint8_t cmd) {
+    if (!dev) return false;
+
+    CS_LOW();
+    HAL_StatusTypeDef status = HAL_SPI_Transmit(dev->hSPIx, &cmd, 1, ST25R300_TIMEOUT_MS);
+    CS_HIGH();
+
+    return (status == HAL_OK);
+}
+
+/**
+ * @brief Executa reset via pino RESET
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @return true se sucesso
+ */
+bool ST25R300_Reset(ST25R300 *dev) {
+    if (!dev) return false;
+
+    // Pulso de reset (RESET high->low)
+    RESET_HIGH();
+    HAL_Delay(ST25R300_RESET_DELAY_MS);
+    RESET_LOW();
+    HAL_Delay(ST25R300_RESET_DELAY_MS);
+
+    return true;
+}
+
+/**
+ * @brief Lê o ID do chip
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @return ID do chip (0x16 para ST25R300) ou 0 em caso de erro
+ */
+uint8_t ST25R300_ReadID(ST25R300 *dev) {
+    uint8_t id = 0;
+    if (ST25R300_ReadRegister(dev, ST25R300_REG_IC_IDENTITY, &id)) {
+        return (id >> 3) & 0x1F;  // Bits 7:3 contêm o IC type
+    }
+    return 0;
+}
+
+/**
+ * @brief Aguarda o oscilador ficar estável
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @return true se oscilador estável, false se timeout
+ */
+bool ST25R300_WaitOscillatorReady(ST25R300 *dev) {
+    uint32_t start_tick = HAL_GetTick();
+    uint8_t status;
+
+    while ((HAL_GetTick() - start_tick) < ST25R300_OSC_TIMEOUT_MS) {
+        if (ST25R300_ReadRegister(dev, ST25R300_REG_STATUS_1, &status)) {
+            if (status & ST25R300_STATUS_OSC_OK) {
+                return true;
+            }
+        }
+        HAL_Delay(1);
+    }
+    return false;
+}
+
+/**
+ * @brief Inicializa o ST25R300 para operação básica
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @return true se sucesso, false se erro
+ */
+bool ST25R300_Init(ST25R300 *dev) {
+    if (!dev || !dev->hSPIx) return false;
+
+    // Reset do chip
+    ST25R300_Reset(dev);
+    HAL_Delay(10);
+
+    // Verifica ID do chip
+    uint8_t chip_id = ST25R300_ReadID(dev);
+    if (chip_id != 0x16) {  // ST25R300 ID = 0x16
+        return false;
+    }
+
+    // Comando Set Default
+    ST25R300_SendCommand(dev, ST25R300_CMD_SET_DEFAULT);
+    HAL_Delay(5);
+
+    // Habilita Ready Mode (oscilador)
+    ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, ST25R300_OP_EN);
+
+    // Aguarda oscilador estabilizar
+    if (!ST25R300_WaitOscillatorReady(dev)) {
+        return false;
+    }
+
+    // Limpa FIFO
+    ST25R300_SendCommand(dev, ST25R300_CMD_CLEAR_FIFO);
+
+    // Calibra RC para AWS
+    ST25R300_SendCommand(dev, ST25R300_CMD_CALIBRATE_RC);
+    HAL_Delay(5);
+
+    return true;
+}
+
+/**
+ * @brief Configura o ST25R300 para modo RX
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @return true se sucesso, false se erro
+ */
+bool ST25R300_ConfigureRxMode(ST25R300 *dev) {
+    if (!dev) return false;
+
+    // Configura Rx Analog Settings 1
+    // hpf_ctrl = 3 (380kHz), gain_boost = 0
+    ST25R300_WriteRegister(dev, ST25R300_REG_RX_ANALOG_SETTINGS_1, 0x53);
+
+    // Configura Rx Analog Settings 2
+    // afe_gain_rw = 0 (sem redução de ganho inicial)
+    ST25R300_WriteRegister(dev, ST25R300_REG_RX_ANALOG_SETTINGS_2, 0x00);
+
+    // Configura Rx Digital Settings 1
+    // AGC habilitado, filtros padrão
+    ST25R300_WriteRegister(dev, ST25R300_REG_RX_DIGITAL_SETTINGS_1, 0x8F);
+
+    // Configura Protocol Register 1 para NFC-A (modo padrão)
+    // om = 0x1 (ISO14443-A/NFC-A)
+    ST25R300_WriteRegister(dev, ST25R300_REG_PROTOCOL_1, 0x01);
+
+    // Ajusta reguladores
+    uint8_t op_reg;
+    ST25R300_ReadRegister(dev, ST25R300_REG_OPERATION, &op_reg);
+    ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION,
+                          op_reg | ST25R300_OP_VDDDR_EN);
+    HAL_Delay(1);  // Aguarda 10us (1ms é mais que suficiente)
+
+    // Ajusta reguladores
+    ST25R300_SendCommand(dev, ST25R300_CMD_ADJUST_REGULATORS);
+    HAL_Delay(5);
+
+    return true;
+}
+
+/**
+ * @brief Habilita o modo RX
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @return true se sucesso, false se erro
+ */
+bool ST25R300_EnableRx(ST25R300 *dev) {
+    if (!dev) return false;
+
+    uint8_t op_reg;
+    ST25R300_ReadRegister(dev, ST25R300_REG_OPERATION, &op_reg);
+
+    // Habilita RX
+    op_reg |= ST25R300_OP_RX_EN;
+
+    return ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, op_reg);
+}
+
+/**
+ * @brief Desabilita o modo RX
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @return true se sucesso, false se erro
+ */
+bool ST25R300_DisableRx(ST25R300 *dev) {
+    if (!dev) return false;
+
+    uint8_t op_reg;
+    ST25R300_ReadRegister(dev, ST25R300_REG_OPERATION, &op_reg);
+
+    // Desabilita RX
+    op_reg &= ~ST25R300_OP_RX_EN;
+
+    return ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, op_reg);
+}
+
+/**
+ * @brief Lê os valores de RSSI
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @param rssi Ponteiro para estrutura de dados RSSI
+ * @return true se sucesso, false se erro
+ */
+bool ST25R300_ReadRSSI(ST25R300 *dev, ST25R300_RSSI *rssi) {
+    if (!dev || !rssi) return false;
+
+    ST25R300_SendCommand(dev, 0xF9);
+    HAL_Delay(1);
+
+    uint8_t rssi_i_raw, rssi_q_raw;
+
+    // Lê RSSI do canal I (registro 0x4A, bits 6:0)
+    if (!ST25R300_ReadRegister(dev, ST25R300_REG_RSSI_DISPLAY_1, &rssi_i_raw)) {
+        return false;
+    }
+
+    // Lê RSSI do canal Q (registro 0x4B, bits 6:0)
+    if (!ST25R300_ReadRegister(dev, ST25R300_REG_RSSI_DISPLAY_2, &rssi_q_raw)) {
+        return false;
+    }
+
+    // Extrai os 7 bits de dados (bit 7 é RFU)
+    rssi->rssi_i = rssi_i_raw & 0x7F;
+    rssi->rssi_q = rssi_q_raw & 0x7F;
+
+    // Calcula RSSI total (magnitude vetorial)
+    float i_float = (float)rssi->rssi_i;
+    float q_float = (float)rssi->rssi_q;
+    rssi->rssi_total = (uint8_t)sqrtf(i_float * i_float + q_float * q_float);
+
+    // Conversão aproximada para dBm
+    // Fórmula empírica: RSSI_dBm ≈ -90 + (RSSI_total * 0.5)
+    // Ajuste conforme calibração real
+    rssi->rssi_dbm = -90.0f + (rssi->rssi_total * 0.5f);
+
+    return true;
+}
+
+/**
+ * @brief Configura o chip para fornecer a máxima potência de RF para Energy Harvesting.
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @return true se sucesso, false se erro
+ */
+bool ST25R300_OptimizeForEnergyHarvesting_Diferencial(ST25R300 *dev) {
+    if (!dev) return false;
+
+    // 1. Garantir que estamos no modo Ready (Oscilador e Reguladores ativos)
+    // Bit 3 (en) e Bit 4 (vdddr_en) devem estar setados [cite: 1063, 1648]
+    uint8_t op_reg;
+    ST25R300_ReadRegister(dev, ST25R300_REG_OPERATION, &op_reg);
+    op_reg |= ST25R300_OP_EN | ST25R300_OP_VDDDR_EN;
+    ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, op_reg);
+
+    // Aguarda tBOOT e estabilização (min 900us, usamos 2ms) [cite: 2341]
+    HAL_Delay(2);
+
+    // 2. Configurar o Driver para Potência Máxima (Registrador 03h)
+    // d_res<3:0> = 0x0 -> Resistência mínima do driver para maior corrente [cite: 1674, 1678]
+    // regd<2:0> = 0x0 -> Menor queda de tensão (dropout) no regulador: 200mV [cite: 1674, 1677]
+    uint8_t tx_conf = 0x00; // regd=0, d_res=0
+    ST25R300_WriteRegister(dev, 0x03, tx_conf);
+
+    // 3. Garantir Antena Diferencial (Registrador 01h)
+    // O modo diferencial (bit single=0) dobra a tensão na antena em relação ao single-ended [cite: 388, 1654]
+    uint8_t gen_conf;
+    ST25R300_ReadRegister(dev, ST25R300_REG_GENERAL_CONFIG, &gen_conf);
+    gen_conf &= ~(1 << 5); // Garantir bit 'single' em 0
+    ST25R300_WriteRegister(dev, ST25R300_REG_GENERAL_CONFIG, gen_conf);
+
+    // 4. Ligar o Campo RF
+    op_reg |= ST25R300_OP_TX_EN;
+    ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, op_reg);
+    HAL_Delay(5); // Guard time padrão [cite: 1070]
+
+    // 5. Ajuste Automático sob Carga (Comando 68h)
+    // Este comando ajusta os reguladores internos para a máxima tensão real disponível [cite: 378, 1454]
+    ST25R300_SendCommand(dev, ST25R300_CMD_ADJUST_REGULATORS);
+    HAL_Delay(10); // Aguarda conclusão do ajuste
+
+    return true;
+}
+
+/**
+ * @brief Configura o chip para fornecer a máxima potência de RF em antena single-ended.
+ * @param dev Ponteiro para estrutura do dispositivo
+ * @return true se sucesso, false se erro
+ */
+bool ST25R300_OptimizeForEnergyHarvesting_Single(ST25R300 *dev) {
+    if (!dev) return false;
+
+    uint8_t reg_val;
+
+    // 1. Configurar para Antena Single-Ended (Registrador 01h)
+    // Bit 5 (Single) = 1: Ativa modo single-ended
+    // Bit 4 (rfo2) = 0: Seleciona o pino RFO1 e RFI1
+    if (!ST25R300_ReadRegister(dev, ST25R300_REG_GENERAL_CONFIG, &reg_val)) return false;
+    reg_val |= (1 << 5);  // Set bit 'Single'
+    reg_val &= ~(1 << 4); // Clear bit 'rfo2' para usar RFO1
+    ST25R300_WriteRegister(dev, ST25R300_REG_GENERAL_CONFIG, reg_val);
+
+    // 2. Configurar Driver para Potência Máxima (Registrador 03h) [cite: 1674]
+    // regd<2:0> = 0x0: Dropout mínimo de 200 mV no regulador VDD_DR
+    // d_res<3:0> = 0x0: Resistência de saída mínima do driver [cite: 1678, 1679]
+    uint8_t tx_conf = 0x00;
+    ST25R300_WriteRegister(dev, 0x03, tx_conf);
+
+    // 3. Habilitar Reguladores e Preparar para TX (Registrador 00h) [cite: 1648]
+    if (!ST25R300_ReadRegister(dev, ST25R300_REG_OPERATION, &reg_val)) return false;
+    // vdddr_en (bit 4) e en (bit 3)
+    reg_val |= ST25R300_OP_EN | ST25R300_OP_VDDDR_EN;
+    ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, reg_val);
+
+    // Datasheet: vdddr_en deve ser habilitado pelo menos 10 µs antes de tx_en [cite: 1648]
+    HAL_Delay(1);
+
+    // 4. Ligar o Transmissor (Transmissão contínua de campo)
+    reg_val |= ST25R300_OP_TX_EN;
+    ST25R300_WriteRegister(dev, ST25R300_REG_OPERATION, reg_val);
+    HAL_Delay(5); // Aguarda o guard time padrão [cite: 1070]
+
+    // 5. Ajuste Dinâmico sob Carga (Comando 68h)
+    // Otimiza os reguladores internos baseando-se na impedância real da antena [cite: 1418, 1458]
+    ST25R300_SendCommand(dev, ST25R300_CMD_ADJUST_REGULATORS);
+    HAL_Delay(10);
+
+    return true;
+}
+
+/**
+ * @brief Executa o polling para detectar tags NFC-V (ST25DV) e manter EH.
+ * @param dev Ponteiro para a estrutura do dispositivo
+ * @return true se uma tag foi detectada e o campo está ativo, false caso contrário.
+ */
+bool ST25R300_PollTag_NFCV(ST25R300 *dev) {
+    if (!dev) return false;
+
+    // 1. Otimizar campo para EH (conforme sua configuração Single-Ended)
+    // Isso garante d_res=0 e regd=0 para máxima potência[cite: 1674, 1677].
+    ST25R300_OptimizeForEnergyHarvesting_Single(dev);
+
+    // 2. Preparar protocolo NFC-V (ISO 15693)
+    // om=0x5 para NFC-V
+    ST25R300_WriteRegister(dev, ST25R300_REG_PROTOCOL_1, 0x05);
+
+    // Configurar timers de resposta (NRT) para evitar travamentos[cite: 807, 809].
+    // Ex: 20ms de timeout para resposta da tag
+    ST25R300_WriteRegister(dev, 0x23, 0x00); // NRT MSB
+    ST25R300_WriteRegister(dev, 0x24, 0x40); // NRT LSB (~19ms) [cite: 1911]
+
+    // 3. Executar comando Inventory (ISO 15693 - 1 Slot)
+    // Estrutura simplificada: Flags (0x26) + Command (0x01) + Mask length (0x00)
+    uint8_t inventory_cmd[] = {0x26, 0x01, 0x00};
+
+    ST25R300_SendCommand(dev, ST25R300_CMD_CLEAR_FIFO); [cite: 1443]
+
+    // Escrever no FIFO (Endereço 0x5F) [cite: 1203, 1369]
+    for(int i=0; i<3; i++) {
+        ST25R300_WriteRegister(dev, 0x5F, inventory_cmd[i]);
+    }
+
+    // Disparar transmissão [cite: 1461, 1466]
+    ST25R300_SendCommand(dev, 0x6A); // Transmit Data
+
+    // 4. Aguardar Resposta (Polling do registrador de IRQ)
+    uint8_t irq_status = 0;
+    uint32_t timeout = HAL_GetTick() + 50; // 50ms de segurança
+
+    while (HAL_GetTick() < timeout) {
+        ST25R300_ReadRegister(dev, 0x3C, &irq_status); // IRQ Status 1 [cite: 2071]
+
+        if (irq_status & (1 << 3)) { // I_rxe: Fim da recepção (Tag respondeu!) [cite: 2072]
+            return true; // Tag detectada, campo continua ligado para EH.
+        }
+
+        ST25R300_ReadRegister(dev, 0x3D, &irq_status); // IRQ Status 2 [cite: 2077]
+        if (irq_status & (1 << 6)) { // I_nre: No-response timer expirou [cite: 2078]
+            break; // Nenhuma tag no campo.
+        }
+        HAL_Delay(1);
+    }
+
+    // Se chegou aqui, nenhuma tag respondeu.
+    return false;
+}

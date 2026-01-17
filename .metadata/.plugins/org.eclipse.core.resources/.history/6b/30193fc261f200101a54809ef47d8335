@@ -1,0 +1,13 @@
+/*
+ * st25dv_mailbox.h
+ *
+ *  Created on: 15 de jan. de 2026
+ *      Author: Matheus Markies
+ */
+
+#ifndef INC_ST25DV_MAILBOX_H_
+#define INC_ST25DV_MAILBOX_H_
+
+
+
+#endif /* INC_ST25DV_MAILBOX_H_ */

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <section name="Workbench">
-	<item key="org.eclipse.cdt.utils.ui.controls.FileListControl" value="-u _printf_float"/>
+	<item key="org.eclipse.cdt.utils.ui.controls.FileListControl" value="C:/Users/Matheus Markies/STM32Cube/Repository/Packs/STMicroelectronics/X-CUBE-NFC4/3.0.0/Drivers/BSP/Components/"/>
 	<item key="LastUsedHeaderTemplate" value="Default C header template"/>
 	<item key="LastUsedSourceTemplate" value="Default C source template"/>
 	<section name="completion_proposal_size">
@@ -14,6 +14,7 @@
 	</section>
 	<section name="OptionalMessageDialog.hide.">
 		<item key="askReindex.detail" value="0"/>
+		<item key="askReindex" value="true"/>
 	</section>
 	<section name="RenameInformationPopup">
 	</section>
