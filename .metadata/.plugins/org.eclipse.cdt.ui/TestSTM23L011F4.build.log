@@ -1,0 +1,10 @@
+19:17:53 **** Incremental Build of configuration Release for project TestSTM23L011F4 ****
+make -j12 all 
+arm-none-eabi-size  TestSTM23L011F4.elf 
+   text	   data	    bss	    dec	    hex	filename
+  12964	     32	   1840	  14836	   39f4	TestSTM23L011F4.elf
+Finished building: default.size.stdout
+ 
+
+19:17:53 Build Finished. 0 errors, 0 warnings. (took 253ms)
+

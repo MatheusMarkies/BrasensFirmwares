@@ -1,84 +1,21 @@
-18:10:01 **** Incremental Build of configuration Release for project NFC12A1_Test ****
+19:17:51 **** Incremental Build of configuration Debug for project TestSTM23L011F4 ****
 make -j12 all 
-arm-none-eabi-size  NFC12A1_Test.elf 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L011xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TestSTM23L011F4.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TestSTM23L011F4\STM32L011F4UX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM23L011F4.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM23L011F4.elf
+ 
+arm-none-eabi-size  TestSTM23L011F4.elf 
+arm-none-eabi-objdump -h -S TestSTM23L011F4.elf  > "TestSTM23L011F4.list"
    text	   data	    bss	    dec	    hex	filename
-  26616	     92	   5388	  32096	   7d60	NFC12A1_Test.elf
+  12964	     32	   1840	  14836	   39f4	TestSTM23L011F4.elf
 Finished building: default.size.stdout
  
-18:10:04 **** Incremental Build of configuration Debug for project NFC12A1_Test ****
+Finished building: TestSTM23L011F4.list
+ 
+19:17:53 **** Incremental Build of configuration Release for project TestSTM23L011F4 ****
 make -j12 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-arm-none-eabi-gcc -o "NFC12A1_Test.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="NFC12A1_Test.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: NFC12A1_Test.elf
- 
-arm-none-eabi-size  NFC12A1_Test.elf 
-arm-none-eabi-objdump -h -S NFC12A1_Test.elf  > "NFC12A1_Test.list"
+arm-none-eabi-size  TestSTM23L011F4.elf 
    text	   data	    bss	    dec	    hex	filename
-  46076	     92	   5388	  51556	   c964	NFC12A1_Test.elf
+  12964	     32	   1840	  14836	   39f4	TestSTM23L011F4.elf
 Finished building: default.size.stdout
- 
-Finished building: NFC12A1_Test.list
- 
-18:11:07 **** Incremental Build of configuration Debug for project NFC12A1_Test ****
-make -j12 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-arm-none-eabi-gcc -o "NFC12A1_Test.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="NFC12A1_Test.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: NFC12A1_Test.elf
- 
-arm-none-eabi-size  NFC12A1_Test.elf 
-arm-none-eabi-objdump -h -S NFC12A1_Test.elf  > "NFC12A1_Test.list"
-   text	   data	    bss	    dec	    hex	filename
-  46156	     92	   5388	  51636	   c9b4	NFC12A1_Test.elf
-Finished building: default.size.stdout
- 
-Finished building: NFC12A1_Test.list
- 
-18:14:38 **** Incremental Build of configuration Debug for project NFC12A1_Test ****
-make -j12 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-arm-none-eabi-gcc -o "NFC12A1_Test.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="NFC12A1_Test.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: NFC12A1_Test.elf
- 
-arm-none-eabi-size  NFC12A1_Test.elf 
-arm-none-eabi-objdump -h -S NFC12A1_Test.elf  > "NFC12A1_Test.list"
-   text	   data	    bss	    dec	    hex	filename
-  46420	     92	   5388	  51900	   cabc	NFC12A1_Test.elf
-Finished building: default.size.stdout
- 
-Finished building: NFC12A1_Test.list
- 
-18:17:52 **** Incremental Build of configuration Debug for project NFC12A1_Test ****
-make -j12 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-arm-none-eabi-gcc -o "NFC12A1_Test.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="NFC12A1_Test.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: NFC12A1_Test.elf
- 
-arm-none-eabi-size  NFC12A1_Test.elf 
-arm-none-eabi-objdump -h -S NFC12A1_Test.elf  > "NFC12A1_Test.list"
-   text	   data	    bss	    dec	    hex	filename
-  46808	     92	   5388	  52288	   cc40	NFC12A1_Test.elf
-Finished building: default.size.stdout
- 
-Finished building: NFC12A1_Test.list
- 
-18:21:58 **** Build of configuration Debug for project TorquimetroTag ****
-make -j12 all 
-arm-none-eabi-size  TorquimetroTag.elf 
-   text	   data	    bss	    dec	    hex	filename
-  12900	     32	   1840	  14772	   39b4	TorquimetroTag.elf
-Finished building: default.size.stdout
- 
-18:24:11 **** Incremental Build of configuration Debug for project NFC12A1_Test ****
-make -j12 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-arm-none-eabi-gcc -o "NFC12A1_Test.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="NFC12A1_Test.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: NFC12A1_Test.elf
- 
-arm-none-eabi-size  NFC12A1_Test.elf 
-arm-none-eabi-objdump -h -S NFC12A1_Test.elf  > "NFC12A1_Test.list"
-   text	   data	    bss	    dec	    hex	filename
-  46156	     92	   5388	  51636	   c9b4	NFC12A1_Test.elf
-Finished building: default.size.stdout
- 
-Finished building: NFC12A1_Test.list
  

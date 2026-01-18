@@ -1,0 +1,226 @@
+/* USER CODE BEGIN Header */
+/**
+  ******************************************************************************
+  * @file           : main.c
+  * @brief          : Diagnóstico completo UART
+  ******************************************************************************
+  */
+/* USER CODE END Header */
+#include "main.h"
+#include <stdarg.h>
+#include <stdio.h>
+#include <string.h>
+
+/* Private variables ---------------------------------------------------------*/
+I2C_HandleTypeDef hi2c1;
+UART_HandleTypeDef hlpuart1;
+RTC_HandleTypeDef hrtc;
+
+/* Private function prototypes -----------------------------------------------*/
+void SystemClock_Config(void);
+static void MX_GPIO_Init(void);
+static void MX_LPUART1_UART_Init(void);
+void UART_Test_Raw(void);
+
+int main(void)
+{
+  HAL_Init();
+  SystemClock_Config();
+
+  /* IMPORTANTE: Habilitar clocks ANTES de configurar GPIO */
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+  __HAL_RCC_LPUART1_CLK_ENABLE();
+
+  MX_GPIO_Init();
+  MX_LPUART1_UART_Init();
+
+  /* USER CODE BEGIN 2 */
+
+  // Aguardar 2 segundos para abrir o Tera Term
+  HAL_Delay(2000);
+
+  // TESTE 1: Transmissão RAW sem HAL
+  UART_Test_Raw();
+
+  HAL_Delay(500);
+
+  // TESTE 2: Transmissão com HAL - byte único
+  uint8_t byte = 'X';
+  HAL_StatusTypeDef status;
+
+  for(int i = 0; i < 20; i++) {
+    status = HAL_UART_Transmit(&hlpuart1, &byte, 1, 100);
+    HAL_Delay(100);
+  }
+
+  HAL_Delay(500);
+
+  // TESTE 3: String completa
+  uint8_t msg[] = "\r\n=== UART TESTE ===\r\n";
+  status = HAL_UART_Transmit(&hlpuart1, msg, strlen((char*)msg), 1000);
+
+  HAL_Delay(500);
+
+  // TESTE 4: Informações de debug
+  char buffer[128];
+
+  snprintf(buffer, sizeof(buffer), "LPUART1->CR1: 0x%08lX\r\n", LPUART1->CR1);
+  HAL_UART_Transmit(&hlpuart1, (uint8_t*)buffer, strlen(buffer), 1000);
+
+  snprintf(buffer, sizeof(buffer), "LPUART1->ISR: 0x%08lX\r\n", LPUART1->ISR);
+  HAL_UART_Transmit(&hlpuart1, (uint8_t*)buffer, strlen(buffer), 1000);
+
+  snprintf(buffer, sizeof(buffer), "RCC->APB1ENR: 0x%08lX\r\n", RCC->APB1ENR);
+  HAL_UART_Transmit(&hlpuart1, (uint8_t*)buffer, strlen(buffer), 1000);
+
+  snprintf(buffer, sizeof(buffer), "GPIOA->MODER: 0x%08lX\r\n", GPIOA->MODER);
+  HAL_UART_Transmit(&hlpuart1, (uint8_t*)buffer, strlen(buffer), 1000);
+
+  snprintf(buffer, sizeof(buffer), "Status HAL: %d\r\n", status);
+  HAL_UART_Transmit(&hlpuart1, (uint8_t*)buffer, strlen(buffer), 1000);
+
+  /* USER CODE END 2 */
+
+  /* Infinite loop */
+  uint32_t counter = 0;
+  while (1)
+  {
+    // Loop simples enviando contador
+    snprintf(buffer, sizeof(buffer), "CNT: %lu\r\n", counter++);
+    HAL_UART_Transmit(&hlpuart1, (uint8_t*)buffer, strlen(buffer), 1000);
+
+    // Toggle do pino LPD para debug visual (se tiver LED/osciloscópio)
+    HAL_GPIO_TogglePin(LPD_GPIO_Port, LPD_Pin);
+
+    HAL_Delay(1000);
+  }
+}
+
+/**
+  * @brief Teste RAW - escreve diretamente no registrador da UART
+  */
+void UART_Test_Raw(void)
+{
+  // Enviar caractere 'R' diretamente pelo registrador TDR
+  char testChars[] = "RRRRR";
+
+  for(int i = 0; i < 5; i++) {
+    // Aguardar TXE (Transmit Data Register Empty)
+    while(!(LPUART1->ISR & USART_ISR_TXE));
+
+    // Escrever dado no registrador
+    LPUART1->TDR = testChars[i];
+
+    // Aguardar transmissão completa
+    while(!(LPUART1->ISR & USART_ISR_TC));
+
+    HAL_Delay(100);
+  }
+}
+
+/**
+  * @brief System Clock Configuration
+  */
+void SystemClock_Config(void)
+{
+  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+
+  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+
+  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_HSI|RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_MSI;
+  RCC_OscInitStruct.HSIState = RCC_HSI_ON;
+  RCC_OscInitStruct.HSICalibrationValue = RCC_HSICALIBRATION_DEFAULT;
+  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+  RCC_OscInitStruct.MSICalibrationValue = 0;
+  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_6;
+  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK|RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
+  {
+    Error_Handler();
+  }
+
+  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPUART1|RCC_PERIPHCLK_I2C1|RCC_PERIPHCLK_RTC;
+  PeriphClkInit.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_HSI;
+  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
+  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief LPUART1 Initialization Function
+  */
+static void MX_LPUART1_UART_Init(void)
+{
+  hlpuart1.Instance = LPUART1;
+  hlpuart1.Init.BaudRate = 9600;
+  hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
+  hlpuart1.Init.StopBits = UART_STOPBITS_1;
+  hlpuart1.Init.Parity = UART_PARITY_NONE;
+  hlpuart1.Init.Mode = UART_MODE_TX_RX;
+  hlpuart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  hlpuart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+  hlpuart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+
+  if (HAL_UART_Init(&hlpuart1) != HAL_OK)
+  {
+    Error_Handler();
+  }
+}
+
+/**
+  * @brief GPIO Initialization Function
+  */
+static void MX_GPIO_Init(void)
+{
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
+
+  __HAL_RCC_GPIOC_CLK_ENABLE();
+  __HAL_RCC_GPIOA_CLK_ENABLE();
+
+  HAL_GPIO_WritePin(LPD_GPIO_Port, LPD_Pin, GPIO_PIN_RESET);
+
+  GPIO_InitStruct.Pin = NFC_INTERRUPT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  HAL_GPIO_Init(NFC_INTERRUPT_GPIO_Port, &GPIO_InitStruct);
+
+  GPIO_InitStruct.Pin = LPD_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LPD_GPIO_Port, &GPIO_InitStruct);
+
+  HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
+}
+
+void Error_Handler(void)
+{
+  __disable_irq();
+  while (1)
+  {
+  }
+}
+
+#ifdef USE_FULL_ASSERT
+void assert_failed(uint8_t *file, uint32_t line)
+{
+}
+#endif

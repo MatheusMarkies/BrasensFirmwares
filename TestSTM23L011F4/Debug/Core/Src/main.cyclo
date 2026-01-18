@@ -1,0 +1,17 @@
+../Core/Src/main.c:253:6:platform_delay	1
+../Core/Src/main.c:236:9:platform_i2c_write	1
+../Core/Src/main.c:242:9:platform_i2c_read	1
+../Core/Src/main.c:248:6:platform_set_lpd	1
+../Core/Src/main.c:98:6:Uint8ToHexStr	1
+../Core/Src/main.c:106:6:IntToDecStr	3
+../Core/Src/main.c:114:6:I2C_Scanner	4
+../Core/Src/main.c:156:9:ADS1115_Read	3
+../Core/Src/main.c:180:6:debug_print_int	3
+../Core/Src/main.c:200:6:rtc_start_wakeup	1
+../Core/Src/main.c:221:6:HAL_RTCEx_WakeUpTimerEventCallback	2
+../Core/Src/main.c:261:6:Setup_NFC	5
+../Core/Src/main.c:304:6:Loop_NFC	2
+../Core/Src/main.c:441:6:SystemClock_Config	4
+../Core/Src/main.c:209:6:enter_stop_mode	1
+../Core/Src/main.c:316:5:main	15
+../Core/Src/main.c:663:6:Error_Handler	1

@@ -9,8 +9,7 @@ C_SRCS += \
 ../Core/Src/st25dv_driver.c \
 ../Core/Src/stm32l0xx_hal_msp.c \
 ../Core/Src/stm32l0xx_it.c \
-../Core/Src/syscalls.c \
-../Core/Src/sysmem.c \
+../Core/Src/syscalls_stub.c \
 ../Core/Src/system_stm32l0xx.c 
 
 OBJS += \
@@ -18,8 +17,7 @@ OBJS += \
 ./Core/Src/st25dv_driver.o \
 ./Core/Src/stm32l0xx_hal_msp.o \
 ./Core/Src/stm32l0xx_it.o \
-./Core/Src/syscalls.o \
-./Core/Src/sysmem.o \
+./Core/Src/syscalls_stub.o \
 ./Core/Src/system_stm32l0xx.o 
 
 C_DEPS += \
@@ -27,8 +25,7 @@ C_DEPS += \
 ./Core/Src/st25dv_driver.d \
 ./Core/Src/stm32l0xx_hal_msp.d \
 ./Core/Src/stm32l0xx_it.d \
-./Core/Src/syscalls.d \
-./Core/Src/sysmem.d \
+./Core/Src/syscalls_stub.d \
 ./Core/Src/system_stm32l0xx.d 
 
 
@@ -39,7 +36,7 @@ Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/st25dv_driver.cyclo ./Core/Src/st25dv_driver.d ./Core/Src/st25dv_driver.o ./Core/Src/st25dv_driver.su ./Core/Src/stm32l0xx_hal_msp.cyclo ./Core/Src/stm32l0xx_hal_msp.d ./Core/Src/stm32l0xx_hal_msp.o ./Core/Src/stm32l0xx_hal_msp.su ./Core/Src/stm32l0xx_it.cyclo ./Core/Src/stm32l0xx_it.d ./Core/Src/stm32l0xx_it.o ./Core/Src/stm32l0xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32l0xx.cyclo ./Core/Src/system_stm32l0xx.d ./Core/Src/system_stm32l0xx.o ./Core/Src/system_stm32l0xx.su
+	-$(RM) ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/st25dv_driver.cyclo ./Core/Src/st25dv_driver.d ./Core/Src/st25dv_driver.o ./Core/Src/st25dv_driver.su ./Core/Src/stm32l0xx_hal_msp.cyclo ./Core/Src/stm32l0xx_hal_msp.d ./Core/Src/stm32l0xx_hal_msp.o ./Core/Src/stm32l0xx_hal_msp.su ./Core/Src/stm32l0xx_it.cyclo ./Core/Src/stm32l0xx_it.d ./Core/Src/stm32l0xx_it.o ./Core/Src/stm32l0xx_it.su ./Core/Src/syscalls_stub.cyclo ./Core/Src/syscalls_stub.d ./Core/Src/syscalls_stub.o ./Core/Src/syscalls_stub.su ./Core/Src/system_stm32l0xx.cyclo ./Core/Src/system_stm32l0xx.d ./Core/Src/system_stm32l0xx.o ./Core/Src/system_stm32l0xx.su
 
 .PHONY: clean-Core-2f-Src
 

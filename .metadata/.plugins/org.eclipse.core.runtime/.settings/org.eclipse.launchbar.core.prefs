@@ -1,7 +1,7 @@
 LaunchTargetManager/org.eclipse.launchbar.core.launchTargetType.local,Local/arch=x86_64
 LaunchTargetManager/org.eclipse.launchbar.core.launchTargetType.local,Local/name=Local
 LaunchTargetManager/org.eclipse.launchbar.core.launchTargetType.local,Local/os=win32
-configDescList=org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:Mainboard MonoChip Debug,org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TorquimeterReader Debug,org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:STM32L476RG_NUCLEO_Polling_NFC12 Debug,org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TagWithSTM32L0 Debug,org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TorquimetroTag Debug,org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:NFC12A1_Test Debug
+configDescList=org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:Mainboard MonoChip Debug,org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TorquimeterReader Debug,org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:STM32L476RG_NUCLEO_Polling_NFC12 Debug,org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TagWithSTM32L0 Debug,org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:NFC12A1_Test Debug,org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TorquimetroTag Release,org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TestSTM23L011F4 Debug
 eclipse.preferences.version=1
 org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:Debug\ Debug/activeLaunchMode=run
 org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:Debug\ Debug/activeLaunchTarget=null\:---

@@ -3,16 +3,21 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="true"/>
 	<list key="searchhistory">
-		<item value="HAL_GPIO_EXTI_Callback"/>
-		<item value="platformSpiSelect"/>
-		<item value="Falha na inicialização"/>
-		<item value="ST25R300_NSS_High"/>
-		<item value="printf"/>
-		<item value="hi2c1"/>
-		<item value="EngineControl_Init"/>
-		<item value="fabsf"/>
-		<item value="HAL_ADC_MODULE_ENABLED"/>
-		<item value="SENSOR"/>
+		<item value="RFAL_CRC_LEN"/>
+		<item value="DEMO_NFCV_BLOCK_LEN"/>
+		<item value="RFAL_NFCV_REQ_FLAG_DEFAULT"/>
+		<item value="demoNfcv"/>
+		<item value="discParam"/>
+		<item value="demoCycle"/>
+		<item value="no_war"/>
+		<item value="NO_WAR"/>
+		<item value="state"/>
+		<item value="demoT2t"/>
+		<item value="DEMO_ST_DISCOVERY"/>
+		<item value="ST_MEMCPY"/>
+		<item value="NFCID3"/>
+		<item value="demoIni"/>
+		<item value="BSP_NFC0XCOMM_Init"/>
 	</list>
 	<list key="replacehistory">
 		<item value="LOG"/>

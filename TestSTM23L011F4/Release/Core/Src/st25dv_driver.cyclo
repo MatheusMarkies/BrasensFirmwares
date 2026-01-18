@@ -1,0 +1,11 @@
+../Core/Src/st25dv_driver.c:30:9:ST25DV_ReadID	1
+../Core/Src/st25dv_driver.c:40:6:ST25DV_LPD_Enable	2
+../Core/Src/st25dv_driver.c:46:6:ST25DV_LPD_Disable	2
+../Core/Src/st25dv_driver.c:16:9:ST25DV_Init	6
+../Core/Src/st25dv_driver.c:57:9:ST25DV_EH_Enable_Dyn	2
+../Core/Src/st25dv_driver.c:66:9:ST25DV_EH_Disable_Dyn	2
+../Core/Src/st25dv_driver.c:75:6:ST25DV_Field_On	1
+../Core/Src/st25dv_driver.c:89:9:ST25DV_MB_Init	4
+../Core/Src/st25dv_driver.c:112:6:ST25DV_MB_HasMessageFromRF	1
+../Core/Src/st25dv_driver.c:120:9:ST25DV_MB_ReadMessage	3
+../Core/Src/st25dv_driver.c:146:9:ST25DV_MB_WriteMessage	3
