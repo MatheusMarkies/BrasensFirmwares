@@ -8,6 +8,7 @@
 #ifndef ST25DV_DRIVER_H
 #define ST25DV_DRIVER_H
 
+#include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -75,5 +76,8 @@ int32_t ST25DV_MB_Init(st25dv_io_t *io); // Habilita MB_MODE (Static)
 int32_t ST25DV_MB_WriteMessage(st25dv_io_t *io, uint8_t *pData, uint8_t len);
 int32_t ST25DV_MB_ReadMessage(st25dv_io_t *io, uint8_t *pData, uint8_t *pLen);
 bool    ST25DV_MB_HasMessageFromRF(st25dv_io_t *io);
+
+int32_t ST25DV_I2C_PresentPassword(st25dv_io_t *io);
+bool ST25DV_I2C_IsSessionOpen(st25dv_io_t *io); // <--- Adicionar
 
 #endif // ST25DV_DRIVER_H

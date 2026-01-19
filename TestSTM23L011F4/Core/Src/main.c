@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2026 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+ ******************************************************************************
+ * @file           : main.c
+ * @brief          : Main program body
+ ******************************************************************************
+ * @attention
+ *
+ * Copyright (c) 2026 STMicroelectronics.
+ * All rights reserved.
+ *
+ * This software is licensed under terms that can be found in the LICENSE file
+ * in the root directory of this software component.
+ * If no LICENSE file comes with this software, it is provided AS-IS.
+ *
+ ******************************************************************************
+ */
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -95,62 +95,65 @@ void I2C_Scanner(I2C_HandleTypeDef *hi2c);
 /* USER CODE BEGIN 0 */
 /* Função auxiliar para converter byte em Hex (ex: 0x2A) sem usar sprintf */
 /* Requer um buffer de pelo menos 3 bytes (2 digitos + \0) */
-void Uint8ToHexStr(uint8_t num, char* str) {
-    const char hexDigits[] = "0123456789ABCDEF";
-    str[0] = hexDigits[(num >> 4) & 0x0F]; // Nibble alto
-    str[1] = hexDigits[num & 0x0F];        // Nibble baixo
-    str[2] = '\0';                         // Terminador nulo
+void Uint8ToHexStr(uint8_t num, char *str) {
+	const char hexDigits[] = "0123456789ABCDEF";
+	str[0] = hexDigits[(num >> 4) & 0x0F]; // Nibble alto
+	str[1] = hexDigits[num & 0x0F];        // Nibble baixo
+	str[2] = '\0';                         // Terminador nulo
 }
 
 /* Função auxiliar para converter Inteiro em String decimal simples */
-void IntToDecStr(uint8_t num, char* str) {
-    uint8_t i = 0;
-    if(num >= 100) str[i++] = (num / 100) + '0';
-    if(num >= 10)  str[i++] = ((num / 10) % 10) + '0';
-    str[i++] = (num % 10) + '0';
-    str[i] = '\0';
+void IntToDecStr(uint8_t num, char *str) {
+	uint8_t i = 0;
+	if (num >= 100)
+		str[i++] = (num / 100) + '0';
+	if (num >= 10)
+		str[i++] = ((num / 10) % 10) + '0';
+	str[i++] = (num % 10) + '0';
+	str[i] = '\0';
 }
 
 void I2C_Scanner(I2C_HandleTypeDef *hi2c) {
-    // Reduzido de 64 bytes para apenas 4 bytes!
-    char smallBuf[4];
-    uint8_t devices_found = 0;
+	// Reduzido de 64 bytes para apenas 4 bytes!
+	char smallBuf[4];
+	uint8_t devices_found = 0;
 
-    DEBUG_PRINT("\r\n--- Scanning I2C bus ---\r\n");
+	DEBUG_PRINT("\r\n--- Scanning I2C bus ---\r\n");
 
-    for(uint8_t addr = 1; addr < 128; addr++) {
-        /* O HAL usa o endereço deslocado (shifted) à esquerda */
-        if(HAL_I2C_IsDeviceReady(hi2c, (uint16_t)(addr << 1), 2, 10) == HAL_OK) {
+	for (uint8_t addr = 1; addr < 128; addr++) {
+		/* O HAL usa o endereço deslocado (shifted) à esquerda */
+		if (HAL_I2C_IsDeviceReady(hi2c, (uint16_t) (addr << 1), 2, 10)
+				== HAL_OK) {
 
-            // Imprime em partes para não precisar de um buffer gigante
-            DEBUG_PRINT("Device found at: 0x");
+			// Imprime em partes para não precisar de um buffer gigante
+			DEBUG_PRINT("Device found at: 0x");
 
-            // Converte endereço 7-bit
-            Uint8ToHexStr(addr, smallBuf);
-            DEBUG_PRINT(smallBuf);
+			// Converte endereço 7-bit
+			Uint8ToHexStr(addr, smallBuf);
+			DEBUG_PRINT(smallBuf);
 
-            DEBUG_PRINT(" (8-bit: 0x");
+			DEBUG_PRINT(" (8-bit: 0x");
 
-            // Converte endereço 8-bit (write address)
-            Uint8ToHexStr(addr << 1, smallBuf);
-            DEBUG_PRINT(smallBuf);
+			// Converte endereço 8-bit (write address)
+			Uint8ToHexStr(addr << 1, smallBuf);
+			DEBUG_PRINT(smallBuf);
 
-            DEBUG_PRINT(")\r\n");
+			DEBUG_PRINT(")\r\n");
 
-            devices_found++;
-        }
-    }
+			devices_found++;
+		}
+	}
 
-    if(devices_found == 0) {
-        DEBUG_PRINT("No I2C devices found!\r\n");
-    } else {
-        DEBUG_PRINT("\r\nTotal devices found: ");
-        IntToDecStr(devices_found, smallBuf);
-        DEBUG_PRINT(smallBuf);
-        DEBUG_PRINT("\r\n");
-    }
+	if (devices_found == 0) {
+		DEBUG_PRINT("No I2C devices found!\r\n");
+	} else {
+		DEBUG_PRINT("\r\nTotal devices found: ");
+		IntToDecStr(devices_found, smallBuf);
+		DEBUG_PRINT(smallBuf);
+		DEBUG_PRINT("\r\n");
+	}
 
-    DEBUG_PRINT("--- Scan Complete ---\r\n");
+	DEBUG_PRINT("--- Scan Complete ---\r\n");
 }
 
 int16_t ADS1115_Read(void) {
@@ -283,6 +286,22 @@ void Setup_NFC(void) {
 		return;
 	}
 
+	status = ST25DV_I2C_PresentPassword(&st25_driver);
+	if (status == 0) {
+		DEBUG_PRINT("ST25DV Senha: OK (Sessao I2C Aberta)\r\n");
+	} else {
+		DEBUG_PRINT("ST25DV Senha: FALHA\r\n");
+	}
+
+	HAL_Delay(10);
+
+	if (ST25DV_I2C_IsSessionOpen(&st25_driver)) {
+		DEBUG_PRINT("Sessao I2C: ABERTA (Senha Correta)\r\n");
+	} else {
+		DEBUG_PRINT("Sessao I2C: FECHADA (Senha Incorreta ou Falha)\r\n");
+		// Se falhar aqui, o MB_Init abaixo vai falhar com certeza
+	}
+
 	status = ST25DV_EH_Enable_Dyn(&st25_driver);
 	if (status == 0) {
 		DEBUG_PRINT("ST25DV Energy Harvesting: HABILITADO\r\n");
@@ -307,41 +326,79 @@ void Loop_NFC(void) {
 		ST25DV_MB_WriteMessage(&st25_driver, msg, sizeof(msg));
 	}
 }
+
+/* Converte int32_t para string (ASCII) de forma leve */
+void LongToStr(int32_t num, char *str) {
+	int i = 0;
+	uint8_t isNegative = 0;
+
+	// Caso especial para 0
+	if (num == 0) {
+		str[0] = '0';
+		str[1] = '\0';
+		return;
+	}
+
+	// Lida com números negativos
+	if (num < 0) {
+		isNegative = 1;
+		num = -num; // Torna positivo para processamento
+	}
+
+	// Extrai dígitos (gera a string invertida)
+	while (num != 0) {
+		str[i++] = (num % 10) + '0';
+		num /= 10;
+	}
+
+	// Adiciona o sinal se necessário
+	if (isNegative) {
+		str[i++] = '-';
+	}
+
+	str[i] = '\0'; // Finaliza string
+
+	// Inverte a string para a ordem correta
+	for (int j = 0; j < i / 2; j++) {
+		char temp = str[j];
+		str[j] = str[i - 1 - j];
+		str[i - 1 - j] = temp;
+	}
+}
 /* USER CODE END 0 */
 
 /**
-  * @brief  The application entry point.
-  * @retval int
-  */
-int main(void)
-{
+ * @brief  The application entry point.
+ * @retval int
+ */
+int main(void) {
 
-  /* USER CODE BEGIN 1 */
+	/* USER CODE BEGIN 1 */
 
-  /* USER CODE END 1 */
+	/* USER CODE END 1 */
 
-  /* MCU Configuration--------------------------------------------------------*/
+	/* MCU Configuration--------------------------------------------------------*/
 
-  /* Reset of all peripherals, Initializes the Flash interface and the Systick. */
-  HAL_Init();
+	/* Reset of all peripherals, Initializes the Flash interface and the Systick. */
+	HAL_Init();
 
-  /* USER CODE BEGIN Init */
+	/* USER CODE BEGIN Init */
 
-  /* USER CODE END Init */
+	/* USER CODE END Init */
 
-  /* Configure the system clock */
-  SystemClock_Config();
+	/* Configure the system clock */
+	SystemClock_Config();
 
-  /* USER CODE BEGIN SysInit */
+	/* USER CODE BEGIN SysInit */
 
-  /* USER CODE END SysInit */
+	/* USER CODE END SysInit */
 
-  /* Initialize all configured peripherals */
-  MX_GPIO_Init();
-  MX_LPUART1_UART_Init();
-  MX_I2C1_Init();
-  MX_RTC_Init();
-  /* USER CODE BEGIN 2 */
+	/* Initialize all configured peripherals */
+	MX_GPIO_Init();
+	MX_LPUART1_UART_Init();
+	MX_I2C1_Init();
+	MX_RTC_Init();
+	/* USER CODE BEGIN 2 */
 	DEBUG_PRINT("--- Iniciando! ---\r\n");
 	I2C_Scanner(&hi2c1);
 	Setup_NFC();
@@ -352,13 +409,24 @@ int main(void)
 	int count = 0;
 	int16_t raw_adc = 0;
 
-	DEBUG_PRINT("Starting...\r\n");
-  /* USER CODE END 2 */
+	// Prepara o buffer com a string "12"
+	// (Em ASCII: '1' = 0x31, '2' = 0x32)
+	uint8_t nfc_buffer[] = "12";
+	uint8_t msg_len = 2;
 
-  /* Infinite loop */
-  /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+	// Tenta escrever na Mailbox
+	if (ST25DV_MB_WriteMessage(&st25_driver, nfc_buffer, msg_len) == 0) {
+		DEBUG_PRINT("NFC Updated: 12\r\n");
+	} else {
+		DEBUG_PRINT("NFC Write Failed (Busy?)\r\n");
+	}
+
+	DEBUG_PRINT("Starting...\r\n");
+	/* USER CODE END 2 */
+
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
+	while (1) {
 		switch (state) {
 		case CHARGING:
 			rtc_start_wakeup(CHARGING_INTERVAL_TICKS);
@@ -406,20 +474,39 @@ int main(void)
 
 				int32_t delta_bits = average - offset;
 
-				if (abs(delta_bits) > 0) {
-					voltage_uV = delta_bits * LSB_UV;
-					strain_uE = (delta_bits * USTRAIN_PER_BIT_x1000) / 1000;
+				// if (abs(delta_bits) > 0) { // Removido para atualizar mesmo se for 0
+				voltage_uV = delta_bits * LSB_UV;
+				strain_uE = (delta_bits * USTRAIN_PER_BIT_x1000) / 1000;
 
-					sum = 0;
-					count = 0;
+				sum = 0;
+				count = 0;
 
-					DEBUG_PRINT("voltage_uV:\r");
-					debug_print_int(voltage_uV);
-					DEBUG_PRINT("\r\n");
-					DEBUG_PRINT("strain_uE:\r");
-					debug_print_int(strain_uE);
-					DEBUG_PRINT("\r\n");
-				}
+				strain_uE = 0;
+
+				// --- Debug via UART ---
+				DEBUG_PRINT("strain_uE:\r");
+				debug_print_int(strain_uE);
+				DEBUG_PRINT("\r\n");
+
+				// --- ATUALIZAÇÃO NFC MAILBOX ---
+				// Buffer para string (sinal + 10 digitos + null)
+				char nfc_buffer[12];
+
+				// 1. Converter Inteiro para Texto Puro
+				LongToStr(strain_uE, nfc_buffer);
+
+				// 2. Enviar para o Mailbox
+				// O strlen é leve, mas se quiser otimizar, o retorno da LongToStr poderia ser o tamanho
+				int msg_len = strlen(nfc_buffer);
+
+				// Tenta escrever. Se retornar -2 (ocupado), ignoramos esta amostra
+				// ou forçamos (depende da sua lógica, aqui apenas tentamos atualizar)
+
+				//if (ST25DV_MB_WriteMessage(&st25_driver, (uint8_t*) nfc_buffer,
+				//		msg_len) == 0) {
+				//	DEBUG_PRINT("NFC Updated\r\n");
+				//}
+
 				state = CHARGING;
 			}
 
@@ -427,229 +514,218 @@ int main(void)
 			break;
 
 		}
-    /* USER CODE END WHILE */
+		/* USER CODE END WHILE */
 
-    /* USER CODE BEGIN 3 */
-  }
-  /* USER CODE END 3 */
+		/* USER CODE BEGIN 3 */
+	}
+	/* USER CODE END 3 */
 }
 
 /**
-  * @brief System Clock Configuration
-  * @retval None
-  */
-void SystemClock_Config(void)
-{
-  RCC_OscInitTypeDef RCC_OscInitStruct = {0};
-  RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
-  RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
+ * @brief System Clock Configuration
+ * @retval None
+ */
+void SystemClock_Config(void) {
+	RCC_OscInitTypeDef RCC_OscInitStruct = { 0 };
+	RCC_ClkInitTypeDef RCC_ClkInitStruct = { 0 };
+	RCC_PeriphCLKInitTypeDef PeriphClkInit = { 0 };
 
-  /** Configure the main internal regulator output voltage
-  */
-  __HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+	/** Configure the main internal regulator output voltage
+	 */
+	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
 
-  /** Initializes the RCC Oscillators according to the specified parameters
-  * in the RCC_OscInitTypeDef structure.
-  */
-  RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI|RCC_OSCILLATORTYPE_MSI;
-  RCC_OscInitStruct.LSIState = RCC_LSI_ON;
-  RCC_OscInitStruct.MSIState = RCC_MSI_ON;
-  RCC_OscInitStruct.MSICalibrationValue = 0;
-  RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;
-  RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
-  if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	/** Initializes the RCC Oscillators according to the specified parameters
+	 * in the RCC_OscInitTypeDef structure.
+	 */
+	RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_LSI
+			| RCC_OSCILLATORTYPE_MSI;
+	RCC_OscInitStruct.LSIState = RCC_LSI_ON;
+	RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+	RCC_OscInitStruct.MSICalibrationValue = 0;
+	RCC_OscInitStruct.MSIClockRange = RCC_MSIRANGE_5;
+	RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+	if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+		Error_Handler();
+	}
 
-  /** Initializes the CPU, AHB and APB buses clocks
-  */
-  RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                              |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
-  RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
-  RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
-  RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
-  RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+	/** Initializes the CPU, AHB and APB buses clocks
+	 */
+	RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+			| RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+	RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+	RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+	RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+	RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-  if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPUART1|RCC_PERIPHCLK_I2C1
-                              |RCC_PERIPHCLK_RTC;
-  PeriphClkInit.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK1;
-  PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
-  PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
-  if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_0) != HAL_OK) {
+		Error_Handler();
+	}
+	PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_LPUART1
+			| RCC_PERIPHCLK_I2C1 | RCC_PERIPHCLK_RTC;
+	PeriphClkInit.Lpuart1ClockSelection = RCC_LPUART1CLKSOURCE_PCLK1;
+	PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
+	PeriphClkInit.RTCClockSelection = RCC_RTCCLKSOURCE_LSI;
+	if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
+		Error_Handler();
+	}
 }
 
 /**
-  * @brief I2C1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_I2C1_Init(void)
-{
+ * @brief I2C1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_I2C1_Init(void) {
 
-  /* USER CODE BEGIN I2C1_Init 0 */
+	/* USER CODE BEGIN I2C1_Init 0 */
 
-  /* USER CODE END I2C1_Init 0 */
+	/* USER CODE END I2C1_Init 0 */
 
-  /* USER CODE BEGIN I2C1_Init 1 */
+	/* USER CODE BEGIN I2C1_Init 1 */
 
-  /* USER CODE END I2C1_Init 1 */
-  hi2c1.Instance = I2C1;
-  hi2c1.Init.Timing = 0x00000608;
-  hi2c1.Init.OwnAddress1 = 0;
-  hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
-  hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
-  hi2c1.Init.OwnAddress2 = 0;
-  hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
-  hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
-  hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
-  if (HAL_I2C_Init(&hi2c1) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	/* USER CODE END I2C1_Init 1 */
+	hi2c1.Instance = I2C1;
+	hi2c1.Init.Timing = 0x00000608;
+	hi2c1.Init.OwnAddress1 = 0;
+	hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
+	hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
+	hi2c1.Init.OwnAddress2 = 0;
+	hi2c1.Init.OwnAddress2Masks = I2C_OA2_NOMASK;
+	hi2c1.Init.GeneralCallMode = I2C_GENERALCALL_DISABLE;
+	hi2c1.Init.NoStretchMode = I2C_NOSTRETCH_DISABLE;
+	if (HAL_I2C_Init(&hi2c1) != HAL_OK) {
+		Error_Handler();
+	}
 
-  /** Configure Analogue filter
-  */
-  if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	/** Configure Analogue filter
+	 */
+	if (HAL_I2CEx_ConfigAnalogFilter(&hi2c1, I2C_ANALOGFILTER_ENABLE)
+			!= HAL_OK) {
+		Error_Handler();
+	}
 
-  /** Configure Digital filter
-  */
-  if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN I2C1_Init 2 */
+	/** Configure Digital filter
+	 */
+	if (HAL_I2CEx_ConfigDigitalFilter(&hi2c1, 0) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN I2C1_Init 2 */
 
-  /* USER CODE END I2C1_Init 2 */
+	/* USER CODE END I2C1_Init 2 */
 
 }
 
 /**
-  * @brief LPUART1 Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_LPUART1_UART_Init(void)
-{
+ * @brief LPUART1 Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_LPUART1_UART_Init(void) {
 
-  /* USER CODE BEGIN LPUART1_Init 0 */
+	/* USER CODE BEGIN LPUART1_Init 0 */
 
-  /* USER CODE END LPUART1_Init 0 */
+	/* USER CODE END LPUART1_Init 0 */
 
-  /* USER CODE BEGIN LPUART1_Init 1 */
+	/* USER CODE BEGIN LPUART1_Init 1 */
 
-  /* USER CODE END LPUART1_Init 1 */
-  hlpuart1.Instance = LPUART1;
-  hlpuart1.Init.BaudRate = 9600;
-  hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
-  hlpuart1.Init.StopBits = UART_STOPBITS_1;
-  hlpuart1.Init.Parity = UART_PARITY_NONE;
-  hlpuart1.Init.Mode = UART_MODE_TX_RX;
-  hlpuart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
-  hlpuart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
-  hlpuart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
-  if (HAL_UART_Init(&hlpuart1) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN LPUART1_Init 2 */
+	/* USER CODE END LPUART1_Init 1 */
+	hlpuart1.Instance = LPUART1;
+	hlpuart1.Init.BaudRate = 9600;
+	hlpuart1.Init.WordLength = UART_WORDLENGTH_8B;
+	hlpuart1.Init.StopBits = UART_STOPBITS_1;
+	hlpuart1.Init.Parity = UART_PARITY_NONE;
+	hlpuart1.Init.Mode = UART_MODE_TX_RX;
+	hlpuart1.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+	hlpuart1.Init.OneBitSampling = UART_ONE_BIT_SAMPLE_DISABLE;
+	hlpuart1.AdvancedInit.AdvFeatureInit = UART_ADVFEATURE_NO_INIT;
+	if (HAL_UART_Init(&hlpuart1) != HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN LPUART1_Init 2 */
 
-  /* USER CODE END LPUART1_Init 2 */
+	/* USER CODE END LPUART1_Init 2 */
 
 }
 
 /**
-  * @brief RTC Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_RTC_Init(void)
-{
+ * @brief RTC Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_RTC_Init(void) {
 
-  /* USER CODE BEGIN RTC_Init 0 */
+	/* USER CODE BEGIN RTC_Init 0 */
 
-  /* USER CODE END RTC_Init 0 */
+	/* USER CODE END RTC_Init 0 */
 
-  /* USER CODE BEGIN RTC_Init 1 */
+	/* USER CODE BEGIN RTC_Init 1 */
 
-  /* USER CODE END RTC_Init 1 */
+	/* USER CODE END RTC_Init 1 */
 
-  /** Initialize RTC Only
-  */
-  hrtc.Instance = RTC;
-  hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
-  hrtc.Init.AsynchPrediv = 127;
-  hrtc.Init.SynchPrediv = 255;
-  hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
-  hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_NONE;
-  hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
-  hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
-  if (HAL_RTC_Init(&hrtc) != HAL_OK)
-  {
-    Error_Handler();
-  }
+	/** Initialize RTC Only
+	 */
+	hrtc.Instance = RTC;
+	hrtc.Init.HourFormat = RTC_HOURFORMAT_24;
+	hrtc.Init.AsynchPrediv = 127;
+	hrtc.Init.SynchPrediv = 255;
+	hrtc.Init.OutPut = RTC_OUTPUT_DISABLE;
+	hrtc.Init.OutPutRemap = RTC_OUTPUT_REMAP_NONE;
+	hrtc.Init.OutPutPolarity = RTC_OUTPUT_POLARITY_HIGH;
+	hrtc.Init.OutPutType = RTC_OUTPUT_TYPE_OPENDRAIN;
+	if (HAL_RTC_Init(&hrtc) != HAL_OK) {
+		Error_Handler();
+	}
 
-  /** Enable the WakeUp
-  */
-  if (HAL_RTCEx_SetWakeUpTimer(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN RTC_Init 2 */
+	/** Enable the WakeUp
+	 */
+	if (HAL_RTCEx_SetWakeUpTimer_IT(&hrtc, 0, RTC_WAKEUPCLOCK_RTCCLK_DIV16)
+			!= HAL_OK) {
+		Error_Handler();
+	}
+	/* USER CODE BEGIN RTC_Init 2 */
 
-  /* USER CODE END RTC_Init 2 */
+	/* USER CODE END RTC_Init 2 */
 
 }
 
 /**
-  * @brief GPIO Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_GPIO_Init(void)
-{
-  GPIO_InitTypeDef GPIO_InitStruct = {0};
-  /* USER CODE BEGIN MX_GPIO_Init_1 */
+ * @brief GPIO Initialization Function
+ * @param None
+ * @retval None
+ */
+static void MX_GPIO_Init(void) {
+	GPIO_InitTypeDef GPIO_InitStruct = { 0 };
+	/* USER CODE BEGIN MX_GPIO_Init_1 */
 
-  /* USER CODE END MX_GPIO_Init_1 */
+	/* USER CODE END MX_GPIO_Init_1 */
 
-  /* GPIO Ports Clock Enable */
-  __HAL_RCC_GPIOC_CLK_ENABLE();
-  __HAL_RCC_GPIOA_CLK_ENABLE();
+	/* GPIO Ports Clock Enable */
+	__HAL_RCC_GPIOC_CLK_ENABLE();
+	__HAL_RCC_GPIOA_CLK_ENABLE();
 
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(LPD_GPIO_Port, LPD_Pin, GPIO_PIN_RESET);
+	/*Configure GPIO pin Output Level */
+	HAL_GPIO_WritePin(LPD_GPIO_Port, LPD_Pin, GPIO_PIN_RESET);
 
-  /*Configure GPIO pin : NFC_INTERRUPT_Pin */
-  GPIO_InitStruct.Pin = NFC_INTERRUPT_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(NFC_INTERRUPT_GPIO_Port, &GPIO_InitStruct);
+	/*Configure GPIO pin : NFC_INTERRUPT_Pin */
+	GPIO_InitStruct.Pin = NFC_INTERRUPT_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	HAL_GPIO_Init(NFC_INTERRUPT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LPD_Pin */
-  GPIO_InitStruct.Pin = LPD_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LPD_GPIO_Port, &GPIO_InitStruct);
+	/*Configure GPIO pin : LPD_Pin */
+	GPIO_InitStruct.Pin = LPD_Pin;
+	GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+	GPIO_InitStruct.Pull = GPIO_NOPULL;
+	GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+	HAL_GPIO_Init(LPD_GPIO_Port, &GPIO_InitStruct);
 
-  /* EXTI interrupt init*/
-  HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
+	/* EXTI interrupt init*/
+	HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
+	HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
 
-  /* USER CODE BEGIN MX_GPIO_Init_2 */
+	/* USER CODE BEGIN MX_GPIO_Init_2 */
 
-  /* USER CODE END MX_GPIO_Init_2 */
+	/* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
@@ -657,20 +733,17 @@ static void MX_GPIO_Init(void)
 /* USER CODE END 4 */
 
 /**
-  * @brief  This function is executed in case of error occurrence.
-  * @retval None
-  */
-void Error_Handler(void)
-{
-  /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
+ * @brief  This function is executed in case of error occurrence.
+ * @retval None
+ */
+void Error_Handler(void) {
+	/* USER CODE BEGIN Error_Handler_Debug */
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	while (1) {
 
-
-  }
-  /* USER CODE END Error_Handler_Debug */
+	}
+	/* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT
 /**

@@ -164,3 +164,37 @@ int32_t ST25DV_MB_WriteMessage(st25dv_io_t *io, uint8_t *pData, uint8_t len) {
 
     return 0;
 }
+
+/* st25dv_driver.c */
+
+// Definição do endereço do comando Present Password (System area)
+#define ST25DV_I2C_PWD_REG  0x0900
+#define ST25DV_VALIDATION_CODE 0x09
+
+int32_t ST25DV_I2C_PresentPassword(st25dv_io_t *io) {
+    uint8_t payload[17];
+    uint8_t password[8] = {0,0,0,0,0,0,0,0}; // Senha padrão (64 bits de 0)
+
+    // 1. Primeiros 8 bytes da senha
+    memcpy(&payload[0], password, 8);
+
+    // 2. Código de Validação para "Present Password" é 0x09 (Não confundir com 0x07 de Write) [cite: 2157]
+    payload[8] = 0x09;
+
+    // 3. Repetição da senha (8 bytes)
+    memcpy(&payload[9], password, 8);
+
+    // Envia para o registro 0x0900 na área de sistema (0xAE)
+    return io->i2c_write(ST25DV_ADDR_SYSCFG, 0x0900, payload, 17);
+}
+
+// Nova função para verificar se a sessão realmente abriu
+// Lê o registro I2C_SSO_Dyn (0x2004) [cite: 614]
+bool ST25DV_I2C_IsSessionOpen(st25dv_io_t *io) {
+    uint8_t reg_val = 0;
+    // Endereço 0x2004 fica na memória do usuário/dinâmica (E2=0 -> 0xA6/0x53)
+    io->i2c_read(ST25DV_ADDR_USER_DYN, 0x2004, &reg_val, 1);
+
+    // Bit 0 = 1 significa Sessão Aberta [cite: 1595]
+    return (reg_val & 0x01) ? true : false;
+}

@@ -9,3 +9,5 @@
 ../Core/Src/st25dv_driver.c:112:6:ST25DV_MB_HasMessageFromRF	1
 ../Core/Src/st25dv_driver.c:120:9:ST25DV_MB_ReadMessage	3
 ../Core/Src/st25dv_driver.c:146:9:ST25DV_MB_WriteMessage	3
+../Core/Src/st25dv_driver.c:174:9:ST25DV_I2C_PresentPassword	1
+../Core/Src/st25dv_driver.c:193:6:ST25DV_I2C_IsSessionOpen	1

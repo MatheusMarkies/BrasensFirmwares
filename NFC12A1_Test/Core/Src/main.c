@@ -165,54 +165,78 @@ static void nfcv(rfalNfcvListenDevice *nfcvDev)
 {
 #if RFAL_FEATURE_NFCV
     ReturnCode err;
-    uint8_t mbLen;       // Armazena o comprimento retornado pela tag (Len - 1)
-    uint8_t rxBuf[256];  // Buffer para receber os dados do sensor
-    uint16_t rcvLen;     // Quantidade real de bytes recebidos da RFAL
+    uint8_t mbLen;
+    uint8_t rxBuf[256];
+    uint16_t rcvLen;
 
-    /* Configura flag para modo endereçado (Addressed) e High Data Rate
-       O ST25DV requer endereçamento (UID) para comandos de sistema/mailbox */
-    uint8_t reqFlag = RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS;
+    /* CONFIGURAÇÃO DE ROBUSTEZ:
+       Removemos o DEFAULT (High Data Rate) e usamos apenas ADDRESS.
+       Isso força a comunicação a 26kbps (mais lenta), mas muito mais estável
+       para ler Mailbox com pouca energia. */
+    uint8_t reqFlag = RFAL_NFCV_REQ_FLAG_ADDRESS;
 
-    err = rfalST25xVPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
+    /* --- PARTE 1: Ler Comprimento com Retry --- */
+    /* O Erro 4 (Proto) pode ocorrer se a tag ainda estiver acordando o VCC via Energy Harvesting */
+    uint8_t retries_len = 5;
+
+    do {
+        err = rfalST25xVPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
+
+        if (err == ERR_NONE) break; // Sucesso
+
+        // Se der erro 4 (Proto), a tag pode estar sem VCC estável ou ocupada
+        platformLog("Erro Comprimento: %d. Tentando novamente...\r\n", err);
+        platformDelay(20); // Espera o VCC estabilizar ou a tag liberar o buffer
+        retries_len--;
+    } while (retries_len > 0);
+
 
     if (err == ERR_NONE)
     {
         uint16_t actualMessageLen = mbLen + 1;
+        platformLog("Msg detectada: %d bytes\r\n", actualMessageLen);
 
-        platformLog("Msg detectada no Mailbox: %d bytes\r\n", actualMessageLen);
+        /* Delay mandatório para o ST25DV preparar o buffer de saída */
+        platformDelay(10);
 
-        err = rfalST25xVPollerReadMessage(reqFlag, nfcvDev->InvRes.UID, 0, actualMessageLen, rxBuf, sizeof(rxBuf), &rcvLen);
+        /* --- PARTE 2: Ler Corpo da Mensagem com Retry --- */
+        uint8_t retries_msg = 3;
+        do {
+            err = rfalST25xVPollerReadMessage(reqFlag, nfcvDev->InvRes.UID, 0, actualMessageLen, rxBuf, sizeof(rxBuf), &rcvLen);
+
+            if (err == ERR_NONE) break;
+
+            platformLog("Erro Corpo: %d. Retry...\r\n", err);
+            platformDelay(15);
+            retries_msg--;
+        } while (retries_msg > 0);
 
         if (err == ERR_NONE)
         {
-            platformLog("DADOS BRUTOS (Hex): ");
-            for(int i=0; i<rcvLen; i++)
-            {
-                platformLog("%02X ", rxBuf[i]);
+            platformLog("VALOR LIDO: ");
+            // Imprime como string (ASCII) para ver o "12"
+            for(int i=0; i<rcvLen; i++) {
+                platformLog("%c", (char)rxBuf[i]);
             }
             platformLog("\r\n");
-
-            if(rcvLen >= 2)
-            {
-                uint16_t rawTorque = (rxBuf[0] << 8) | rxBuf[1];
-                platformLog(">> Leitura do Sensor: %d\r\n", rawTorque);
-            }
         }
         else
         {
-            platformLog("Erro ao ler o corpo da mensagem: %d\r\n", err);
+            platformLog("Falha na leitura dos dados: %d\r\n", err);
         }
     }
     else
     {
-        /* Erros comuns aqui:
-           ERR_PROTO: O Mailbox não está ativado na configuração da Tag.
-           ERR_TIMEOUT: A tag saiu do campo. */
-         platformLog("Nenhuma mensagem no Mailbox ou recurso desativado (Erro %d)\r\n", err);
+         if(err == 4) { // ERR_PROTO
+             platformLog("FALHA CRÍTICA (Erro 4): Mailbox desativado ou VCC ausente na Tag.\r\n");
+         } else {
+             platformLog("Não foi possível ler a mensagem (Erro %d)\r\n", err);
+         }
     }
 
 #endif /* RFAL_FEATURE_NFCV */
 }
+
 void stop(void)
 {
   rfalNfcDeactivate( RFAL_NFC_DEACTIVATE_IDLE );

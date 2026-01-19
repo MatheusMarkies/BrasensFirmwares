@@ -173,6 +173,8 @@ Discarded input sections
                 0x00000000       0x48 ./Core/Src/st25dv_driver.o
  .text.ST25DV_MB_WriteMessage
                 0x00000000       0x44 ./Core/Src/st25dv_driver.o
+ .text.ST25DV_I2C_PresentPassword
+                0x00000000       0x2a ./Core/Src/st25dv_driver.o
  .comment       0x00000000       0x44 ./Core/Src/st25dv_driver.o
  .ARM.attributes
                 0x00000000       0x2c ./Core/Src/st25dv_driver.o

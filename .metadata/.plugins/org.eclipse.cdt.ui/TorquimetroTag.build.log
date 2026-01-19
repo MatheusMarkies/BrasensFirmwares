@@ -1,10 +1,30 @@
-18:56:54 **** Incremental Build of configuration Debug for project TorquimetroTag ****
+19:28:20 **** Incremental Build of configuration Release for project TorquimetroTag ****
 make -j12 all 
+arm-none-eabi-gcc "../Core/Src/st25dv_driver.c" -mcpu=cortex-m0plus -std=gnu11 -DUSE_HAL_DRIVER -DSTM32L011xx -c -I../Core/Inc -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/Legacy" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Device/ST/STM32L0xx/Include" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Include" -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/st25dv_driver.d" -MT"Core/Src/st25dv_driver.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/st25dv_driver.o"
+../Core/Src/st25dv_driver.c: In function 'ST25DV_I2C_PresentPassword':
+../Core/Src/st25dv_driver.c:186:5: warning: implicit declaration of function 'memset' [-Wimplicit-function-declaration]
+  186 |     memset(&payload[1], 0x00, 16);
+      |     ^~~~~~
+../Core/Src/st25dv_driver.c:10:1: note: include '<string.h>' or provide a declaration of 'memset'
+    9 | #include "st25dv_driver.h"
+  +++ |+#include <string.h>
+   10 | 
+../Core/Src/st25dv_driver.c:186:5: warning: incompatible implicit declaration of built-in function 'memset' [-Wbuiltin-declaration-mismatch]
+  186 |     memset(&payload[1], 0x00, 16);
+      |     ^~~~~~
+../Core/Src/st25dv_driver.c:186:5: note: include '<string.h>' or provide a declaration of 'memset'
+arm-none-eabi-gcc -o "TorquimetroTag.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TorquimetroTag\STM32L011F4UX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimetroTag.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+C:/ST/STM32CubeIDE_1.16.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/bin/ld.exe: warning: cannot find entry symbol Reset_Handler; defaulting to 08000000
+Finished building target: TorquimetroTag.elf
+ 
 arm-none-eabi-size  TorquimetroTag.elf 
+arm-none-eabi-objdump -h -S TorquimetroTag.elf  > "TorquimetroTag.list"
    text	   data	    bss	    dec	    hex	filename
     104	      0	   1568	   1672	    688	TorquimetroTag.elf
 Finished building: default.size.stdout
  
+Finished building: TorquimetroTag.list
+ 
 
-18:56:54 Build Finished. 0 errors, 0 warnings. (took 247ms)
+19:28:21 Build Finished. 0 errors, 3 warnings. (took 549ms)
 
