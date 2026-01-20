@@ -34,7 +34,8 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 #define LSB_UV 63
-#define USTRAIN_PER_BIT_x1000 131
+// Ajuste este valor na calibração prática com um peso conhecido
+#define USTRAIN_PER_BIT_x1000 1506
 
 #define ADS1115_ADDR  (0x48 << 1)
 
@@ -43,7 +44,7 @@
 
 #define CHARGING_INTERVAL_TICKS 1
 static uint16_t wakeup_counter = 0;
-static uint16_t wakeup_cycles = 2; //CHARGING_INTERVAL_MS / (8 * 1000);
+static uint16_t wakeup_cycles = 5; //CHARGING_INTERVAL_MS / (8 * 1000);
 
 #define READING_SAMPLING_INTERVAL_MS 4
 
@@ -162,7 +163,18 @@ int16_t ADS1115_Read(void) {
 	int16_t raw_val;
 
 	config[0] = ADS_REG_CONF;
+	// --- CONFIGURAÇÃO DO MSB (Byte mais significativo) ---
+	// Bit 15 (OS): 1 (Start Single Conversion)
+	// Bits 14-12 (MUX): 100 -> AIN0 vs GND (Single-Ended) <--- CORRETO PARA SEU CIRCUITO
+	// Bits 11-9 (PGA): 010 -> +/- 2.048V (Cobre seu range de 0 a 2V)
+	// Bit 8 (MODE): 1 (Single-Shot)
+	// Binário: 1100 0101 = 0xC5
 	config[1] = 0xC5;
+
+	// --- CONFIGURAÇÃO DO LSB (Byte menos significativo) ---
+	// Bits 7-5 (DR): 100 -> 128 SPS (Padrão)
+	// Bits 4-0 (COMP): Padrão (Disable comparator)
+	// Binário: 1000 0011 = 0x83
 	config[2] = 0x83;
 
 	if (HAL_I2C_Master_Transmit(&hi2c1, ADS1115_ADDR, config, 3, 100) != HAL_OK)
@@ -182,7 +194,7 @@ int16_t ADS1115_Read(void) {
 
 void debug_print_int(int32_t v) {
 	char buf[12];
-	int i = 10;
+	int i = 9; // <--- MUDADO DE 10 PARA 9 (Para proteger buf[10])
 
 	if (v < 0) {
 		HAL_UART_Transmit(&hlpuart1, (uint8_t*) "-", 1, 100);
@@ -194,9 +206,12 @@ void debug_print_int(int32_t v) {
 		v /= 10;
 	} while (v);
 
-	buf[11] = '\n';
+	// Agora buf[10] e buf[11] estão seguros
 	buf[10] = '\r';
+	buf[11] = '\n';
 
+	// O tamanho a transmitir é: (11 - i)
+	// Ex: Se v=0 -> i=8. Start=&buf[9] ('0'). Len = 11-8 = 3 ('0','\r','\n')
 	HAL_UART_Transmit(&hlpuart1, (uint8_t*) &buf[i + 1], 11 - i, 100);
 }
 
@@ -409,18 +424,6 @@ int main(void) {
 	int count = 0;
 	int16_t raw_adc = 0;
 
-	// Prepara o buffer com a string "12"
-	// (Em ASCII: '1' = 0x31, '2' = 0x32)
-	uint8_t nfc_buffer[] = "12";
-	uint8_t msg_len = 2;
-
-	// Tenta escrever na Mailbox
-	if (ST25DV_MB_WriteMessage(&st25_driver, nfc_buffer, msg_len) == 0) {
-		DEBUG_PRINT("NFC Updated: 12\r\n");
-	} else {
-		DEBUG_PRINT("NFC Write Failed (Busy?)\r\n");
-	}
-
 	DEBUG_PRINT("Starting...\r\n");
 	/* USER CODE END 2 */
 
@@ -434,7 +437,7 @@ int main(void) {
 			break;
 
 		case TARING:
-			raw_adc = ADS1115_Read() * -1;
+			raw_adc = ADS1115_Read();
 
 			if (abs(raw_adc) > 0) {
 				if (count <= SAMPLES_FOR_TARING) {
@@ -445,7 +448,7 @@ int main(void) {
 					count = 0;
 					sum = 0;
 
-					DEBUG_PRINT("offset:\r");
+					DEBUG_PRINT("offset: \r\n");
 					debug_print_int(offset);
 					DEBUG_PRINT("\r\n");
 
@@ -464,7 +467,7 @@ int main(void) {
 			break;
 
 		case PROCESSING:
-			raw_adc = ADS1115_Read() * -1;
+			raw_adc = ADS1115_Read();
 
 			sum += raw_adc;
 			count++;
@@ -481,31 +484,33 @@ int main(void) {
 				sum = 0;
 				count = 0;
 
-				strain_uE = 0;
-
+				DEBUG_PRINT("voltage_uV: \r\n");
+				debug_print_int(voltage_uV);
+				DEBUG_PRINT("\r\n");
 				// --- Debug via UART ---
-				DEBUG_PRINT("strain_uE:\r");
+				DEBUG_PRINT("strain_uE: \r\n");
 				debug_print_int(strain_uE);
 				DEBUG_PRINT("\r\n");
 
 				// --- ATUALIZAÇÃO NFC MAILBOX ---
 				// Buffer para string (sinal + 10 digitos + null)
+				//char nfc_buffer[12];
 				char nfc_buffer[12];
 
-				// 1. Converter Inteiro para Texto Puro
+				// 2. Converter o valor REAL (strain_uE) para Texto Puro
 				LongToStr(strain_uE, nfc_buffer);
 
-				// 2. Enviar para o Mailbox
-				// O strlen é leve, mas se quiser otimizar, o retorno da LongToStr poderia ser o tamanho
-				int msg_len = strlen(nfc_buffer);
+				// 3. Calcular o tamanho da mensagem gerada
+				uint8_t msg_len = (uint8_t) strlen(nfc_buffer);
 
-				// Tenta escrever. Se retornar -2 (ocupado), ignoramos esta amostra
-				// ou forçamos (depende da sua lógica, aqui apenas tentamos atualizar)
-
-				//if (ST25DV_MB_WriteMessage(&st25_driver, (uint8_t*) nfc_buffer,
-				//		msg_len) == 0) {
-				//	DEBUG_PRINT("NFC Updated\r\n");
-				//}
+				// 4. Enviar para o Mailbox
+				// Cast para (uint8_t*) é necessário pois a função espera bytes crus
+				if (ST25DV_MB_WriteMessage(&st25_driver, (uint8_t*) nfc_buffer,
+						msg_len) == 0) {
+					DEBUG_PRINT("NFC Updated\r\n");
+				} else {
+					DEBUG_PRINT("NFC Write Failed (Busy?)\r\n");
+				}
 
 				state = CHARGING;
 			}

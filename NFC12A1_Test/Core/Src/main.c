@@ -163,30 +163,34 @@ bool ini(void)
 
 static void nfcv(rfalNfcvListenDevice *nfcvDev)
 {
-#if RFAL_FEATURE_NFCV
     ReturnCode err;
     uint8_t mbLen;
     uint8_t rxBuf[256];
     uint16_t rcvLen;
 
-    /* CONFIGURAÇÃO DE ROBUSTEZ:
-       Removemos o DEFAULT (High Data Rate) e usamos apenas ADDRESS.
-       Isso força a comunicação a 26kbps (mais lenta), mas muito mais estável
-       para ler Mailbox com pouca energia. */
-    uint8_t reqFlag = RFAL_NFCV_REQ_FLAG_ADDRESS;
+    /* CONFIGURAÇÃO DE RF ROBUSTA
+       - DEFAULT: High Data Rate (Tenta manter 26kbps)
+       - ADDRESS: Obrigatório
+       - 0x01: Double Sub-carrier (Melhora a leitura em sinal fraco) */
+    uint8_t reqFlag = RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS | 0x01;
 
-    /* --- PARTE 1: Ler Comprimento com Retry --- */
-    /* O Erro 4 (Proto) pode ocorrer se a tag ainda estiver acordando o VCC via Energy Harvesting */
+    // --- BLOCO 1: Ler Tamanho (Length) com Retry ---
+    // O erro 9 (CRC) costuma ser passageiro. Tentar de novo resolve.
     uint8_t retries_len = 5;
 
     do {
         err = rfalST25xVPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
 
-        if (err == ERR_NONE) break; // Sucesso
+        if (err == ERR_NONE) break; // Sucesso!
 
-        // Se der erro 4 (Proto), a tag pode estar sem VCC estável ou ocupada
-        platformLog("Erro Comprimento: %d. Tentando novamente...\r\n", err);
-        platformDelay(20); // Espera o VCC estabilizar ou a tag liberar o buffer
+        // Se for erro 9 (CRC) ou 5 (Timeout), vale a pena tentar rápido de novo
+        if (err == 9 || err == 5) {
+            platformLog("Erro %d no Length. Retry %d...\r\n", err, retries_len);
+            platformDelay(10);
+        } else {
+            // Se for erro 4 (Proto) ou outro grave, talvez não adiante insistir tanto
+            platformDelay(10);
+        }
         retries_len--;
     } while (retries_len > 0);
 
@@ -194,47 +198,38 @@ static void nfcv(rfalNfcvListenDevice *nfcvDev)
     if (err == ERR_NONE)
     {
         uint16_t actualMessageLen = mbLen + 1;
-        platformLog("Msg detectada: %d bytes\r\n", actualMessageLen);
+        platformLog("Msg detectada: %d bytes. Aguardando I2C...\r\n", actualMessageLen);
 
-        /* Delay mandatório para o ST25DV preparar o buffer de saída */
-        platformDelay(10);
+        /* Delay para o ST25DV liberar o buffer (Arbitragem I2C vs RF) */
+        platformDelay(40);
 
-        /* --- PARTE 2: Ler Corpo da Mensagem com Retry --- */
-        uint8_t retries_msg = 3;
+        // --- BLOCO 2: Ler Corpo (Body) com Retry ---
+        uint8_t retries_msg = 5;
         do {
             err = rfalST25xVPollerReadMessage(reqFlag, nfcvDev->InvRes.UID, 0, actualMessageLen, rxBuf, sizeof(rxBuf), &rcvLen);
 
             if (err == ERR_NONE) break;
 
-            platformLog("Erro Corpo: %d. Retry...\r\n", err);
-            platformDelay(15);
+            platformLog("Erro %d no corpo. Retry %d...\r\n", err, retries_msg);
+            platformDelay(20 + ((5-retries_msg)*10)); // Delay progressivo
             retries_msg--;
         } while (retries_msg > 0);
 
         if (err == ERR_NONE)
         {
-            platformLog("VALOR LIDO: ");
-            // Imprime como string (ASCII) para ver o "12"
-            for(int i=0; i<rcvLen; i++) {
-                platformLog("%c", (char)rxBuf[i]);
-            }
-            platformLog("\r\n");
+            if(rcvLen < sizeof(rxBuf)) rxBuf[rcvLen] = '\0';
+            platformLog(">> STRAIN LIDO: %s uE\r\n", (char*)rxBuf);
         }
         else
         {
-            platformLog("Falha na leitura dos dados: %d\r\n", err);
+            platformLog("Falha final no corpo: %d\r\n", err);
         }
     }
     else
     {
-         if(err == 4) { // ERR_PROTO
-             platformLog("FALHA CRÍTICA (Erro 4): Mailbox desativado ou VCC ausente na Tag.\r\n");
-         } else {
-             platformLog("Não foi possível ler a mensagem (Erro %d)\r\n", err);
-         }
+        // Só mostra o erro se realmente falhou todas as 5 tentativas
+        platformLog("Falha critica no Length: %d\r\n", err);
     }
-
-#endif /* RFAL_FEATURE_NFCV */
 }
 
 void stop(void)

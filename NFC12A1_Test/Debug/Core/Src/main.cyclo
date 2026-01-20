@@ -1,10 +1,10 @@
 ../Core/Src/main.c:85:9:BSP_NFC0XCOMM_SendRecv	8
 ../Core/Src/main.c:105:13:notif	4
 ../Core/Src/main.c:129:6:ini	3
-../Core/Src/main.c:164:13:nfcv	9
-../Core/Src/main.c:240:6:stop	1
-../Core/Src/main.c:251:5:main	9
-../Core/Src/main.c:407:6:SystemClock_Config	3
-../Core/Src/main.c:446:13:MX_USART2_UART_Init	2
-../Core/Src/main.c:479:13:MX_GPIO_Init	1
-../Core/Src/main.c:544:6:Error_Handler	1
+../Core/Src/main.c:164:13:nfcv	10
+../Core/Src/main.c:235:6:stop	1
+../Core/Src/main.c:246:5:main	9
+../Core/Src/main.c:402:6:SystemClock_Config	3
+../Core/Src/main.c:441:13:MX_USART2_UART_Init	2
+../Core/Src/main.c:474:13:MX_GPIO_Init	1
+../Core/Src/main.c:539:6:Error_Handler	1

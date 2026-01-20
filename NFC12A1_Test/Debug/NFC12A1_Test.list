@@ -7,45 +7,45 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
   1 .text         0000add0  0800010c  0800010c  0000110c  2**2
                   CONTENTS, ALLOC, LOAD, READONLY, CODE
-  2 .rodata       000005f8  0800aedc  0800aedc  0000bedc  2**2
+  2 .rodata       000005a4  0800aedc  0800aedc  0000bedc  2**2
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  3 .ARM.extab    00000000  0800b4d4  0800b4d4  0000d05c  2**0
+  3 .ARM.extab    00000000  0800b480  0800b480  0000d05c  2**0
                   CONTENTS, READONLY
-  4 .ARM          00000008  0800b4d4  0800b4d4  0000c4d4  2**2
+  4 .ARM          00000008  0800b480  0800b480  0000c480  2**2
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  5 .preinit_array 00000000  0800b4dc  0800b4dc  0000d05c  2**0
+  5 .preinit_array 00000000  0800b488  0800b488  0000d05c  2**0
                   CONTENTS, ALLOC, LOAD, DATA
-  6 .init_array   00000004  0800b4dc  0800b4dc  0000c4dc  2**2
+  6 .init_array   00000004  0800b488  0800b488  0000c488  2**2
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  7 .fini_array   00000004  0800b4e0  0800b4e0  0000c4e0  2**2
+  7 .fini_array   00000004  0800b48c  0800b48c  0000c48c  2**2
                   CONTENTS, ALLOC, LOAD, READONLY, DATA
-  8 .data         0000005c  20000000  0800b4e4  0000d000  2**2
+  8 .data         0000005c  20000000  0800b490  0000d000  2**2
                   CONTENTS, ALLOC, LOAD, DATA
-  9 .bss          00000f0c  2000005c  0800b540  0000d05c  2**2
+  9 .bss          00000f0c  2000005c  0800b4ec  0000d05c  2**2
                   ALLOC
- 10 ._user_heap_stack 00000600  20000f68  0800b540  0000df68  2**0
+ 10 ._user_heap_stack 00000600  20000f68  0800b4ec  0000df68  2**0
                   ALLOC
  11 .ARM.attributes 00000029  00000000  00000000  0000d05c  2**0
                   CONTENTS, READONLY
- 12 .debug_info   00016de5  00000000  00000000  0000d085  2**0
+ 12 .debug_info   00016dcf  00000000  00000000  0000d085  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 13 .debug_abbrev 00003deb  00000000  00000000  00023e6a  2**0
+ 13 .debug_abbrev 00003deb  00000000  00000000  00023e54  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 14 .debug_aranges 00001418  00000000  00000000  00027c58  2**3
+ 14 .debug_aranges 00001418  00000000  00000000  00027c40  2**3
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 15 .debug_rnglists 00000f44  00000000  00000000  00029070  2**0
+ 15 .debug_rnglists 00000f44  00000000  00000000  00029058  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 16 .debug_macro  0002094e  00000000  00000000  00029fb4  2**0
+ 16 .debug_macro  0002094e  00000000  00000000  00029f9c  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 17 .debug_line   00019df2  00000000  00000000  0004a902  2**0
+ 17 .debug_line   00019de8  00000000  00000000  0004a8ea  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 18 .debug_str    000a74e1  00000000  00000000  000646f4  2**0
+ 18 .debug_str    000a74e1  00000000  00000000  000646d2  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .comment      00000043  00000000  00000000  0010bbd5  2**0
+ 19 .comment      00000043  00000000  00000000  0010bbb3  2**0
                   CONTENTS, READONLY
- 20 .debug_frame  000055e0  00000000  00000000  0010bc18  2**2
+ 20 .debug_frame  000055e0  00000000  00000000  0010bbf8  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 21 .debug_line_str 0000004f  00000000  00000000  001111f8  2**0
+ 21 .debug_line_str 0000004f  00000000  00000000  001111d8  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
 
 Disassembly of section .text:
@@ -381,215 +381,214 @@ bool ini(void)
 static void nfcv(rfalNfcvListenDevice *nfcvDev)
 {
  8000330:	b580      	push	{r7, lr}
- 8000332:	b0cc      	sub	sp, #304	@ 0x130
+ 8000332:	b0ca      	sub	sp, #296	@ 0x128
  8000334:	af04      	add	r7, sp, #16
- 8000336:	f507 7390 	add.w	r3, r7, #288	@ 0x120
- 800033a:	f5a3 738e 	sub.w	r3, r3, #284	@ 0x11c
+ 8000336:	f507 738c 	add.w	r3, r7, #280	@ 0x118
+ 800033a:	f5a3 738a 	sub.w	r3, r3, #276	@ 0x114
  800033e:	6018      	str	r0, [r3, #0]
 
-    /* CONFIGURAÇÃO DE ROBUSTEZ:
-       Removemos o DEFAULT (High Data Rate) e usamos apenas ADDRESS.
-       Isso força a comunicação a 26kbps (mais lenta), mas muito mais estável
-       para ler Mailbox com pouca energia. */
-    uint8_t reqFlag = RFAL_NFCV_REQ_FLAG_ADDRESS;
- 8000340:	2320      	movs	r3, #32
- 8000342:	f887 3117 	strb.w	r3, [r7, #279]	@ 0x117
+    /* CONFIGURAÇÃO DE RF ROBUSTA
+       - DEFAULT: High Data Rate (Tenta manter 26kbps)
+       - ADDRESS: Obrigatório
+       - 0x01: Double Sub-carrier (Melhora a leitura em sinal fraco) */
+    uint8_t reqFlag = RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS | 0x01;
+ 8000340:	2323      	movs	r3, #35	@ 0x23
+ 8000342:	f887 3115 	strb.w	r3, [r7, #277]	@ 0x115
 
-    /* --- PARTE 1: Ler Comprimento com Retry --- */
-    /* O Erro 4 (Proto) pode ocorrer se a tag ainda estiver acordando o VCC via Energy Harvesting */
+    // --- BLOCO 1: Ler Tamanho (Length) com Retry ---
+    // O erro 9 (CRC) costuma ser passageiro. Tentar de novo resolve.
     uint8_t retries_len = 5;
  8000346:	2305      	movs	r3, #5
- 8000348:	f887 311f 	strb.w	r3, [r7, #287]	@ 0x11f
+ 8000348:	f887 3117 	strb.w	r3, [r7, #279]	@ 0x117
 
     do {
         err = rfalST25xVPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
- 800034c:	f507 7390 	add.w	r3, r7, #288	@ 0x120
- 8000350:	f5a3 738e 	sub.w	r3, r3, #284	@ 0x11c
+ 800034c:	f507 738c 	add.w	r3, r7, #280	@ 0x118
+ 8000350:	f5a3 738a 	sub.w	r3, r3, #276	@ 0x114
  8000354:	681b      	ldr	r3, [r3, #0]
  8000356:	1c99      	adds	r1, r3, #2
- 8000358:	f207 1211 	addw	r2, r7, #273	@ 0x111
- 800035c:	f897 3117 	ldrb.w	r3, [r7, #279]	@ 0x117
+ 8000358:	f207 120f 	addw	r2, r7, #271	@ 0x10f
+ 800035c:	f897 3115 	ldrb.w	r3, [r7, #277]	@ 0x115
  8000360:	4618      	mov	r0, r3
  8000362:	f00a f85a 	bl	800a41a <rfalST25xVPollerReadMessageLength>
  8000366:	4603      	mov	r3, r0
- 8000368:	f8a7 3114 	strh.w	r3, [r7, #276]	@ 0x114
+ 8000368:	f8a7 3112 	strh.w	r3, [r7, #274]	@ 0x112
 
-        if (err == ERR_NONE) break; // Sucesso
- 800036c:	f8b7 3114 	ldrh.w	r3, [r7, #276]	@ 0x114
+        if (err == ERR_NONE) break; // Sucesso!
+ 800036c:	f8b7 3112 	ldrh.w	r3, [r7, #274]	@ 0x112
  8000370:	2b00      	cmp	r3, #0
- 8000372:	d012      	beq.n	800039a <nfcv+0x6a>
+ 8000372:	d020      	beq.n	80003b6 <nfcv+0x86>
 
-        // Se der erro 4 (Proto), a tag pode estar sem VCC estável ou ocupada
-        platformLog("Erro Comprimento: %d. Tentando novamente...\r\n", err);
- 8000374:	f8b7 3114 	ldrh.w	r3, [r7, #276]	@ 0x114
- 8000378:	4619      	mov	r1, r3
- 800037a:	484e      	ldr	r0, [pc, #312]	@ (80004b4 <nfcv+0x184>)
- 800037c:	f000 faee 	bl	800095c <logUsart>
-        platformDelay(20); // Espera o VCC estabilizar ou a tag liberar o buffer
- 8000380:	2014      	movs	r0, #20
- 8000382:	f004 fa53 	bl	800482c <HAL_Delay>
+        // Se for erro 9 (CRC) ou 5 (Timeout), vale a pena tentar rápido de novo
+        if (err == 9 || err == 5) {
+ 8000374:	f8b7 3112 	ldrh.w	r3, [r7, #274]	@ 0x112
+ 8000378:	2b09      	cmp	r3, #9
+ 800037a:	d003      	beq.n	8000384 <nfcv+0x54>
+ 800037c:	f8b7 3112 	ldrh.w	r3, [r7, #274]	@ 0x112
+ 8000380:	2b05      	cmp	r3, #5
+ 8000382:	d10b      	bne.n	800039c <nfcv+0x6c>
+            platformLog("Erro %d no Length. Retry %d...\r\n", err, retries_len);
+ 8000384:	f8b7 3112 	ldrh.w	r3, [r7, #274]	@ 0x112
+ 8000388:	f897 2117 	ldrb.w	r2, [r7, #279]	@ 0x117
+ 800038c:	4619      	mov	r1, r3
+ 800038e:	484c      	ldr	r0, [pc, #304]	@ (80004c0 <nfcv+0x190>)
+ 8000390:	f000 fae4 	bl	800095c <logUsart>
+            platformDelay(10);
+ 8000394:	200a      	movs	r0, #10
+ 8000396:	f004 fa49 	bl	800482c <HAL_Delay>
+ 800039a:	e002      	b.n	80003a2 <nfcv+0x72>
+        } else {
+            // Se for erro 4 (Proto) ou outro grave, talvez não adiante insistir tanto
+            platformDelay(10);
+ 800039c:	200a      	movs	r0, #10
+ 800039e:	f004 fa45 	bl	800482c <HAL_Delay>
+        }
         retries_len--;
- 8000386:	f897 311f 	ldrb.w	r3, [r7, #287]	@ 0x11f
- 800038a:	3b01      	subs	r3, #1
- 800038c:	f887 311f 	strb.w	r3, [r7, #287]	@ 0x11f
+ 80003a2:	f897 3117 	ldrb.w	r3, [r7, #279]	@ 0x117
+ 80003a6:	3b01      	subs	r3, #1
+ 80003a8:	f887 3117 	strb.w	r3, [r7, #279]	@ 0x117
     } while (retries_len > 0);
- 8000390:	f897 311f 	ldrb.w	r3, [r7, #287]	@ 0x11f
- 8000394:	2b00      	cmp	r3, #0
- 8000396:	d1d9      	bne.n	800034c <nfcv+0x1c>
- 8000398:	e000      	b.n	800039c <nfcv+0x6c>
-        if (err == ERR_NONE) break; // Sucesso
- 800039a:	bf00      	nop
+ 80003ac:	f897 3117 	ldrb.w	r3, [r7, #279]	@ 0x117
+ 80003b0:	2b00      	cmp	r3, #0
+ 80003b2:	d1cb      	bne.n	800034c <nfcv+0x1c>
+ 80003b4:	e000      	b.n	80003b8 <nfcv+0x88>
+        if (err == ERR_NONE) break; // Sucesso!
+ 80003b6:	bf00      	nop
 
 
     if (err == ERR_NONE)
- 800039c:	f8b7 3114 	ldrh.w	r3, [r7, #276]	@ 0x114
- 80003a0:	2b00      	cmp	r3, #0
- 80003a2:	d174      	bne.n	800048e <nfcv+0x15e>
+ 80003b8:	f8b7 3112 	ldrh.w	r3, [r7, #274]	@ 0x112
+ 80003bc:	2b00      	cmp	r3, #0
+ 80003be:	d173      	bne.n	80004a8 <nfcv+0x178>
     {
         uint16_t actualMessageLen = mbLen + 1;
- 80003a4:	f897 3111 	ldrb.w	r3, [r7, #273]	@ 0x111
- 80003a8:	3301      	adds	r3, #1
- 80003aa:	f8a7 3112 	strh.w	r3, [r7, #274]	@ 0x112
-        platformLog("Msg detectada: %d bytes\r\n", actualMessageLen);
- 80003ae:	f8b7 3112 	ldrh.w	r3, [r7, #274]	@ 0x112
- 80003b2:	4619      	mov	r1, r3
- 80003b4:	4840      	ldr	r0, [pc, #256]	@ (80004b8 <nfcv+0x188>)
- 80003b6:	f000 fad1 	bl	800095c <logUsart>
+ 80003c0:	f897 310f 	ldrb.w	r3, [r7, #271]	@ 0x10f
+ 80003c4:	3301      	adds	r3, #1
+ 80003c6:	f8a7 3110 	strh.w	r3, [r7, #272]	@ 0x110
+        platformLog("Msg detectada: %d bytes. Aguardando I2C...\r\n", actualMessageLen);
+ 80003ca:	f8b7 3110 	ldrh.w	r3, [r7, #272]	@ 0x110
+ 80003ce:	4619      	mov	r1, r3
+ 80003d0:	483c      	ldr	r0, [pc, #240]	@ (80004c4 <nfcv+0x194>)
+ 80003d2:	f000 fac3 	bl	800095c <logUsart>
 
-        /* Delay mandatório para o ST25DV preparar o buffer de saída */
-        platformDelay(10);
- 80003ba:	200a      	movs	r0, #10
- 80003bc:	f004 fa36 	bl	800482c <HAL_Delay>
+        /* Delay para o ST25DV liberar o buffer (Arbitragem I2C vs RF) */
+        platformDelay(40);
+ 80003d6:	2028      	movs	r0, #40	@ 0x28
+ 80003d8:	f004 fa28 	bl	800482c <HAL_Delay>
 
-        /* --- PARTE 2: Ler Corpo da Mensagem com Retry --- */
-        uint8_t retries_msg = 3;
- 80003c0:	2303      	movs	r3, #3
- 80003c2:	f887 311e 	strb.w	r3, [r7, #286]	@ 0x11e
+        // --- BLOCO 2: Ler Corpo (Body) com Retry ---
+        uint8_t retries_msg = 5;
+ 80003dc:	2305      	movs	r3, #5
+ 80003de:	f887 3116 	strb.w	r3, [r7, #278]	@ 0x116
         do {
             err = rfalST25xVPollerReadMessage(reqFlag, nfcvDev->InvRes.UID, 0, actualMessageLen, rxBuf, sizeof(rxBuf), &rcvLen);
- 80003c6:	f507 7390 	add.w	r3, r7, #288	@ 0x120
- 80003ca:	f5a3 738e 	sub.w	r3, r3, #284	@ 0x11c
- 80003ce:	681b      	ldr	r3, [r3, #0]
- 80003d0:	1c99      	adds	r1, r3, #2
- 80003d2:	f8b7 3112 	ldrh.w	r3, [r7, #274]	@ 0x112
- 80003d6:	b2da      	uxtb	r2, r3
- 80003d8:	f897 0117 	ldrb.w	r0, [r7, #279]	@ 0x117
- 80003dc:	f107 030e 	add.w	r3, r7, #14
- 80003e0:	9302      	str	r3, [sp, #8]
- 80003e2:	f44f 7380 	mov.w	r3, #256	@ 0x100
- 80003e6:	9301      	str	r3, [sp, #4]
- 80003e8:	f107 0310 	add.w	r3, r7, #16
- 80003ec:	9300      	str	r3, [sp, #0]
- 80003ee:	4613      	mov	r3, r2
- 80003f0:	2200      	movs	r2, #0
- 80003f2:	f00a f824 	bl	800a43e <rfalST25xVPollerReadMessage>
- 80003f6:	4603      	mov	r3, r0
- 80003f8:	f8a7 3114 	strh.w	r3, [r7, #276]	@ 0x114
+ 80003e2:	f507 738c 	add.w	r3, r7, #280	@ 0x118
+ 80003e6:	f5a3 738a 	sub.w	r3, r3, #276	@ 0x114
+ 80003ea:	681b      	ldr	r3, [r3, #0]
+ 80003ec:	1c99      	adds	r1, r3, #2
+ 80003ee:	f8b7 3110 	ldrh.w	r3, [r7, #272]	@ 0x110
+ 80003f2:	b2da      	uxtb	r2, r3
+ 80003f4:	f897 0115 	ldrb.w	r0, [r7, #277]	@ 0x115
+ 80003f8:	f107 030a 	add.w	r3, r7, #10
+ 80003fc:	9302      	str	r3, [sp, #8]
+ 80003fe:	f44f 7380 	mov.w	r3, #256	@ 0x100
+ 8000402:	9301      	str	r3, [sp, #4]
+ 8000404:	f107 030c 	add.w	r3, r7, #12
+ 8000408:	9300      	str	r3, [sp, #0]
+ 800040a:	4613      	mov	r3, r2
+ 800040c:	2200      	movs	r2, #0
+ 800040e:	f00a f816 	bl	800a43e <rfalST25xVPollerReadMessage>
+ 8000412:	4603      	mov	r3, r0
+ 8000414:	f8a7 3112 	strh.w	r3, [r7, #274]	@ 0x112
 
             if (err == ERR_NONE) break;
- 80003fc:	f8b7 3114 	ldrh.w	r3, [r7, #276]	@ 0x114
- 8000400:	2b00      	cmp	r3, #0
- 8000402:	d012      	beq.n	800042a <nfcv+0xfa>
+ 8000418:	f8b7 3112 	ldrh.w	r3, [r7, #274]	@ 0x112
+ 800041c:	2b00      	cmp	r3, #0
+ 800041e:	d01d      	beq.n	800045c <nfcv+0x12c>
 
-            platformLog("Erro Corpo: %d. Retry...\r\n", err);
- 8000404:	f8b7 3114 	ldrh.w	r3, [r7, #276]	@ 0x114
- 8000408:	4619      	mov	r1, r3
- 800040a:	482c      	ldr	r0, [pc, #176]	@ (80004bc <nfcv+0x18c>)
- 800040c:	f000 faa6 	bl	800095c <logUsart>
-            platformDelay(15);
- 8000410:	200f      	movs	r0, #15
- 8000412:	f004 fa0b 	bl	800482c <HAL_Delay>
+            platformLog("Erro %d no corpo. Retry %d...\r\n", err, retries_msg);
+ 8000420:	f8b7 3112 	ldrh.w	r3, [r7, #274]	@ 0x112
+ 8000424:	f897 2116 	ldrb.w	r2, [r7, #278]	@ 0x116
+ 8000428:	4619      	mov	r1, r3
+ 800042a:	4827      	ldr	r0, [pc, #156]	@ (80004c8 <nfcv+0x198>)
+ 800042c:	f000 fa96 	bl	800095c <logUsart>
+            platformDelay(20 + ((5-retries_msg)*10)); // Delay progressivo
+ 8000430:	f897 3116 	ldrb.w	r3, [r7, #278]	@ 0x116
+ 8000434:	f1c3 0205 	rsb	r2, r3, #5
+ 8000438:	4613      	mov	r3, r2
+ 800043a:	009b      	lsls	r3, r3, #2
+ 800043c:	4413      	add	r3, r2
+ 800043e:	005b      	lsls	r3, r3, #1
+ 8000440:	3314      	adds	r3, #20
+ 8000442:	4618      	mov	r0, r3
+ 8000444:	f004 f9f2 	bl	800482c <HAL_Delay>
             retries_msg--;
- 8000416:	f897 311e 	ldrb.w	r3, [r7, #286]	@ 0x11e
- 800041a:	3b01      	subs	r3, #1
- 800041c:	f887 311e 	strb.w	r3, [r7, #286]	@ 0x11e
+ 8000448:	f897 3116 	ldrb.w	r3, [r7, #278]	@ 0x116
+ 800044c:	3b01      	subs	r3, #1
+ 800044e:	f887 3116 	strb.w	r3, [r7, #278]	@ 0x116
         } while (retries_msg > 0);
- 8000420:	f897 311e 	ldrb.w	r3, [r7, #286]	@ 0x11e
- 8000424:	2b00      	cmp	r3, #0
- 8000426:	d1ce      	bne.n	80003c6 <nfcv+0x96>
- 8000428:	e000      	b.n	800042c <nfcv+0xfc>
+ 8000452:	f897 3116 	ldrb.w	r3, [r7, #278]	@ 0x116
+ 8000456:	2b00      	cmp	r3, #0
+ 8000458:	d1c3      	bne.n	80003e2 <nfcv+0xb2>
+ 800045a:	e000      	b.n	800045e <nfcv+0x12e>
             if (err == ERR_NONE) break;
- 800042a:	bf00      	nop
+ 800045c:	bf00      	nop
 
         if (err == ERR_NONE)
- 800042c:	f8b7 3114 	ldrh.w	r3, [r7, #276]	@ 0x114
- 8000430:	2b00      	cmp	r3, #0
- 8000432:	d125      	bne.n	8000480 <nfcv+0x150>
+ 800045e:	f8b7 3112 	ldrh.w	r3, [r7, #274]	@ 0x112
+ 8000462:	2b00      	cmp	r3, #0
+ 8000464:	d119      	bne.n	800049a <nfcv+0x16a>
         {
-            platformLog("VALOR LIDO: ");
- 8000434:	4822      	ldr	r0, [pc, #136]	@ (80004c0 <nfcv+0x190>)
- 8000436:	f000 fa91 	bl	800095c <logUsart>
-            // Imprime como string (ASCII) para ver o "12"
-            for(int i=0; i<rcvLen; i++) {
- 800043a:	2300      	movs	r3, #0
- 800043c:	f8c7 3118 	str.w	r3, [r7, #280]	@ 0x118
- 8000440:	e010      	b.n	8000464 <nfcv+0x134>
-                platformLog("%c", (char)rxBuf[i]);
- 8000442:	f507 7390 	add.w	r3, r7, #288	@ 0x120
- 8000446:	f5a3 7288 	sub.w	r2, r3, #272	@ 0x110
- 800044a:	f8d7 3118 	ldr.w	r3, [r7, #280]	@ 0x118
- 800044e:	4413      	add	r3, r2
- 8000450:	781b      	ldrb	r3, [r3, #0]
- 8000452:	4619      	mov	r1, r3
- 8000454:	481b      	ldr	r0, [pc, #108]	@ (80004c4 <nfcv+0x194>)
- 8000456:	f000 fa81 	bl	800095c <logUsart>
-            for(int i=0; i<rcvLen; i++) {
- 800045a:	f8d7 3118 	ldr.w	r3, [r7, #280]	@ 0x118
- 800045e:	3301      	adds	r3, #1
- 8000460:	f8c7 3118 	str.w	r3, [r7, #280]	@ 0x118
- 8000464:	f507 7390 	add.w	r3, r7, #288	@ 0x120
- 8000468:	f5a3 7389 	sub.w	r3, r3, #274	@ 0x112
- 800046c:	881b      	ldrh	r3, [r3, #0]
- 800046e:	461a      	mov	r2, r3
- 8000470:	f8d7 3118 	ldr.w	r3, [r7, #280]	@ 0x118
- 8000474:	4293      	cmp	r3, r2
- 8000476:	dbe4      	blt.n	8000442 <nfcv+0x112>
-            }
-            platformLog("\r\n");
- 8000478:	4813      	ldr	r0, [pc, #76]	@ (80004c8 <nfcv+0x198>)
- 800047a:	f000 fa6f 	bl	800095c <logUsart>
-             platformLog("Não foi possível ler a mensagem (Erro %d)\r\n", err);
-         }
+            if(rcvLen < sizeof(rxBuf)) rxBuf[rcvLen] = '\0';
+ 8000466:	f507 738c 	add.w	r3, r7, #280	@ 0x118
+ 800046a:	f5a3 7387 	sub.w	r3, r3, #270	@ 0x10e
+ 800046e:	881b      	ldrh	r3, [r3, #0]
+ 8000470:	2bff      	cmp	r3, #255	@ 0xff
+ 8000472:	d80b      	bhi.n	800048c <nfcv+0x15c>
+ 8000474:	f507 738c 	add.w	r3, r7, #280	@ 0x118
+ 8000478:	f5a3 7387 	sub.w	r3, r3, #270	@ 0x10e
+ 800047c:	881b      	ldrh	r3, [r3, #0]
+ 800047e:	461a      	mov	r2, r3
+ 8000480:	f507 738c 	add.w	r3, r7, #280	@ 0x118
+ 8000484:	f5a3 7386 	sub.w	r3, r3, #268	@ 0x10c
+ 8000488:	2100      	movs	r1, #0
+ 800048a:	5499      	strb	r1, [r3, r2]
+            platformLog(">> STRAIN LIDO: %s uE\r\n", (char*)rxBuf);
+ 800048c:	f107 030c 	add.w	r3, r7, #12
+ 8000490:	4619      	mov	r1, r3
+ 8000492:	480e      	ldr	r0, [pc, #56]	@ (80004cc <nfcv+0x19c>)
+ 8000494:	f000 fa62 	bl	800095c <logUsart>
+    else
+    {
+        // Só mostra o erro se realmente falhou todas as 5 tentativas
+        platformLog("Falha critica no Length: %d\r\n", err);
     }
-
-#endif /* RFAL_FEATURE_NFCV */
 }
- 800047e:	e014      	b.n	80004aa <nfcv+0x17a>
-            platformLog("Falha na leitura dos dados: %d\r\n", err);
- 8000480:	f8b7 3114 	ldrh.w	r3, [r7, #276]	@ 0x114
- 8000484:	4619      	mov	r1, r3
- 8000486:	4811      	ldr	r0, [pc, #68]	@ (80004cc <nfcv+0x19c>)
- 8000488:	f000 fa68 	bl	800095c <logUsart>
+ 8000498:	e00c      	b.n	80004b4 <nfcv+0x184>
+            platformLog("Falha final no corpo: %d\r\n", err);
+ 800049a:	f8b7 3112 	ldrh.w	r3, [r7, #274]	@ 0x112
+ 800049e:	4619      	mov	r1, r3
+ 80004a0:	480b      	ldr	r0, [pc, #44]	@ (80004d0 <nfcv+0x1a0>)
+ 80004a2:	f000 fa5b 	bl	800095c <logUsart>
 }
- 800048c:	e00d      	b.n	80004aa <nfcv+0x17a>
-         if(err == 4) { // ERR_PROTO
- 800048e:	f8b7 3114 	ldrh.w	r3, [r7, #276]	@ 0x114
- 8000492:	2b04      	cmp	r3, #4
- 8000494:	d103      	bne.n	800049e <nfcv+0x16e>
-             platformLog("FALHA CRÍTICA (Erro 4): Mailbox desativado ou VCC ausente na Tag.\r\n");
- 8000496:	480e      	ldr	r0, [pc, #56]	@ (80004d0 <nfcv+0x1a0>)
- 8000498:	f000 fa60 	bl	800095c <logUsart>
+ 80004a6:	e005      	b.n	80004b4 <nfcv+0x184>
+        platformLog("Falha critica no Length: %d\r\n", err);
+ 80004a8:	f8b7 3112 	ldrh.w	r3, [r7, #274]	@ 0x112
+ 80004ac:	4619      	mov	r1, r3
+ 80004ae:	4809      	ldr	r0, [pc, #36]	@ (80004d4 <nfcv+0x1a4>)
+ 80004b0:	f000 fa54 	bl	800095c <logUsart>
 }
- 800049c:	e005      	b.n	80004aa <nfcv+0x17a>
-             platformLog("Não foi possível ler a mensagem (Erro %d)\r\n", err);
- 800049e:	f8b7 3114 	ldrh.w	r3, [r7, #276]	@ 0x114
- 80004a2:	4619      	mov	r1, r3
- 80004a4:	480b      	ldr	r0, [pc, #44]	@ (80004d4 <nfcv+0x1a4>)
- 80004a6:	f000 fa59 	bl	800095c <logUsart>
-}
- 80004aa:	bf00      	nop
- 80004ac:	f507 7790 	add.w	r7, r7, #288	@ 0x120
- 80004b0:	46bd      	mov	sp, r7
- 80004b2:	bd80      	pop	{r7, pc}
- 80004b4:	0800aedc 	.word	0x0800aedc
- 80004b8:	0800af0c 	.word	0x0800af0c
- 80004bc:	0800af28 	.word	0x0800af28
- 80004c0:	0800af44 	.word	0x0800af44
- 80004c4:	0800af54 	.word	0x0800af54
- 80004c8:	0800af58 	.word	0x0800af58
- 80004cc:	0800af5c 	.word	0x0800af5c
- 80004d0:	0800af80 	.word	0x0800af80
- 80004d4:	0800afc8 	.word	0x0800afc8
+ 80004b4:	bf00      	nop
+ 80004b6:	f507 778c 	add.w	r7, r7, #280	@ 0x118
+ 80004ba:	46bd      	mov	sp, r7
+ 80004bc:	bd80      	pop	{r7, pc}
+ 80004be:	bf00      	nop
+ 80004c0:	0800aedc 	.word	0x0800aedc
+ 80004c4:	0800af00 	.word	0x0800af00
+ 80004c8:	0800af30 	.word	0x0800af30
+ 80004cc:	0800af50 	.word	0x0800af50
+ 80004d0:	0800af68 	.word	0x0800af68
+ 80004d4:	0800af84 	.word	0x0800af84
 
 080004d8 <main>:
 /**
@@ -907,15 +906,15 @@ int main(void)
  80006bc:	20000078 	.word	0x20000078
  80006c0:	20000e18 	.word	0x20000e18
  80006c4:	08004435 	.word	0x08004435
- 80006c8:	0800aff8 	.word	0x0800aff8
- 80006cc:	0800b018 	.word	0x0800b018
+ 80006c8:	0800afa4 	.word	0x0800afa4
+ 80006cc:	0800afc4 	.word	0x0800afc4
  80006d0:	40010800 	.word	0x40010800
  80006d4:	40010c00 	.word	0x40010c00
- 80006d8:	0800b034 	.word	0x0800b034
+ 80006d8:	0800afe0 	.word	0x0800afe0
  80006dc:	2000016c 	.word	0x2000016c
  80006e0:	2000016d 	.word	0x2000016d
  80006e4:	20000170 	.word	0x20000170
- 80006e8:	0800b054 	.word	0x0800b054
+ 80006e8:	0800b000 	.word	0x0800b000
 
 080006ec <SystemClock_Config>:
 /**
@@ -1525,7 +1524,7 @@ char *hex2Str(unsigned char *data, size_t dataLen)
  8000a4e:	46bd      	mov	sp, r7
  8000a50:	bc80      	pop	{r7}
  8000a52:	4770      	bx	lr
- 8000a54:	0800b078 	.word	0x0800b078
+ 8000a54:	0800b024 	.word	0x0800b024
  8000a58:	20000374 	.word	0x20000374
  8000a5c:	20000174 	.word	0x20000174
 
@@ -2349,7 +2348,7 @@ LoopFillZerobss:
   ldr r1, =_edata
  8000dec:	2000005c 	.word	0x2000005c
   ldr r2, =_sidata
- 8000df0:	0800b4e4 	.word	0x0800b4e4
+ 8000df0:	0800b490 	.word	0x0800b490
   ldr r2, =_sbss
  8000df4:	2000005c 	.word	0x2000005c
   ldr r4, =_ebss
@@ -9506,7 +9505,7 @@ ReturnCode st25r500Initialize( void )
  800373c:	bd80      	pop	{r7, pc}
  800373e:	bf00      	nop
  8003740:	40010c00 	.word	0x40010c00
- 8003744:	0800b08c 	.word	0x0800b08c
+ 8003744:	0800b038 	.word	0x0800b038
  8003748:	200005c8 	.word	0x200005c8
 
 0800374c <st25r500OscOn>:
@@ -15009,7 +15008,7 @@ if (((RCC_ClkInitStruct->ClockType) & RCC_CLOCKTYPE_PCLK1) == RCC_CLOCKTYPE_PCLK
  800559a:	bf00      	nop
  800559c:	40022000 	.word	0x40022000
  80055a0:	40021000 	.word	0x40021000
- 80055a4:	0800b0bc 	.word	0x0800b0bc
+ 80055a4:	0800b068 	.word	0x0800b068
  80055a8:	20000000 	.word	0x20000000
  80055ac:	20000004 	.word	0x20000004
 
@@ -15144,8 +15143,8 @@ uint32_t HAL_RCC_GetSysClockFreq(void)
  8005642:	bf00      	nop
  8005644:	40021000 	.word	0x40021000
  8005648:	007a1200 	.word	0x007a1200
- 800564c:	0800b0d4 	.word	0x0800b0d4
- 8005650:	0800b0e4 	.word	0x0800b0e4
+ 800564c:	0800b080 	.word	0x0800b080
+ 8005650:	0800b090 	.word	0x0800b090
  8005654:	003d0900 	.word	0x003d0900
 
 08005658 <HAL_RCC_GetHCLKFreq>:
@@ -15191,7 +15190,7 @@ uint32_t HAL_RCC_GetPCLK1Freq(void)
  8005688:	4618      	mov	r0, r3
  800568a:	bd80      	pop	{r7, pc}
  800568c:	40021000 	.word	0x40021000
- 8005690:	0800b0cc 	.word	0x0800b0cc
+ 8005690:	0800b078 	.word	0x0800b078
 
 08005694 <HAL_RCC_GetPCLK2Freq>:
   * @note   Each time PCLK2 changes, this function must be called to update the
@@ -15217,7 +15216,7 @@ uint32_t HAL_RCC_GetPCLK2Freq(void)
  80056b0:	4618      	mov	r0, r3
  80056b2:	bd80      	pop	{r7, pc}
  80056b4:	40021000 	.word	0x40021000
- 80056b8:	0800b0cc 	.word	0x0800b0cc
+ 80056b8:	0800b078 	.word	0x0800b078
 
 080056bc <RCC_Delay>:
   * @brief  This function provides delay (in milliseconds) based on CPU cycles method.
@@ -18079,7 +18078,7 @@ void rfalAnalogConfigInitialize( void )
  80066b4:	bc80      	pop	{r7}
  80066b6:	4770      	bx	lr
  80066b8:	200005e0 	.word	0x200005e0
- 80066bc:	0800b0e8 	.word	0x0800b0e8
+ 80066bc:	0800b094 	.word	0x0800b094
 
 080066c0 <rfalAnalogConfigIsReady>:
 
@@ -28327,10 +28326,10 @@ uint16_t timerGetRemaining(uint32_t timer)
  800a62a:	4798      	blx	r3
  800a62c:	3601      	adds	r6, #1
  800a62e:	e7f2      	b.n	800a616 <__libc_init_array+0x1e>
- 800a630:	0800b4dc 	.word	0x0800b4dc
- 800a634:	0800b4dc 	.word	0x0800b4dc
- 800a638:	0800b4dc 	.word	0x0800b4dc
- 800a63c:	0800b4e0 	.word	0x0800b4e0
+ 800a630:	0800b488 	.word	0x0800b488
+ 800a634:	0800b488 	.word	0x0800b488
+ 800a638:	0800b488 	.word	0x0800b488
+ 800a63c:	0800b48c 	.word	0x0800b48c
 
 0800a640 <__retarget_lock_acquire_recursive>:
  800a640:	4770      	bx	lr
@@ -28847,9 +28846,9 @@ uint16_t timerGetRemaining(uint32_t timer)
  800aae0:	a904      	add	r1, sp, #16
  800aae2:	f000 f87d 	bl	800abe0 <_printf_i>
  800aae6:	e7ed      	b.n	800aac4 <_svfiprintf_r+0x1c0>
- 800aae8:	0800b49f 	.word	0x0800b49f
- 800aaec:	0800b4a5 	.word	0x0800b4a5
- 800aaf0:	0800b4a9 	.word	0x0800b4a9
+ 800aae8:	0800b44b 	.word	0x0800b44b
+ 800aaec:	0800b451 	.word	0x0800b451
+ 800aaf0:	0800b455 	.word	0x0800b455
  800aaf4:	00000000 	.word	0x00000000
  800aaf8:	0800a84d 	.word	0x0800a84d
 
@@ -29181,8 +29180,8 @@ uint16_t timerGetRemaining(uint32_t timer)
  800ae0c:	2500      	movs	r5, #0
  800ae0e:	f104 0619 	add.w	r6, r4, #25
  800ae12:	e7f5      	b.n	800ae00 <_printf_i+0x220>
- 800ae14:	0800b4b0 	.word	0x0800b4b0
- 800ae18:	0800b4c1 	.word	0x0800b4c1
+ 800ae14:	0800b45c 	.word	0x0800b45c
+ 800ae18:	0800b46d 	.word	0x0800b46d
 
 0800ae1c <_sbrk_r>:
  800ae1c:	b538      	push	{r3, r4, r5, lr}
