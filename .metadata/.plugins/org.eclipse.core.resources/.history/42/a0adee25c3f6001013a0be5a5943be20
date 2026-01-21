@@ -399,22 +399,7 @@ int main(void) {
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
-	    int32_t numero = 12;
-	    char buffer[12]; // Buffer para armazenar a string convertida
-
-	    // Converte o número para string
-	    LongToStr(numero, buffer);
-
-	    // Envia para o Mailbox (calcula o tamanho da string sem o '\0')
-	    uint8_t msg_len = strlen(buffer);
-
-	    if (ST25DV_MB_WriteMessage(&st25_driver, (uint8_t*)buffer, msg_len) == 0) {
-	        DEBUG_PRINT("NFC Updated: ");
-	        DEBUG_PRINT(buffer);
-	        DEBUG_PRINT("\r\n");
-	    } else {
-	        DEBUG_PRINT("NFC Write Failed (Busy?)\r\n");
-	    }
+		Loop_NFC();
 		HAL_Delay(1000);
 		/* USER CODE END WHILE */
 

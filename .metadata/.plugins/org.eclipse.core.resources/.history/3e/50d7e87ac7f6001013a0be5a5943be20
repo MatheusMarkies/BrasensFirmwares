@@ -68,9 +68,6 @@ void ST25DV_LPD_Disable(st25dv_io_t *io); // Sai do baixo consumo (boot)
 // 2. Energy Harvesting (Dinâmico)
 int32_t ST25DV_EH_Enable_Dyn(st25dv_io_t *io);
 int32_t ST25DV_EH_Disable_Dyn(st25dv_io_t *io);
-int32_t ST25DV_EH_Enable_Static(st25dv_io_t *io);
-int32_t ST25DV_EH_Disable_Static(st25dv_io_t *io);
-int32_t ST25DV_EH_ReadConfig_Static(st25dv_io_t *io, uint8_t *eh_enabled);
 bool    ST25DV_EH_IsActive(st25dv_io_t *io);
 bool    ST25DV_Field_On(st25dv_io_t *io);
 
@@ -79,12 +76,6 @@ int32_t ST25DV_MB_Init(st25dv_io_t *io); // Habilita MB_MODE (Static)
 int32_t ST25DV_MB_WriteMessage(st25dv_io_t *io, uint8_t *pData, uint8_t len);
 int32_t ST25DV_MB_ReadMessage(st25dv_io_t *io, uint8_t *pData, uint8_t *pLen);
 bool    ST25DV_MB_HasMessageFromRF(st25dv_io_t *io);
-
-int32_t ST25DV_MB_Enable_Static(st25dv_io_t *io);
-int32_t ST25DV_MB_Disable_Static(st25dv_io_t *io);
-int32_t ST25DV_MB_ReadConfig_Static(st25dv_io_t *io, uint8_t *mb_enabled);
-int32_t ST25DV_MB_Enable_Dyn(st25dv_io_t *io);
-int32_t ST25DV_MB_Init_Smart(st25dv_io_t *io);
 
 int32_t ST25DV_I2C_PresentPassword(st25dv_io_t *io);
 bool ST25DV_I2C_IsSessionOpen(st25dv_io_t *io); // <--- Adicionar

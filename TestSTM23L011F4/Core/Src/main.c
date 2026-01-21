@@ -44,7 +44,7 @@
 
 #define CHARGING_INTERVAL_TICKS 1
 static uint16_t wakeup_counter = 0;
-static uint16_t wakeup_cycles = 5; //CHARGING_INTERVAL_MS / (8 * 1000);
+static uint16_t wakeup_cycles = 10; //CHARGING_INTERVAL_MS / (8 * 1000);
 
 #define READING_SAMPLING_INTERVAL_MS 4
 
@@ -88,7 +88,12 @@ static void MX_LPUART1_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_RTC_Init(void);
 /* USER CODE BEGIN PFP */
-#define DEBUG_PRINT(msg) HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 200)
+// Se DEBUG estiver definido, imprime. Se não, não faz nada.
+#ifdef DEBUG
+    #define DEBUG_PRINT(msg) HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 200)
+#else
+#define DEBUG_PRINT(msg) do {} while (0)
+#endif
 void I2C_Scanner(I2C_HandleTypeDef *hi2c);
 /* USER CODE END PFP */
 
@@ -193,26 +198,27 @@ int16_t ADS1115_Read(void) {
 }
 
 void debug_print_int(int32_t v) {
-	char buf[12];
-	int i = 9; // <--- MUDADO DE 10 PARA 9 (Para proteger buf[10])
+#ifdef DEBUG  // <--- INÍCIO DO BLOCO CONDICIONAL
+    char buf[12];
+    int i = 9;
 
-	if (v < 0) {
-		HAL_UART_Transmit(&hlpuart1, (uint8_t*) "-", 1, 100);
-		v = -v;
-	}
+    if (v < 0) {
+        // Se quiser imprimir o sinal, descomente a linha abaixo
+        HAL_UART_Transmit(&hlpuart1, (uint8_t*) "-", 1, 100);
+        v = -v;
+    }
 
-	do {
-		buf[i--] = '0' + (v % 10);
-		v /= 10;
-	} while (v);
+    do {
+        buf[i--] = '0' + (v % 10);
+        v /= 10;
+    } while (v);
 
-	// Agora buf[10] e buf[11] estão seguros
-	buf[10] = '\r';
-	buf[11] = '\n';
+    buf[10] = '\r';
+    buf[11] = '\n';
 
-	// O tamanho a transmitir é: (11 - i)
-	// Ex: Se v=0 -> i=8. Start=&buf[9] ('0'). Len = 11-8 = 3 ('0','\r','\n')
-	HAL_UART_Transmit(&hlpuart1, (uint8_t*) &buf[i + 1], 11 - i, 100);
+    // Envia o buffer processado
+    HAL_UART_Transmit(&hlpuart1, (uint8_t*) &buf[i + 1], 11 - i, 100);
+#endif // <--- FIM DO BLOCO CONDICIONAL
 }
 
 void rtc_start_wakeup(uint16_t ticks) {
@@ -225,15 +231,32 @@ void rtc_start_wakeup(uint16_t ticks) {
 }
 
 void enter_stop_mode(void) {
+	// 1. Desliga periféricos que consomem energia
+	HAL_I2C_DeInit(&hi2c1);
+
+	// Se estiver usando UART debug, desliga também (ou vai vazar corrente pelos pinos TX/RX)
+#ifdef DEBUG
+    HAL_UART_DeInit(&hlpuart1);
+    #endif
+
+	// 2. Limpa flags
 	__HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
 
+	// 3. Entra em STOP
 	HAL_SuspendTick();
-
 	HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
 
-	SystemClock_Config();
+	// --- O MCU DORME AQUI ---
 
+	// 4. Acorda e restaura Clocks
+	SystemClock_Config();
 	HAL_ResumeTick();
+
+	// 5. Reinicializa periféricos
+	MX_I2C1_Init();
+#ifdef DEBUG
+    MX_LPUART1_UART_Init();
+    #endif
 }
 
 void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
@@ -278,59 +301,72 @@ st25dv_io_t st25_driver = { .i2c_write = platform_i2c_write, .i2c_read =
 
 void Setup_NFC(void) {
 	int32_t status;
-
-	DEBUG_PRINT("--- Iniciando Setup NFC ---\r\n");
-
-	uint8_t chip_id = 0;
-
-	status = ST25DV_ReadID(&st25_driver, &chip_id);
-	if (status == 0) {
-
-	} else {
-		DEBUG_PRINT("Erro ao ler ID do ST25DV!\r\n");
-	}
+	uint8_t eh_config, mb_config;
 
 	DEBUG_PRINT("--- Iniciando Setup NFC ---\r\n");
 
 	// 1. Inicialização Básica
 	status = ST25DV_Init(&st25_driver);
-	if (status == 0) {
-		DEBUG_PRINT("ST25DV Init: SUCESSO\r\n");
-	} else {
-		DEBUG_PRINT("ST25DV Init: FALHA (Chip nao responde)\r\n");
+	if (status != 0) {
+		DEBUG_PRINT("ST25DV Init: FALHA\r\n");
 		return;
 	}
+	DEBUG_PRINT("ST25DV Init: SUCESSO\r\n");
 
+	// 2. Apresentar Senha (necessário para acesso à EEPROM)
 	status = ST25DV_I2C_PresentPassword(&st25_driver);
-	if (status == 0) {
-		DEBUG_PRINT("ST25DV Senha: OK (Sessao I2C Aberta)\r\n");
-	} else {
+	if (status != 0) {
 		DEBUG_PRINT("ST25DV Senha: FALHA\r\n");
+		return;
 	}
 
 	HAL_Delay(10);
 
-	if (ST25DV_I2C_IsSessionOpen(&st25_driver)) {
-		DEBUG_PRINT("Sessao I2C: ABERTA (Senha Correta)\r\n");
+	// 3. Verificar Sessão I2C
+	if (!ST25DV_I2C_IsSessionOpen(&st25_driver)) {
+		DEBUG_PRINT("Sessao I2C: FECHADA\r\n");
+		return;
+	}
+	DEBUG_PRINT("Sessao I2C: ABERTA\r\n");
+
+	// 4. ✅ CONFIGURAÇÃO PERMANENTE: Energy Harvesting
+	status = ST25DV_EH_ReadConfig_Static(&st25_driver, &eh_config);
+
+	if (status == 0 && eh_config == 1) {
+		DEBUG_PRINT("EH: JA CONFIGURADO (Permanente)\r\n");
 	} else {
-		DEBUG_PRINT("Sessao I2C: FECHADA (Senha Incorreta ou Falha)\r\n");
-		// Se falhar aqui, o MB_Init abaixo vai falhar com certeza
+		DEBUG_PRINT("EH: Configurando pela primeira vez...\r\n");
+		status = ST25DV_EH_Enable_Static(&st25_driver);
+
+		if (status == 0) {
+			DEBUG_PRINT("EH: HABILITADO (PERMANENTE)\r\n");
+		} else {
+			DEBUG_PRINT("EH: FALHA ao configurar\r\n");
+		}
 	}
 
-	status = ST25DV_EH_Enable_Dyn(&st25_driver);
-	if (status == 0) {
-		DEBUG_PRINT("ST25DV Energy Harvesting: HABILITADO\r\n");
+	// 5. Habilitar EH no modo dinâmico (sempre necessário)
+	ST25DV_EH_Enable_Dyn(&st25_driver);
+
+	// 6. ✅ CONFIGURAÇÃO PERMANENTE: Mailbox
+	status = ST25DV_MB_ReadConfig_Static(&st25_driver, &mb_config);
+
+	if (status == 0 && mb_config == 1) {
+		DEBUG_PRINT("Mailbox: JA CONFIGURADO (Permanente)\r\n");
 	} else {
-		DEBUG_PRINT("ST25DV Energy Harvesting: FALHA ao habilitar\r\n");
+		DEBUG_PRINT("Mailbox: Configurando pela primeira vez...\r\n");
+		status = ST25DV_MB_Enable_Static(&st25_driver);
+
+		if (status == 0) {
+			DEBUG_PRINT("Mailbox: HABILITADO (PERMANENTE)\r\n");
+		} else {
+			DEBUG_PRINT("Mailbox: FALHA ao configurar\r\n");
+		}
 	}
 
-	status = ST25DV_MB_Init(&st25_driver);
-	if (status == 0) {
-		DEBUG_PRINT("ST25DV Mailbox: INICIALIZADO\r\n");
-	} else {
-		DEBUG_PRINT(
-				"ST25DV Mailbox: FALHA (Verifique senha ou acesso E2=1)\r\n");
-	}
+	// 7. Habilitar Mailbox no modo dinâmico (sempre necessário)
+	ST25DV_MB_Enable_Dyn(&st25_driver);
+	DEBUG_PRINT("Mailbox: Modo dinamico ativo\r\n");
 
 	DEBUG_PRINT("--- Setup NFC Finalizado ---\r\n");
 }
@@ -410,7 +446,9 @@ int main(void) {
 
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
-	MX_LPUART1_UART_Init();
+#ifdef DEBUG
+MX_LPUART1_UART_Init();
+#endif
 	MX_I2C1_Init();
 	MX_RTC_Init();
 	/* USER CODE BEGIN 2 */
@@ -493,7 +531,7 @@ int main(void) {
 				DEBUG_PRINT("\r\n");
 
 				// --- ATUALIZAÇÃO NFC MAILBOX ---
-				// Buffer para string (sinal + 10 digitos + null)
+				// Buffer para string (sinal + 10 digitos + null)W
 				//char nfc_buffer[12];
 				char nfc_buffer[12];
 
