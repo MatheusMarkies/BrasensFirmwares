@@ -1,8 +1,8 @@
-../Core/Src/main.c:164:13:nfcv	6
-../Core/Src/main.c:105:13:notif	4
-../Core/Src/main.c:85:9:BSP_NFC0XCOMM_SendRecv	5
-../Core/Src/main.c:129:6:ini	3
-../Core/Src/main.c:216:6:stop	1
-../Core/Src/main.c:383:6:SystemClock_Config	3
-../Core/Src/main.c:227:5:main	9
-../Core/Src/main.c:520:6:Error_Handler	1
+../Core/Src/main.c:165:13:nfcv	5
+../Core/Src/main.c:106:13:notif	4
+../Core/Src/main.c:86:9:BSP_NFC0XCOMM_SendRecv	5
+../Core/Src/main.c:130:6:ini	3
+../Core/Src/main.c:215:6:stop	1
+../Core/Src/main.c:382:6:SystemClock_Config	3
+../Core/Src/main.c:226:5:main	9
+../Core/Src/main.c:519:6:Error_Handler	1

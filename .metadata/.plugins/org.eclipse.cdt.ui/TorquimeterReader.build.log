@@ -1,17 +1,16 @@
-19:28:19 **** Incremental Build of configuration Release for project TorquimeterReader ****
+09:11:31 **** Build of configuration Debug for project TorquimeterReader ****
 make -j12 all 
-arm-none-eabi-gcc "../Core/Src/stm32l0xx_hal_msp.c" -mcpu=cortex-m0plus -std=gnu11 -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/STM32L0xx_HAL_Driver/Inc/Legacy" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Device/ST/STM32L0xx/Include" -I"C:/Users/Matheus Markies/STM32Cube/Repository/STM32Cube_FW_L0_V1.12.3/Drivers/CMSIS/Include" -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32l0xx_hal_msp.d" -MT"Core/Src/stm32l0xx_hal_msp.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/stm32l0xx_hal_msp.o"
-arm-none-eabi-gcc -o "TorquimeterReader.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TorquimeterReader\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterReader.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+arm-none-eabi-gcc -o "TorquimeterReader.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterReader.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 Finished building target: TorquimeterReader.elf
  
 arm-none-eabi-size  TorquimeterReader.elf 
 arm-none-eabi-objdump -h -S TorquimeterReader.elf  > "TorquimeterReader.list"
    text	   data	    bss	    dec	    hex	filename
-  12020	     92	   2460	  14572	   38ec	TorquimeterReader.elf
+  46192	     92	   5388	  51672	   c9d8	TorquimeterReader.elf
 Finished building: default.size.stdout
  
 Finished building: TorquimeterReader.list
  
 
-19:28:20 Build Finished. 0 errors, 0 warnings. (took 804ms)
+09:11:31 Build Finished. 0 errors, 0 warnings. (took 704ms)
 

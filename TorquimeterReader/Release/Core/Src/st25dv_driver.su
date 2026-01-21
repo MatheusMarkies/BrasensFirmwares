@@ -1,0 +1,13 @@
+../Core/Src/st25dv_driver.c:30:9:ST25DV_ReadID	8	static
+../Core/Src/st25dv_driver.c:40:6:ST25DV_LPD_Enable	8	static
+../Core/Src/st25dv_driver.c:46:6:ST25DV_LPD_Disable	8	static
+../Core/Src/st25dv_driver.c:16:9:ST25DV_Init	16	static
+../Core/Src/st25dv_driver.c:57:9:ST25DV_EH_Enable_Dyn	24	static
+../Core/Src/st25dv_driver.c:66:9:ST25DV_EH_Disable_Dyn	24	static
+../Core/Src/st25dv_driver.c:75:6:ST25DV_Field_On	24	static
+../Core/Src/st25dv_driver.c:89:9:ST25DV_MB_Init	24	static
+../Core/Src/st25dv_driver.c:112:6:ST25DV_MB_HasMessageFromRF	24	static
+../Core/Src/st25dv_driver.c:120:9:ST25DV_MB_ReadMessage	40	static
+../Core/Src/st25dv_driver.c:146:9:ST25DV_MB_WriteMessage	40	static
+../Core/Src/st25dv_driver.c:174:9:ST25DV_I2C_PresentPassword	56	static
+../Core/Src/st25dv_driver.c:193:6:ST25DV_I2C_IsSessionOpen	16	static

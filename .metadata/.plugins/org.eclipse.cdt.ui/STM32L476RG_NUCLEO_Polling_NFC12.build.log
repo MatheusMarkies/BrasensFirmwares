@@ -1,4 +1,4 @@
-19:28:15 **** Build of configuration Debug for project STM32L476RG_NUCLEO_Polling_NFC12 ****
+09:11:28 **** Build of configuration Debug for project STM32L476RG_NUCLEO_Polling_NFC12 ****
 make -j12 all 
 arm-none-eabi-size  STM32L476RG_NUCLEO_Polling_NFC12.elf 
    text	   data	    bss	    dec	    hex	filename
@@ -8,5 +8,5 @@ Finished building: default.size.stdout
 arm-none-eabi-objcopy -O binary "STM32L476RG_NUCLEO_Polling_NFC12.elf" "../../Binary/STM32L476RG_NUCLEO_Polling_NFC12.bin"
  
 
-19:28:18 Build Finished. 0 errors, 0 warnings. (took 2s.575ms)
+09:11:30 Build Finished. 0 errors, 0 warnings. (took 1s.910ms)
 

@@ -1,4 +1,4 @@
-19:28:18 **** Build of configuration Release for project TagWithSTM32L0 ****
+09:11:30 **** Build of configuration Release for project TagWithSTM32L0 ****
 make -j12 all 
 arm-none-eabi-gcc -o "TagWithSTM32L0.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TagWithSTM32L0\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TagWithSTM32L0.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 C:/ST/STM32CubeIDE_1.16.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/bin/ld.exe: ./Core/Src/main.o: in function `main':
@@ -7,5 +7,5 @@ collect2.exe: error: ld returned 1 exit status
 make: *** [makefile:64: TagWithSTM32L0.elf] Error 1
 "make -j12 all" terminated with exit code 2. Build might be incomplete.
 
-19:28:19 Build Failed. 2 errors, 0 warnings. (took 754ms)
+09:11:30 Build Failed. 2 errors, 0 warnings. (took 730ms)
 

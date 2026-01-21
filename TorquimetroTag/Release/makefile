@@ -33,34 +33,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := TorquimetroTag
+BUILD_ARTIFACT_NAME := TorquimetroTagTest
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-TorquimetroTag.elf \
+TorquimetroTagTest.elf \
 
 MAP_FILES += \
-TorquimetroTag.map \
+TorquimetroTagTest.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-TorquimetroTag.list \
+TorquimetroTagTest.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: TorquimetroTag.elf secondary-outputs
+main-build: TorquimetroTagTest.elf secondary-outputs
 
 # Tool invocations
-TorquimetroTag.elf TorquimetroTag.map: $(OBJS) $(USER_OBJS) D:\BrasensFirmwares\TorquimetroTag\STM32L011F4UX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "TorquimetroTag.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TorquimetroTag\STM32L011F4UX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimetroTag.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+TorquimetroTagTest.elf TorquimetroTagTest.map: $(OBJS) $(USER_OBJS) D:\BrasensFirmwares\TorquimetroTag\STM32L011F4UX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "TorquimetroTagTest.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TorquimetroTag\STM32L011F4UX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimetroTagTest.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -69,14 +69,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-TorquimetroTag.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "TorquimetroTag.list"
+TorquimetroTagTest.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "TorquimetroTagTest.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) TorquimetroTag.elf TorquimetroTag.list TorquimetroTag.map default.size.stdout
+	-$(RM) TorquimetroTagTest.elf TorquimetroTagTest.list TorquimetroTagTest.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

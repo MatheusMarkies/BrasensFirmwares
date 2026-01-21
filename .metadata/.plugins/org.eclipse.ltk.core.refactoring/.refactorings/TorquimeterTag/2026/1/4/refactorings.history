@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;TorquimeterTag/TestSTM23L011F4.ioc&apos; to &apos;TorquimeterTag.ioc&apos;" description="Rename resource &apos;TestSTM23L011F4.ioc&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="TestSTM23L011F4.ioc" name="TorquimeterTag.ioc" stamp="1768997397620" updateReferences="true"/>
+</session>

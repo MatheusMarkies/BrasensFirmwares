@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := TorquimeterReader
+BUILD_ARTIFACT_NAME := TorquimeterTagWithLargeMCU
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-TorquimeterReader.elf \
+TorquimeterTagWithLargeMCU.elf \
 
 MAP_FILES += \
-TorquimeterReader.map \
+TorquimeterTagWithLargeMCU.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-TorquimeterReader.list \
+TorquimeterTagWithLargeMCU.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: TorquimeterReader.elf secondary-outputs
+main-build: TorquimeterTagWithLargeMCU.elf secondary-outputs
 
 # Tool invocations
-TorquimeterReader.elf TorquimeterReader.map: $(OBJS) $(USER_OBJS) D:\BrasensFirmwares\TorquimeterReader\STM32L053C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "TorquimeterReader.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TorquimeterReader\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterReader.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+TorquimeterTagWithLargeMCU.elf TorquimeterTagWithLargeMCU.map: $(OBJS) $(USER_OBJS) D:\BrasensFirmwares\TorquimeterReader\STM32L053C8TX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "TorquimeterTagWithLargeMCU.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TorquimeterReader\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterTagWithLargeMCU.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-TorquimeterReader.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "TorquimeterReader.list"
+TorquimeterTagWithLargeMCU.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "TorquimeterTagWithLargeMCU.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) TorquimeterReader.elf TorquimeterReader.list TorquimeterReader.map default.size.stdout
+	-$(RM) TorquimeterTagWithLargeMCU.elf TorquimeterTagWithLargeMCU.list TorquimeterTagWithLargeMCU.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

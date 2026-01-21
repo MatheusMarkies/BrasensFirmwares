@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">
+<refactoring comment="Rename resource &apos;NFC12A1_Test/NFC12A1_Test.ioc&apos; to &apos;TorquimeterReader.ioc&apos;" description="Rename resource &apos;NFC12A1_Test.ioc&apos;" flags="7" id="org.eclipse.ltk.core.refactoring.rename.resource" input="NFC12A1_Test.ioc" name="TorquimeterReader.ioc" stamp="1768997470677" updateReferences="true"/>
+</session>

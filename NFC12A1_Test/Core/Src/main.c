@@ -1,4 +1,5 @@
 /* USER CODE BEGIN Header */
+//NFC Reader
 /**
  ******************************************************************************
  * @file           : main.c
@@ -168,67 +169,45 @@ static void nfcv(rfalNfcvListenDevice *nfcvDev)
     uint8_t rxBuf[256];
     uint16_t rcvLen;
 
-    /* CONFIGURAÇÃO DE RF ROBUSTA
-       - DEFAULT: High Data Rate (Tenta manter 26kbps)
-       - ADDRESS: Obrigatório
-       - 0x01: Double Sub-carrier (Melhora a leitura em sinal fraco) */
-    uint8_t reqFlag = RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS | 0x01;
+    uint8_t reqFlag = RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS;
 
-    // --- BLOCO 1: Ler Tamanho (Length) com Retry ---
-    // O erro 9 (CRC) costuma ser passageiro. Tentar de novo resolve.
-    uint8_t retries_len = 5;
-
-    do {
-        err = rfalST25xVPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
-
-        if (err == ERR_NONE) break; // Sucesso!
-
-        // Se for erro 9 (CRC) ou 5 (Timeout), vale a pena tentar rápido de novo
-        if (err == 9 || err == 5) {
-            platformLog("Erro %d no Length. Retry %d...\r\n", err, retries_len);
-            platformDelay(10);
-        } else {
-            // Se for erro 4 (Proto) ou outro grave, talvez não adiante insistir tanto
-            platformDelay(10);
-        }
-        retries_len--;
-    } while (retries_len > 0);
-
+    err = rfalST25xVPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
 
     if (err == ERR_NONE)
     {
-        uint16_t actualMessageLen = mbLen + 1;
-        platformLog("Msg detectada: %d bytes. Aguardando I2C...\r\n", actualMessageLen);
+        uint16_t actualMessageLen = mbLen;
 
-        /* Delay para o ST25DV liberar o buffer (Arbitragem I2C vs RF) */
-        platformDelay(40);
+        platformLog("Msg detectada no Mailbox: %d bytes\r\n", actualMessageLen);
 
-        // --- BLOCO 2: Ler Corpo (Body) com Retry ---
-        uint8_t retries_msg = 5;
-        do {
-            err = rfalST25xVPollerReadMessage(reqFlag, nfcvDev->InvRes.UID, 0, actualMessageLen, rxBuf, sizeof(rxBuf), &rcvLen);
-
-            if (err == ERR_NONE) break;
-
-            platformLog("Erro %d no corpo. Retry %d...\r\n", err, retries_msg);
-            platformDelay(20 + ((5-retries_msg)*10)); // Delay progressivo
-            retries_msg--;
-        } while (retries_msg > 0);
+        err = rfalST25xVPollerReadMessage(reqFlag, nfcvDev->InvRes.UID,
+                                          0, actualMessageLen,
+                                          rxBuf, sizeof(rxBuf), &rcvLen);
 
         if (err == ERR_NONE)
         {
-            if(rcvLen < sizeof(rxBuf)) rxBuf[rcvLen] = '\0';
-            platformLog(">> STRAIN LIDO: %s uE\r\n", (char*)rxBuf);
+            platformLog("DADOS BRUTOS (Hex): ");
+            for(int i=0; i<rcvLen; i++)
+            {
+                platformLog("%02X ", rxBuf[i]);
+            }
+            platformLog("\r\n");
+
+            // Agora você pode processar a mensagem completa
+            platformLog("Mensagem recebida (%d bytes): ", rcvLen);
+            for(int i=0; i<rcvLen; i++)
+            {
+                platformLog("%c", rxBuf[i]);
+            }
+            platformLog("\r\n");
         }
         else
         {
-            platformLog("Falha final no corpo: %d\r\n", err);
+            platformLog("Erro ao ler o corpo da mensagem: %d\r\n", err);
         }
     }
     else
     {
-        // Só mostra o erro se realmente falhou todas as 5 tentativas
-        platformLog("Falha critica no Length: %d\r\n", err);
+        platformLog("Nenhuma mensagem no Mailbox ou recurso desativado (Erro %d)\r\n", err);
     }
 }
 
