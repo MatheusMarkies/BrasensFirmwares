@@ -1,8 +1,8 @@
-10:05:02 **** Incremental Build of configuration Release for project TorquimeterTag ****
+10:58:32 **** Incremental Build of configuration Release for project TorquimeterTag ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -DUSE_HAL_DRIVER -DSTM32L011xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-../Core/Src/main.c:666:13: warning: 'MX_LPUART1_UART_Init' defined but not used [-Wunused-function]
-  666 | static void MX_LPUART1_UART_Init(void) {
+../Core/Src/main.c:660:13: warning: 'MX_LPUART1_UART_Init' defined but not used [-Wunused-function]
+  660 | static void MX_LPUART1_UART_Init(void) {
       |             ^~~~~~~~~~~~~~~~~~~~
 arm-none-eabi-gcc -o "TorquimeterTag.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TestSTM23L011F4\STM32L011F4UX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterTag.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 Finished building target: TorquimeterTag.elf
@@ -14,18 +14,4 @@ arm-none-eabi-objdump -h -S TorquimeterTag.elf  > "TorquimeterTag.list"
 Finished building: default.size.stdout
  
 Finished building: TorquimeterTag.list
- 
-10:05:16 **** Incremental Build of configuration Release for project TorquimeterTag ****
-make -j12 all 
-arm-none-eabi-size  TorquimeterTag.elf 
-   text	   data	    bss	    dec	    hex	filename
-  10484	     32	   1704	  12220	   2fbc	TorquimeterTag.elf
-Finished building: default.size.stdout
- 
-10:06:54 **** Incremental Build of configuration Release for project TorquimeterTag ****
-make -j12 all 
-arm-none-eabi-size  TorquimeterTag.elf 
-   text	   data	    bss	    dec	    hex	filename
-  10484	     32	   1704	  12220	   2fbc	TorquimeterTag.elf
-Finished building: default.size.stdout
  

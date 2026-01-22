@@ -37,34 +37,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := NFC12A1_Test
+BUILD_ARTIFACT_NAME := TorquimeterReader
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-NFC12A1_Test.elf \
+TorquimeterReader.elf \
 
 MAP_FILES += \
-NFC12A1_Test.map \
+TorquimeterReader.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-NFC12A1_Test.list \
+TorquimeterReader.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: NFC12A1_Test.elf secondary-outputs
+main-build: TorquimeterReader.elf secondary-outputs
 
 # Tool invocations
-NFC12A1_Test.elf NFC12A1_Test.map: $(OBJS) $(USER_OBJS) D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "NFC12A1_Test.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="NFC12A1_Test.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+TorquimeterReader.elf TorquimeterReader.map: $(OBJS) $(USER_OBJS) D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "TorquimeterReader.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterReader.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -73,14 +73,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-NFC12A1_Test.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "NFC12A1_Test.list"
+TorquimeterReader.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "TorquimeterReader.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) NFC12A1_Test.elf NFC12A1_Test.list NFC12A1_Test.map default.size.stdout
+	-$(RM) TorquimeterReader.elf TorquimeterReader.list TorquimeterReader.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

@@ -1211,7 +1211,7 @@ Disassembly of section .text:
  8000a58:	79da      	ldrb	r2, [r3, #7]
  8000a5a:	2301      	movs	r3, #1
  8000a5c:	4669      	mov	r1, sp
- 8000a5e:	431a      	orrs	r2, r3
+ 8000a5e:	439a      	bics	r2, r3
  8000a60:	71ca      	strb	r2, [r1, #7]
  8000a62:	466a      	mov	r2, sp
  8000a64:	682c      	ldr	r4, [r5, #0]
@@ -1240,9 +1240,9 @@ Disassembly of section .text:
  8000a8e:	47b0      	blx	r6
  8000a90:	2800      	cmp	r0, #0
  8000a92:	d103      	bne.n	8000a9c <ST25DV_EH_ReadConfig_Static+0x20>
- 8000a94:	2201      	movs	r2, #1
- 8000a96:	782b      	ldrb	r3, [r5, #0]
- 8000a98:	4013      	ands	r3, r2
+ 8000a94:	2301      	movs	r3, #1
+ 8000a96:	782a      	ldrb	r2, [r5, #0]
+ 8000a98:	4393      	bics	r3, r2
  8000a9a:	7023      	strb	r3, [r4, #0]
  8000a9c:	bd76      	pop	{r1, r2, r4, r5, r6, pc}
 	...

@@ -3,6 +3,8 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="true"/>
 	<list key="searchhistory">
+		<item value="debug_print_int"/>
+		<item value="ST25DV_EH_Enable_Dyn"/>
 		<item value="ST25DV_MB_WriteMessage"/>
 		<item value="nfcv"/>
 		<item value="config"/>
@@ -16,8 +18,6 @@
 		<item value="demoCycle"/>
 		<item value="no_war"/>
 		<item value="NO_WAR"/>
-		<item value="state"/>
-		<item value="demoT2t"/>
 	</list>
 	<list key="replacehistory">
 		<item value="LOG"/>

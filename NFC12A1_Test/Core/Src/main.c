@@ -49,9 +49,12 @@
 #define DEMO_ST_NOTINIT               0
 #define DEMO_ST_START_DISCOVERY       1
 #define DEMO_ST_DISCOVERY             2
-
+#define DEMO_ST_CONNECTED             3
 #define DEMO_NFCV_BLOCK_LEN           4     /*!< NFCV Block len                         */
 
+#define STABILIZE_TAG_DELAY 15 * 1000
+#define TRY_CONNECTING_TAG_DELAY 5 * 1000
+#define READ_MAILBOX_EVERY 15 * 1000
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -162,7 +165,7 @@ bool ini(void)
   return true;
 }
 
-static void nfcv(rfalNfcvListenDevice *nfcvDev)
+static bool nfcv_read_mailbox(uint8_t *uid)
 {
     ReturnCode err;
     uint8_t mbLen;
@@ -171,7 +174,7 @@ static void nfcv(rfalNfcvListenDevice *nfcvDev)
 
     uint8_t reqFlag = RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS;
 
-    err = rfalST25xVPollerReadMessageLength(reqFlag, nfcvDev->InvRes.UID, &mbLen);
+    err = rfalST25xVPollerReadMessageLength(reqFlag, uid, &mbLen);
 
     if (err == ERR_NONE)
     {
@@ -179,9 +182,9 @@ static void nfcv(rfalNfcvListenDevice *nfcvDev)
 
         platformLog("Msg detectada no Mailbox: %d bytes\r\n", actualMessageLen);
 
-        err = rfalST25xVPollerReadMessage(reqFlag, nfcvDev->InvRes.UID,
-                                          0, actualMessageLen,
-                                          rxBuf, sizeof(rxBuf), &rcvLen);
+        err = rfalST25xVPollerReadMessage(reqFlag, uid,
+                                                      0, actualMessageLen,
+                                                      rxBuf, sizeof(rxBuf), &rcvLen);
 
         if (err == ERR_NONE)
         {
@@ -199,16 +202,21 @@ static void nfcv(rfalNfcvListenDevice *nfcvDev)
                 platformLog("%c", rxBuf[i]);
             }
             platformLog("\r\n");
+            return true;
         }
         else
         {
             platformLog("Erro ao ler o corpo da mensagem: %d\r\n", err);
+            return false;
         }
     }
     else
     {
         platformLog("Nenhuma mensagem no Mailbox ou recurso desativado (Erro %d)\r\n", err);
+        return true;
     }
+
+    return false;
 }
 
 void stop(void)
@@ -279,7 +287,7 @@ int main(void)
       platformLedToogle(PLATFORM_LED_V_PORT, PLATFORM_LED_V_PIN);
       platformLedToogle(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN);
 
-      platformDelay(100);
+      HAL_Delay(100);
     }
   }
   else
@@ -293,7 +301,7 @@ int main(void)
       platformLedToogle(PLATFORM_LED_V_PORT, PLATFORM_LED_V_PIN);
       platformLedToogle(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN);
 
-      platformDelay(200);
+      HAL_Delay(200);
     }
 
     platformLedOff(PLATFORM_LED_A_PORT, PLATFORM_LED_A_PIN);
@@ -303,70 +311,101 @@ int main(void)
     platformLedOff(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN);
 
   }
+
+  static uint8_t currentUID[RFAL_NFCV_UID_LEN]; // Para salvar com quem estamos falando
+  static uint8_t failCount = 0;
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
-	    static rfalNfcDevice *nfcDevice;
-	    rfalNfcState currentState;
+		static rfalNfcDevice *nfcDevice;
+		    rfalNfcState currentState;
 
-	    rfalNfcWorker();                                    /* Mantém a stack RFAL rodando */
+		    rfalNfcWorker(); // Mantém a stack RFAL rodando
 
-	    /* Lógica do botão de Wake-up (Opcional, mantida para debug) */
-	#if defined(PLATFORM_USER_BUTTON_PORT) && defined(PLATFORM_USER_BUTTON_PIN)
-	    if( platformGpioIsLow(PLATFORM_USER_BUTTON_PORT, PLATFORM_USER_BUTTON_PIN))
-	    {
-	        discParam.wakeupEnabled = !discParam.wakeupEnabled;
-	        state = DEMO_ST_START_DISCOVERY;
-	        platformLog("Toggling Wake Up mode %s\r\n", discParam.wakeupEnabled ? "ON": "OFF");
-	        rfalNfcDeactivate( RFAL_NFC_DEACTIVATE_IDLE );
-	        rfalNfcDiscover( &discParam );
-	        while( platformGpioIsLow(PLATFORM_USER_BUTTON_PORT, PLATFORM_USER_BUTTON_PIN) );
-	    }
-	#endif
+		    switch( state )
+		    {
+		        case DEMO_ST_START_DISCOVERY:
+		            platformLedOff(PLATFORM_LED_V_PORT, PLATFORM_LED_V_PIN);
+		            platformLedOff(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN);
+		            multiSel = false;
+		            state    = DEMO_ST_DISCOVERY;
+		            break;
 
-	    switch( state )
-	    {
-	        case DEMO_ST_START_DISCOVERY:
-	            platformLedOff(PLATFORM_LED_V_PORT, PLATFORM_LED_V_PIN);
-	            platformLedOff(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN);
-	            multiSel = false;
-	            state    = DEMO_ST_DISCOVERY;
-	            break;
+		        case DEMO_ST_DISCOVERY:
+		            currentState = rfalNfcGetState();
 
-	        case DEMO_ST_DISCOVERY:
-	            currentState = rfalNfcGetState();
+		            if( rfalNfcIsDevActivated( currentState ) )
+		            {
+		                rfalNfcGetActiveDevice( &nfcDevice );
 
-	            if( rfalNfcIsDevActivated( currentState ) )
-	            {
-	                rfalNfcGetActiveDevice( &nfcDevice );
+		                if( nfcDevice->type == RFAL_NFC_LISTEN_TYPE_NFCV )
+		                {
+		                    platformLedOn(PLATFORM_LED_V_PORT, PLATFORM_LED_V_PIN);
+		                    platformLedOn(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN); // Indica Campo ON
 
-	                /* FILTRO: Só processa se for NFC-V (Torquímetro) */
-	                if( nfcDevice->type == RFAL_NFC_LISTEN_TYPE_NFCV )
-	                {
-	                    uint8_t devUID[RFAL_NFCV_UID_LEN];
-	                    platformLedOn(PLATFORM_LED_V_PORT, PLATFORM_LED_V_PIN);
+		                    // 1. Salva o UID para usar nas próximas leituras
+		                    ST_MEMCPY( currentUID, nfcDevice->nfcid, nfcDevice->nfcidLen );
 
-	                    ST_MEMCPY( devUID, nfcDevice->nfcid, nfcDevice->nfcidLen );
-	                    REVERSE_BYTES( devUID, RFAL_NFCV_UID_LEN );
+		                    platformLog("Tag Detectada! Iniciando Monitoramento Continuo...\r\n");
+		                    platformLog("\r\n");
+		                    // 2. NÃO DESATIVA! Muda para estado CONECTADO
+		                    failCount = 0;
+		                    state = DEMO_ST_CONNECTED;
 
-	                    platformLog("Torquímetro Detectado! UID: %s\r\n", hex2Str(devUID, RFAL_NFCV_UID_LEN));
+		                    // Pequeno delay inicial para estabilizar o Harvesting do MCU
+		                    HAL_Delay(STABILIZE_TAG_DELAY);
+		                }
+		                else
+		                {
+		                    // Se não for NFC-V, ignora e busca de novo
+		                    rfalNfcDeactivate( RFAL_NFC_DEACTIVATE_DISCOVERY );
+		                    state = DEMO_ST_START_DISCOVERY;
+		                }
+		            }
+		            break;
 
-	                    /* Chama a função que você vai usar para ler os dados do sensor */
-	                    nfcv( &nfcDevice->dev.nfcv );
-	                }
+		        case DEMO_ST_CONNECTED:
+		            // --- ESTADO DE HARVESTING E LEITURA ---
 
-	                /* Reinicia a descoberta após processar */
-	                rfalNfcDeactivate( RFAL_NFC_DEACTIVATE_DISCOVERY );
-	                state = DEMO_ST_START_DISCOVERY;
-	            }
-	            break;
+		            // 1. Tenta ler o Mailbox usando o UID salvo
+		            bool success = nfcv_read_mailbox(currentUID);
 
-	        case DEMO_ST_NOTINIT:
-	        default:
-	            break;
-	    }
+		            if(success)
+		            {
+		                failCount = 0; // Reset contador se comunicou com sucesso
+		                platformLog("\r\n");
+		                // Aguarda um tempo antes da próxima leitura (Periodo)
+		                // O campo RF continua LIGADO durante este delay
+		                HAL_Delay(READ_MAILBOX_EVERY); // Leia a cada 200ms (ajuste conforme necessário)
+		            }
+		            else
+		            {
+		                failCount++;
+		                platformLog("Falha comunicacao (%d/3)\r\n", failCount);
+		                platformLog("\r\n");
+		                if(failCount >= 3)
+		                {
+		                    platformLog("Tag perdida. Reiniciando busca...\r\n");
+
+		                    // Aqui sim, cortamos o campo e reiniciamos
+		                    rfalNfcDeactivate( RFAL_NFC_DEACTIVATE_DISCOVERY );
+		                    state = DEMO_ST_START_DISCOVERY;
+		                    platformLog("\r\n");
+		                }
+		                else
+		                {
+		                    // Tenta de novo rápido sem delay longo
+		                	HAL_Delay(TRY_CONNECTING_TAG_DELAY);
+		                }
+		            }
+		            break;
+
+		        case DEMO_ST_NOTINIT:
+		        default:
+		            break;
+		    }
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */

@@ -1,10 +1,10 @@
-09:22:40 **** Incremental Build of configuration Release for project TorquimeterTagWithLargeMCU ****
+09:50:10 **** Incremental Build of configuration Release for project TorquimeterTagWithLargeMCU ****
 make -j12 all 
 arm-none-eabi-size  TorquimeterTagWithLargeMCU.elf 
    text	   data	    bss	    dec	    hex	filename
-  12068	     28	   2188	  14284	   37cc	TorquimeterTagWithLargeMCU.elf
+  12164	     28	   2188	  14380	   382c	TorquimeterTagWithLargeMCU.elf
 Finished building: default.size.stdout
  
 
-09:22:40 Build Finished. 0 errors, 0 warnings. (took 253ms)
+09:50:10 Build Finished. 0 errors, 0 warnings. (took 245ms)
 

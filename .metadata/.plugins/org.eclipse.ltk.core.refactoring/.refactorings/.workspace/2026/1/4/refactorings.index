@@ -6,3 +6,7 @@
 1768997509073	Delete resource 'TagWithSTM32L0'
 1768997514939	Delete resource 'NFC12A1_PollingTagDetect'
 1768997520671	Delete resource 'ECU_Formula'
+1769085473156	Delete resource 'TorquimeterTagWithLargeMCU/Core/Inc/st25dv_driver.h'
+1769085485635	Delete resource 'TorquimeterTagWithLargeMCU/Core/Src/st25dv_driver.c'
+1769090246331	Delete resource 'TorquimeterTag/Core/Src/st25dv_driver.c'
+1769090248432	Delete resource 'TorquimeterTag/Core/Inc/st25dv_driver.h'

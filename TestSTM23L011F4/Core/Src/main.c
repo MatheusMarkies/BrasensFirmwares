@@ -88,11 +88,11 @@ static void MX_LPUART1_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_RTC_Init(void);
 /* USER CODE BEGIN PFP */
-// Se DEBUG estiver definido, imprime. Se não, não faz nada.
+
 #ifdef DEBUG
-    #define DEBUG_PRINT(msg) HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 200)
+	#define DEBUG_PRINT(msg) HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 200)
 #else
-#define DEBUG_PRINT(msg) do {} while (0)
+	#define DEBUG_PRINT(msg) do {} while (0)
 #endif
 void I2C_Scanner(I2C_HandleTypeDef *hi2c);
 /* USER CODE END PFP */
@@ -199,25 +199,25 @@ int16_t ADS1115_Read(void) {
 
 void debug_print_int(int32_t v) {
 #ifdef DEBUG  // <--- INÍCIO DO BLOCO CONDICIONAL
-    char buf[12];
-    int i = 9;
+	char buf[12];
+	int i = 9;
 
-    if (v < 0) {
-        // Se quiser imprimir o sinal, descomente a linha abaixo
-        HAL_UART_Transmit(&hlpuart1, (uint8_t*) "-", 1, 100);
-        v = -v;
-    }
+	if (v < 0) {
+		// Se quiser imprimir o sinal, descomente a linha abaixo
+		HAL_UART_Transmit(&hlpuart1, (uint8_t*) "-", 1, 100);
+		v = -v;
+	}
 
-    do {
-        buf[i--] = '0' + (v % 10);
-        v /= 10;
-    } while (v);
+	do {
+		buf[i--] = '0' + (v % 10);
+		v /= 10;
+	} while (v);
 
-    buf[10] = '\r';
-    buf[11] = '\n';
+	buf[10] = '\r';
+	buf[11] = '\n';
 
-    // Envia o buffer processado
-    HAL_UART_Transmit(&hlpuart1, (uint8_t*) &buf[i + 1], 11 - i, 100);
+	// Envia o buffer processado
+	HAL_UART_Transmit(&hlpuart1, (uint8_t*) &buf[i + 1], 11 - i, 100);
 #endif // <--- FIM DO BLOCO CONDICIONAL
 }
 
@@ -236,8 +236,8 @@ void enter_stop_mode(void) {
 
 	// Se estiver usando UART debug, desliga também (ou vai vazar corrente pelos pinos TX/RX)
 #ifdef DEBUG
-    HAL_UART_DeInit(&hlpuart1);
-    #endif
+	HAL_UART_DeInit(&hlpuart1);
+#endif
 
 	// 2. Limpa flags
 	__HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
@@ -255,8 +255,8 @@ void enter_stop_mode(void) {
 	// 5. Reinicializa periféricos
 	MX_I2C1_Init();
 #ifdef DEBUG
-    MX_LPUART1_UART_Init();
-    #endif
+	MX_LPUART1_UART_Init();
+#endif
 }
 
 void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
@@ -337,12 +337,6 @@ void Setup_NFC(void) {
 	} else {
 		DEBUG_PRINT("EH: Configurando pela primeira vez...\r\n");
 		status = ST25DV_EH_Enable_Static(&st25_driver);
-
-		if (status == 0) {
-			DEBUG_PRINT("EH: HABILITADO (PERMANENTE)\r\n");
-		} else {
-			DEBUG_PRINT("EH: FALHA ao configurar\r\n");
-		}
 	}
 
 	// 5. Habilitar EH no modo dinâmico (sempre necessário)
@@ -447,7 +441,7 @@ int main(void) {
 	/* Initialize all configured peripherals */
 	MX_GPIO_Init();
 #ifdef DEBUG
-MX_LPUART1_UART_Init();
+	MX_LPUART1_UART_Init();
 #endif
 	MX_I2C1_Init();
 	MX_RTC_Init();

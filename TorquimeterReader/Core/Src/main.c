@@ -93,7 +93,13 @@ static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 static void MX_I2C1_Init(void);
 /* USER CODE BEGIN PFP */
+#define DEBUG
+
+#ifdef DEBUG
 #define DEBUG_PRINT(msg) HAL_UART_Transmit(&huart1, (uint8_t*)msg, strlen(msg), 200)
+#else
+#define DEBUG_PRINT(msg) do {} while (0)
+#endif
 void I2C_Scanner(I2C_HandleTypeDef *hi2c);
 /* USER CODE END PFP */
 
@@ -198,10 +204,12 @@ int16_t ADS1115_Read(void) {
 }
 
 void debug_print_int(int32_t v) {
+#ifdef DEBUG  // <--- INÍCIO DO BLOCO CONDICIONAL
 	char buf[12];
-	int i = 9; // <--- MUDADO DE 10 PARA 9 (Para proteger buf[10])
+	int i = 9;
 
 	if (v < 0) {
+		// Se quiser imprimir o sinal, descomente a linha abaixo
 		HAL_UART_Transmit(&huart1, (uint8_t*) "-", 1, 100);
 		v = -v;
 	}
@@ -211,13 +219,12 @@ void debug_print_int(int32_t v) {
 		v /= 10;
 	} while (v);
 
-	// Agora buf[10] e buf[11] estão seguros
 	buf[10] = '\r';
 	buf[11] = '\n';
 
-	// O tamanho a transmitir é: (11 - i)
-	// Ex: Se v=0 -> i=8. Start=&buf[9] ('0'). Len = 11-8 = 3 ('0','\r','\n')
+	// Envia o buffer processado
 	HAL_UART_Transmit(&huart1, (uint8_t*) &buf[i + 1], 11 - i, 100);
+#endif // <--- FIM DO BLOCO CONDICIONAL
 }
 
 int32_t platform_i2c_write(uint8_t addr, uint16_t reg, uint8_t *data,
@@ -247,70 +254,74 @@ st25dv_io_t st25_driver = { .i2c_write = platform_i2c_write, .i2c_read =
 
 void Setup_NFC(void) {
 	int32_t status;
-
-	DEBUG_PRINT("--- Iniciando Setup NFC ---\r\n");
-
-	uint8_t chip_id = 0;
-
-	status = ST25DV_ReadID(&st25_driver, &chip_id);
-	if (status == 0) {
-
-	} else {
-		DEBUG_PRINT("Erro ao ler ID do ST25DV!\r\n");
-	}
+	uint8_t eh_config, mb_config;
 
 	DEBUG_PRINT("--- Iniciando Setup NFC ---\r\n");
 
 	// 1. Inicialização Básica
 	status = ST25DV_Init(&st25_driver);
-	if (status == 0) {
-		DEBUG_PRINT("ST25DV Init: SUCESSO\r\n");
-	} else {
-		DEBUG_PRINT("ST25DV Init: FALHA (Chip nao responde)\r\n");
+	if (status != 0) {
+		DEBUG_PRINT("ST25DV Init: FALHA\r\n");
 		return;
 	}
+	DEBUG_PRINT("ST25DV Init: SUCESSO\r\n");
 
+	// 2. Apresentar Senha (necessário para acesso à EEPROM)
 	status = ST25DV_I2C_PresentPassword(&st25_driver);
-	if (status == 0) {
-		DEBUG_PRINT("ST25DV Senha: OK (Sessao I2C Aberta)\r\n");
-	} else {
+	if (status != 0) {
 		DEBUG_PRINT("ST25DV Senha: FALHA\r\n");
+		return;
 	}
 
 	HAL_Delay(10);
 
-	if (ST25DV_I2C_IsSessionOpen(&st25_driver)) {
-		DEBUG_PRINT("Sessao I2C: ABERTA (Senha Correta)\r\n");
+	// 3. Verificar Sessão I2C
+	if (!ST25DV_I2C_IsSessionOpen(&st25_driver)) {
+		DEBUG_PRINT("Sessao I2C: FECHADA\r\n");
+		return;
+	}
+	DEBUG_PRINT("Sessao I2C: ABERTA\r\n");
+
+	// 4. ✅ CONFIGURAÇÃO PERMANENTE: Energy Harvesting
+	status = ST25DV_EH_ReadConfig_Static(&st25_driver, &eh_config);
+
+	if (status == 0 && eh_config == 1) {
+		DEBUG_PRINT("EH: JA CONFIGURADO (Permanente)\r\n");
 	} else {
-		DEBUG_PRINT("Sessao I2C: FECHADA (Senha Incorreta ou Falha)\r\n");
-		// Se falhar aqui, o MB_Init abaixo vai falhar com certeza
+		DEBUG_PRINT("EH: Configurando pela primeira vez...\r\n");
+		status = ST25DV_EH_Enable_Static(&st25_driver);
 	}
 
-	status = ST25DV_EH_Enable_Dyn(&st25_driver);
-	if (status == 0) {
-		DEBUG_PRINT("ST25DV Energy Harvesting: HABILITADO\r\n");
+	// 5. Habilitar EH no modo dinâmico (sempre necessário)
+	ST25DV_EH_Enable_Dyn(&st25_driver);
+
+	// 6. ✅ CONFIGURAÇÃO PERMANENTE: Mailbox
+	status = ST25DV_MB_ReadConfig_Static(&st25_driver, &mb_config);
+
+	if (status == 0 && mb_config == 1) {
+		DEBUG_PRINT("Mailbox: JA CONFIGURADO (Permanente)\r\n");
 	} else {
-		DEBUG_PRINT("ST25DV Energy Harvesting: FALHA ao habilitar\r\n");
+		DEBUG_PRINT("Mailbox: Configurando pela primeira vez...\r\n");
+		status = ST25DV_MB_Enable_Static(&st25_driver);
+
+		if (status == 0) {
+			DEBUG_PRINT("Mailbox: HABILITADO (PERMANENTE)\r\n");
+		} else {
+			DEBUG_PRINT("Mailbox: FALHA ao configurar\r\n");
+		}
 	}
 
-	status = ST25DV_MB_Init(&st25_driver);
-	if (status == 0) {
-		DEBUG_PRINT("ST25DV Mailbox: INICIALIZADO\r\n");
-	} else {
-		DEBUG_PRINT(
-				"ST25DV Mailbox: FALHA (Verifique senha ou acesso E2=1)\r\n");
-	}
+	// 7. Habilitar Mailbox no modo dinâmico (sempre necessário)
+	ST25DV_MB_Enable_Dyn(&st25_driver);
+	DEBUG_PRINT("Mailbox: Modo dinamico ativo\r\n");
 
 	DEBUG_PRINT("--- Setup NFC Finalizado ---\r\n");
 }
 
 void Loop_NFC(void) {
-	uint8_t msg[] = "Ola RF";
-
-	if (ST25DV_MB_WriteMessage(&st25_driver, msg, sizeof(msg)) == 0) {
-		DEBUG_PRINT("NFC Updated\r\n");
-	} else {
-		DEBUG_PRINT("NFC Write Failed (Busy?)\r\n");
+	if (ST25DV_Field_On(&st25_driver)) {
+		uint8_t msg[] = "Ola RF";
+		ST25DV_MB_WriteMessage(&st25_driver, msg, sizeof(msg));
 	}
 }
 
@@ -399,22 +410,23 @@ int main(void) {
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
-	    int32_t numero = 12;
-	    char buffer[12]; // Buffer para armazenar a string convertida
+		int32_t numero = 12;
+		char buffer[12]; // Buffer para armazenar a string convertida
 
-	    // Converte o número para string
-	    LongToStr(numero, buffer);
+		// Converte o número para string
+		LongToStr(numero, buffer);
 
-	    // Envia para o Mailbox (calcula o tamanho da string sem o '\0')
-	    uint8_t msg_len = strlen(buffer);
+		// Envia para o Mailbox (calcula o tamanho da string sem o '\0')
+		uint8_t msg_len = strlen(buffer);
 
-	    if (ST25DV_MB_WriteMessage(&st25_driver, (uint8_t*)buffer, msg_len) == 0) {
-	        DEBUG_PRINT("NFC Updated: ");
-	        DEBUG_PRINT(buffer);
-	        DEBUG_PRINT("\r\n");
-	    } else {
-	        DEBUG_PRINT("NFC Write Failed (Busy?)\r\n");
-	    }
+		if (ST25DV_MB_WriteMessage(&st25_driver, (uint8_t*) buffer, msg_len)
+				== 0) {
+			DEBUG_PRINT("NFC Updated: ");
+			DEBUG_PRINT(buffer);
+			DEBUG_PRINT("\r\n");
+		} else {
+			DEBUG_PRINT("NFC Write Failed (Busy?)\r\n");
+		}
 		HAL_Delay(1000);
 		/* USER CODE END WHILE */
 

@@ -1,16 +1,10 @@
-09:11:31 **** Build of configuration Debug for project TorquimeterReader ****
+10:32:34 **** Incremental Build of configuration Debug for project TorquimeterReader ****
 make -j12 all 
-arm-none-eabi-gcc -o "TorquimeterReader.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterReader.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: TorquimeterReader.elf
- 
 arm-none-eabi-size  TorquimeterReader.elf 
-arm-none-eabi-objdump -h -S TorquimeterReader.elf  > "TorquimeterReader.list"
    text	   data	    bss	    dec	    hex	filename
-  46192	     92	   5388	  51672	   c9d8	TorquimeterReader.elf
+  46184	     92	   4884	  51160	   c7d8	TorquimeterReader.elf
 Finished building: default.size.stdout
  
-Finished building: TorquimeterReader.list
- 
 
-09:11:31 Build Finished. 0 errors, 0 warnings. (took 704ms)
+10:32:34 Build Finished. 0 errors, 0 warnings. (took 346ms)
 
