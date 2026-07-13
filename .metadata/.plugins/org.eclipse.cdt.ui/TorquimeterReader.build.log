@@ -1,10 +1,10 @@
-10:32:34 **** Incremental Build of configuration Debug for project TorquimeterReader ****
+21:33:13 **** Build of configuration Release for project TorquimeterReader ****
 make -j12 all 
 arm-none-eabi-size  TorquimeterReader.elf 
    text	   data	    bss	    dec	    hex	filename
-  46184	     92	   4884	  51160	   c7d8	TorquimeterReader.elf
+  26816	     92	   4884	  31792	   7c30	TorquimeterReader.elf
 Finished building: default.size.stdout
  
 
-10:32:34 Build Finished. 0 errors, 0 warnings. (took 346ms)
+21:33:14 Build Finished. 0 errors, 0 warnings. (took 588ms)
 

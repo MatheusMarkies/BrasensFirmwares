@@ -1,7 +1,0 @@
-../X-CUBE-NFC12/Target/timer.c:42:16:timerCalcDiff	1
-../X-CUBE-NFC12/Target/timer.c:65:10:timerCalculateTimer	1
-../X-CUBE-NFC12/Target/timer.c:71:6:timerIsExpired	1
-../X-CUBE-NFC12/Target/timer.c:77:10:timerGetRemaining	2
-../X-CUBE-NFC12/Target/timer.c:86:6:timerDelay	2
-../X-CUBE-NFC12/Target/timer.c:96:6:timerStopwatchStart	1
-../X-CUBE-NFC12/Target/timer.c:102:10:timerStopwatchMeasure	1

@@ -1,0 +1,10 @@
+21:33:12 **** Build of configuration Release for project STM32L011_LOWPOWER ****
+make -j12 all 
+arm-none-eabi-size  STM32L011_LOWPOWER.elf 
+   text	   data	    bss	    dec	    hex	filename
+  10484	     32	   1728	  12244	   2fd4	STM32L011_LOWPOWER.elf
+Finished building: default.size.stdout
+ 
+
+21:33:12 Build Finished. 0 errors, 0 warnings. (took 475ms)
+

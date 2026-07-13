@@ -1,17 +1,21 @@
-10:58:32 **** Incremental Build of configuration Release for project TorquimeterTag ****
+23:02:12 **** Incremental Build of configuration Release for project NFCAntennaInductanceMeasurement ****
 make -j12 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -DUSE_HAL_DRIVER -DSTM32L011xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-../Core/Src/main.c:660:13: warning: 'MX_LPUART1_UART_Init' defined but not used [-Wunused-function]
-  660 | static void MX_LPUART1_UART_Init(void) {
-      |             ^~~~~~~~~~~~~~~~~~~~
-arm-none-eabi-gcc -o "TorquimeterTag.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TestSTM23L011F4\STM32L011F4UX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterTag.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: TorquimeterTag.elf
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "NFCAntennaInductanceMeasurement.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\NFCAntennaInductanceMeasurement\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="NFCAntennaInductanceMeasurement.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: NFCAntennaInductanceMeasurement.elf
  
-arm-none-eabi-size  TorquimeterTag.elf 
-arm-none-eabi-objdump -h -S TorquimeterTag.elf  > "TorquimeterTag.list"
+arm-none-eabi-size  NFCAntennaInductanceMeasurement.elf 
+arm-none-eabi-objdump -h -S NFCAntennaInductanceMeasurement.elf  > "NFCAntennaInductanceMeasurement.list"
    text	   data	    bss	    dec	    hex	filename
-  10484	     32	   1704	  12220	   2fbc	TorquimeterTag.elf
+  29608	    468	   2388	  32464	   7ed0	NFCAntennaInductanceMeasurement.elf
 Finished building: default.size.stdout
  
-Finished building: TorquimeterTag.list
+Finished building: NFCAntennaInductanceMeasurement.list
+ 
+23:02:14 **** Incremental Build of configuration Debug for project NFCAntennaInductanceMeasurement ****
+make -j12 all 
+arm-none-eabi-size  NFCAntennaInductanceMeasurement.elf 
+   text	   data	    bss	    dec	    hex	filename
+  35932	    468	   2388	  38788	   9784	NFCAntennaInductanceMeasurement.elf
+Finished building: default.size.stdout
  

@@ -1,6 +1,6 @@
-09:11:26 **** Build of configuration Debug for project Mainboard MonoChip ****
+21:33:05 **** Build of configuration Release for project Mainboard MonoChip ****
 make -j12 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
 In file included from ../Core/Src/main.c:28:
 ../Core/Inc/LoRa.h:1:1: warning: multi-line comment [-Wcomment]
     1 | // -------------------------------------------------- \\
@@ -204,5 +204,5 @@ In file included from ../Core/Src/main.c:28:
 make: *** [Core/Src/subdir.mk:43: Core/Src/main.o] Error 1
 "make -j12 all" terminated with exit code 2. Build might be incomplete.
 
-09:11:28 Build Failed. 7 errors, 35 warnings. (took 1s.160ms)
+21:33:09 Build Failed. 7 errors, 35 warnings. (took 3s.527ms)
 

@@ -26,6 +26,11 @@
 		<item key="SmartImportRootWizardPage.STORE_NESTED_PROJECTS" value="true"/>
 		<item key="SmartImportRootWizardPage.STORE_CONFIGURE_NATURES" value="true"/>
 		<list key="org.eclipse.ui.internal.wizards.datatransfer.SmartImportRootWizardPage.knownSources">
+			<item value="D:\BrasensFirmwares\Blank"/>
+			<item value="D:\BrasensFirmwares\NFCAntennaInductanceMeasurement"/>
+			<item value="C:\Users\Matheus Markies\Documents\TestH7Processor"/>
+			<item value="D:\Route-ECU-Firmware"/>
+			<item value="D:\BrasensFirmwares\STM32L011_LOWPOWER"/>
 			<item value="D:\BrasensFirmwares\TestSTM23L011F4"/>
 			<item value="D:\BrasensFirmwares\TagWithSTM32L0"/>
 			<item value="D:\Matheus Markies\Downloads\x-nucleo-nfc12\Projects\NUCLEO-L476RG\Applications\NFC12A1_PollingTagDetect"/>

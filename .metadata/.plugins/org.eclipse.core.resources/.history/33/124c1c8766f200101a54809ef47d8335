@@ -1,4 +1,0 @@
-../Middlewares/ST/rfal/Src/rfal_t1t.c:110:12:rfalT1TPollerInitialize	2
-../Middlewares/ST/rfal/Src/rfal_t1t.c:126:12:rfalT1TPollerRid	5
-../Middlewares/ST/rfal/Src/rfal_t1t.c:154:12:rfalT1TPollerRall	4
-../Middlewares/ST/rfal/Src/rfal_t1t.c:173:12:rfalT1TPollerWrite	6

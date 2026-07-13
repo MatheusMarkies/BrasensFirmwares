@@ -3,23 +3,24 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="true"/>
 	<list key="searchhistory">
-		<item value="debug_print_int"/>
-		<item value="ST25DV_EH_Enable_Dyn"/>
-		<item value="ST25DV_MB_WriteMessage"/>
-		<item value="nfcv"/>
-		<item value="config"/>
-		<item value="delta_bits"/>
-		<item value="strain_uE"/>
-		<item value="RFAL_CRC_LEN"/>
-		<item value="DEMO_NFCV_BLOCK_LEN"/>
-		<item value="RFAL_NFCV_REQ_FLAG_DEFAULT"/>
-		<item value="demoNfcv"/>
-		<item value="discParam"/>
-		<item value="demoCycle"/>
-		<item value="no_war"/>
-		<item value="NO_WAR"/>
+		<item value="_wri"/>
+		<item value="TIM2_CLK_HZ"/>
+		<item value="MX_TIM2_Init"/>
+		<item value="GPIO_NOPULL"/>
+		<item value="HAL_TIM_IC_CaptureCallback"/>
+		<item value="ENGINE_CalculateAngularVelocity"/>
+		<item value="ENGINE_CalculateDwell"/>
+		<item value="INJ_IT_FLAGS"/>
+		<item value="ENGINE_AngleDeltaInCycle"/>
+		<item value="ENGINE_ScheduleNextPhase"/>
+		<item value="engine.crankshaft_angle"/>
+		<item value="ENGINE_UpdateCylinderPhases"/>
+		<item value="ENGINE_Schedule_Spark"/>
+		<item value="CMD_RESULT_TIMEOUT"/>
+		<item value="SERIAL PROTOCOL"/>
 	</list>
 	<list key="replacehistory">
+		<item value="printf"/>
 		<item value="LOG"/>
 		<item value="hi2c2"/>
 	</list>

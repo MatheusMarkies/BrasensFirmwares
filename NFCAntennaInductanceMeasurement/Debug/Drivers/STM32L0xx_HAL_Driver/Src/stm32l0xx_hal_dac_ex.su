@@ -1,0 +1,11 @@
+../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dac_ex.c:130:19:HAL_DACEx_TriangleWaveGenerate	24	static
+../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dac_ex.c:180:19:HAL_DACEx_NoiseWaveGenerate	24	static
+../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dac_ex.c:687:19:HAL_DAC_Start	24	static
+../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dac_ex.c:738:19:HAL_DAC_Start_DMA	40	static
+../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dac_ex.c:816:19:HAL_DAC_Stop_DMA	32	static
+../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dac_ex.c:857:10:HAL_DAC_GetValue	16	static
+../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dac_ex.c:872:6:HAL_DAC_IRQHandler	16	static
+../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dac_ex.c:909:19:HAL_DAC_SetValue	32	static
+../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dac_ex.c:995:13:DAC_DMAConvCpltCh1	24	static
+../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dac_ex.c:1014:13:DAC_DMAHalfConvCpltCh1	24	static
+../Drivers/STM32L0xx_HAL_Driver/Src/stm32l0xx_hal_dac_ex.c:1032:13:DAC_DMAErrorCh1	24	static

@@ -1,17 +1,10 @@
-09:11:37 **** Build of configuration Release for project TorquimetroTagTest ****
+21:33:15 **** Build of configuration Release for project TorquimetroTagTest ****
 make -j12 all 
-arm-none-eabi-gcc -o "TorquimetroTagTest.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\TorquimetroTag\STM32L011F4UX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimetroTagTest.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-C:/ST/STM32CubeIDE_1.16.1/STM32CubeIDE/plugins/com.st.stm32cube.ide.mcu.externaltools.gnu-tools-for-stm32.13.3.rel1.win32_1.0.100.202509120712/tools/bin/../lib/gcc/arm-none-eabi/13.3.1/../../../../arm-none-eabi/bin/ld.exe: warning: cannot find entry symbol Reset_Handler; defaulting to 08000000
-Finished building target: TorquimetroTagTest.elf
- 
 arm-none-eabi-size  TorquimetroTagTest.elf 
-arm-none-eabi-objdump -h -S TorquimetroTagTest.elf  > "TorquimetroTagTest.list"
    text	   data	    bss	    dec	    hex	filename
     104	      0	   1568	   1672	    688	TorquimetroTagTest.elf
 Finished building: default.size.stdout
  
-Finished building: TorquimetroTagTest.list
- 
 
-09:11:37 Build Finished. 0 errors, 1 warnings. (took 760ms)
+21:33:15 Build Finished. 0 errors, 0 warnings. (took 418ms)
 

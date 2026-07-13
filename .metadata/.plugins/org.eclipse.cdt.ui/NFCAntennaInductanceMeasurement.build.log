@@ -1,0 +1,10 @@
+23:02:14 **** Incremental Build of configuration Debug for project NFCAntennaInductanceMeasurement ****
+make -j12 all 
+arm-none-eabi-size  NFCAntennaInductanceMeasurement.elf 
+   text	   data	    bss	    dec	    hex	filename
+  35932	    468	   2388	  38788	   9784	NFCAntennaInductanceMeasurement.elf
+Finished building: default.size.stdout
+ 
+
+23:02:14 Build Finished. 0 errors, 0 warnings. (took 313ms)
+

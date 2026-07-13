@@ -1,9 +1,0 @@
-../Middlewares/ST/rfal/Src/rfal_t4t.c:80:12:rfalT4TPollerComposeCAPDU	10
-../Middlewares/ST/rfal/Src/rfal_t4t.c:149:12:rfalT4TPollerParseRAPDU	5
-../Middlewares/ST/rfal/Src/rfal_t4t.c:175:12:rfalT4TPollerComposeSelectAppl	4
-../Middlewares/ST/rfal/Src/rfal_t4t.c:207:12:rfalT4TPollerComposeSelectFile	4
-../Middlewares/ST/rfal/Src/rfal_t4t.c:239:12:rfalT4TPollerComposeSelectFileV1Mapping	4
-../Middlewares/ST/rfal/Src/rfal_t4t.c:271:12:rfalT4TPollerComposeReadData	1
-../Middlewares/ST/rfal/Src/rfal_t4t.c:294:12:rfalT4TPollerComposeReadDataODO	1
-../Middlewares/ST/rfal/Src/rfal_t4t.c:325:12:rfalT4TPollerComposeWriteData	4
-../Middlewares/ST/rfal/Src/rfal_t4t.c:358:12:rfalT4TPollerComposeWriteDataODO	6

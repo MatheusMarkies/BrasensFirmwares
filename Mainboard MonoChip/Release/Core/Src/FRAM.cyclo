@@ -1,0 +1,15 @@
+../Core/Src/FRAM.c:11:19:FRAM_Init	1
+../Core/Src/FRAM.c:29:19:FRAM_ReadByte	2
+../Core/Src/FRAM.c:54:19:FRAM_ReadData	2
+../Core/Src/FRAM.c:69:19:FRAM_ReadStruct	1
+../Core/Src/FRAM.c:77:19:FRAM_ReadFloat	1
+../Core/Src/FRAM.c:104:10:FRAM_GetTotalMemorySize	1
+../Core/Src/FRAM.c:108:6:FRAM_InitMetadata	1
+../Core/Src/FRAM.c:114:6:FRAM_UpdateMetadata	2
+../Core/Src/FRAM.c:17:19:FRAM_WriteByte	2
+../Core/Src/FRAM.c:40:19:FRAM_WriteData.part.0	3
+../Core/Src/FRAM.c:40:19:FRAM_WriteData	2
+../Core/Src/FRAM.c:65:19:FRAM_WriteStruct	1
+../Core/Src/FRAM.c:73:19:FRAM_WriteFloat	1
+../Core/Src/FRAM.c:81:19:FRAM_EraseData	2
+../Core/Src/FRAM.c:93:19:FRAM_Format	3

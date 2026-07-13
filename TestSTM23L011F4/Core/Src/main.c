@@ -38,7 +38,6 @@
 #define USTRAIN_PER_BIT_x1000 1506
 
 #define ADS1115_ADDR  (0x48 << 1)
-
 #define ADS_REG_CONV  0x00
 #define ADS_REG_CONF  0x01
 
@@ -63,6 +62,16 @@ typedef enum {
 uint8_t isTared = 0;
 
 Process_State state = CHARGING;
+
+static uint8_t i2c_initialized = 0;
+static uint8_t uart_initialized = 0;
+static uint8_t nfc_initialized = 0;
+
+typedef enum {
+    MSI_RANGE_131KHZ = RCC_MSIRANGE_2,   // 131 kHz - Ultra low power
+    MSI_RANGE_2MHZ = RCC_MSIRANGE_4,     // 2.097 MHz - I2C mode
+    MSI_RANGE_4MHZ = RCC_MSIRANGE_5      // 4.194 MHz - Fast I2C mode
+} MSI_Range_t;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -88,8 +97,7 @@ static void MX_LPUART1_UART_Init(void);
 static void MX_I2C1_Init(void);
 static void MX_RTC_Init(void);
 /* USER CODE BEGIN PFP */
-
-#ifdef DEBUG
+#ifdef DEBUG_LOG
 	#define DEBUG_PRINT(msg) HAL_UART_Transmit(&hlpuart1, (uint8_t*)msg, strlen(msg), 200)
 #else
 	#define DEBUG_PRINT(msg) do {} while (0)
@@ -99,6 +107,37 @@ void I2C_Scanner(I2C_HandleTypeDef *hi2c);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void Set_MSI_Range(MSI_Range_t range) {
+    RCC_OscInitTypeDef RCC_OscInitStruct = {0};
+    RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
+
+    // 1. Configurar novo range do MSI
+    RCC_OscInitStruct.OscillatorType = RCC_OSCILLATORTYPE_MSI;
+    RCC_OscInitStruct.MSIState = RCC_MSI_ON;
+    RCC_OscInitStruct.MSICalibrationValue = 0;
+    RCC_OscInitStruct.MSIClockRange = range;
+    RCC_OscInitStruct.PLL.PLLState = RCC_PLL_NONE;
+
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
+        Error_Handler();
+    }
+
+    // 2. Ajustar Flash Latency se necessário
+    uint32_t flash_latency = (range == MSI_RANGE_131KHZ) ? FLASH_LATENCY_0 : FLASH_LATENCY_0;
+
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                                | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_MSI;
+    RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
+    RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
+    RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
+
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, flash_latency) != HAL_OK) {
+        Error_Handler();
+    }
+}
+
 /* Função auxiliar para converter byte em Hex (ex: 0x2A) sem usar sprintf */
 /* Requer um buffer de pelo menos 3 bytes (2 digitos + \0) */
 void Uint8ToHexStr(uint8_t num, char *str) {
@@ -198,7 +237,7 @@ int16_t ADS1115_Read(void) {
 }
 
 void debug_print_int(int32_t v) {
-#ifdef DEBUG  // <--- INÍCIO DO BLOCO CONDICIONAL
+#ifdef DEBUG_LOG  // <--- INÍCIO DO BLOCO CONDICIONAL
 	char buf[12];
 	int i = 9;
 
@@ -231,32 +270,40 @@ void rtc_start_wakeup(uint16_t ticks) {
 }
 
 void enter_stop_mode(void) {
-	// 1. Desliga periféricos que consomem energia
-	HAL_I2C_DeInit(&hi2c1);
 
-	// Se estiver usando UART debug, desliga também (ou vai vazar corrente pelos pinos TX/RX)
-#ifdef DEBUG
-	HAL_UART_DeInit(&hlpuart1);
+    if (i2c_initialized) {
+        //uint8_t powerdown_config[3] = {ADS_REG_CONF, 0xC5, 0x83};
+       // HAL_I2C_Master_Transmit(&hi2c1, ADS1115_ADDR, powerdown_config, 3, 100);
+
+        __HAL_RCC_I2C1_CLK_DISABLE();
+
+        GPIO_InitTypeDef GPIO_InitStruct = {0};
+        GPIO_InitStruct.Pin = GPIO_PIN_9 | GPIO_PIN_10;
+        GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+        GPIO_InitStruct.Pull = GPIO_NOPULL;
+        HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+        HAL_I2C_DeInit(&hi2c1);
+
+        i2c_initialized = 0;
+    }
+
+#ifdef DEBUG_LOG
+    if (uart_initialized) {
+        HAL_UART_DeInit(&hlpuart1);
+        uart_initialized = 0;
+    }
 #endif
 
-	// 2. Limpa flags
-	__HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+    Set_MSI_Range(MSI_RANGE_131KHZ);
 
-	// 3. Entra em STOP
-	HAL_SuspendTick();
-	HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
+    __HAL_PWR_CLEAR_FLAG(PWR_FLAG_WU);
+    HAL_SuspendTick();
+    HAL_PWR_EnterSTOPMode(PWR_LOWPOWERREGULATOR_ON, PWR_STOPENTRY_WFI);
 
-	// --- O MCU DORME AQUI ---
-
-	// 4. Acorda e restaura Clocks
-	SystemClock_Config();
-	HAL_ResumeTick();
-
-	// 5. Reinicializa periféricos
-	MX_I2C1_Init();
-#ifdef DEBUG
-	MX_LPUART1_UART_Init();
-#endif
+    // Wake-up
+    SystemClock_Config();
+    HAL_ResumeTick();
 }
 
 void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
@@ -264,6 +311,7 @@ void HAL_RTCEx_WakeUpTimerEventCallback(RTC_HandleTypeDef *hrtc) {
 
 	if (wakeup_counter >= wakeup_cycles) {
 		wakeup_counter = 0;
+
 		if (!isTared) {
 			state = TARING;
 		} else {
@@ -286,17 +334,12 @@ int32_t platform_i2c_read(uint8_t addr, uint16_t reg, uint8_t *data,
 			len, 100);
 }
 
-void platform_set_lpd(uint8_t state) {
-	HAL_GPIO_WritePin(LPD_GPIO_Port, LPD_Pin,
-			state ? GPIO_PIN_SET : GPIO_PIN_RESET);
-}
-
 void platform_delay(uint32_t ms) {
 	HAL_Delay(ms);
 }
 
 st25dv_io_t st25_driver = { .i2c_write = platform_i2c_write, .i2c_read =
-		platform_i2c_read, .set_lpd_pin = platform_set_lpd, .delay_ms =
+		platform_i2c_read, .delay_ms =
 		platform_delay };
 
 void Setup_NFC(void) {
@@ -435,20 +478,22 @@ int main(void) {
 	SystemClock_Config();
 
 	/* USER CODE BEGIN SysInit */
-
+	MX_GPIO_LowPower_Init();
+#ifdef DEBUG_LOG
+	MX_LPUART1_UART_Init();
+	uart_initialized = 1;
+#endif
 	/* USER CODE END SysInit */
 
 	/* Initialize all configured peripherals */
-	MX_GPIO_Init();
-#ifdef DEBUG
-	MX_LPUART1_UART_Init();
-#endif
-	MX_I2C1_Init();
+	//MX_GPIO_Init();
+
+	//MX_I2C1_Init();
 	MX_RTC_Init();
 	/* USER CODE BEGIN 2 */
 	DEBUG_PRINT("--- Iniciando! ---\r\n");
-	I2C_Scanner(&hi2c1);
-	Setup_NFC();
+	//I2C_Scanner(&hi2c1);
+	//Setup_NFC();
 
 	int32_t offset = 0;
 	int32_t average = 0;
@@ -457,6 +502,9 @@ int main(void) {
 	int16_t raw_adc = 0;
 
 	DEBUG_PRINT("Starting...\r\n");
+
+    __HAL_RCC_I2C1_CLK_DISABLE();
+    __HAL_RCC_LPUART1_CLK_DISABLE();
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -469,10 +517,25 @@ int main(void) {
 			break;
 
 		case TARING:
+			Set_MSI_Range(MSI_RANGE_2MHZ);
+		    if (!i2c_initialized) {
+		        MX_I2C1_Init();
+		        i2c_initialized = 1;
+		    }
+
+		#ifdef DEBUG_LOG
+		    if (!uart_initialized) {
+		        MX_LPUART1_UART_Init();
+		        uart_initialized = 1;
+		    }
+		#endif
+
+		    HAL_Delay(15);
+
 			raw_adc = ADS1115_Read();
 
 			if (abs(raw_adc) > 0) {
-				if (count <= SAMPLES_FOR_TARING) {
+				if (count < SAMPLES_FOR_TARING) {
 					sum += raw_adc;
 					count++;
 					offset = sum / count;
@@ -499,12 +562,34 @@ int main(void) {
 			break;
 
 		case PROCESSING:
+
+			Set_MSI_Range(MSI_RANGE_2MHZ);
+
+		    if (!i2c_initialized) {
+		        MX_I2C1_Init();
+		        i2c_initialized = 1;
+		    }
+
+		#ifdef DEBUG_LOG
+		    if (!uart_initialized) {
+		        MX_LPUART1_UART_Init();
+		        uart_initialized = 1;
+		    }
+		#endif
+
+			if(!nfc_initialized){
+				Setup_NFC();
+				nfc_initialized = 1;
+			}
+
+		    HAL_Delay(15);
+
 			raw_adc = ADS1115_Read();
 
 			sum += raw_adc;
 			count++;
 
-			if (count <= SAMPLES_FOR_READING) {
+			if (count > SAMPLES_FOR_READING) {
 				average = sum / count;
 
 				int32_t delta_bits = average - offset;
@@ -569,7 +654,7 @@ void SystemClock_Config(void) {
 
 	/** Configure the main internal regulator output voltage
 	 */
-	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE1);
+	__HAL_PWR_VOLTAGESCALING_CONFIG(PWR_REGULATOR_VOLTAGE_SCALE3);
 
 	/** Initializes the RCC Oscillators according to the specified parameters
 	 * in the RCC_OscInitTypeDef structure.
@@ -615,7 +700,7 @@ void SystemClock_Config(void) {
 static void MX_I2C1_Init(void) {
 
 	/* USER CODE BEGIN I2C1_Init 0 */
-
+	__HAL_RCC_I2C1_CLK_ENABLE();
 	/* USER CODE END I2C1_Init 0 */
 
 	/* USER CODE BEGIN I2C1_Init 1 */
@@ -660,7 +745,7 @@ static void MX_I2C1_Init(void) {
 static void MX_LPUART1_UART_Init(void) {
 
 	/* USER CODE BEGIN LPUART1_Init 0 */
-
+	__HAL_RCC_LPUART1_CLK_ENABLE();
 	/* USER CODE END LPUART1_Init 0 */
 
 	/* USER CODE BEGIN LPUART1_Init 1 */
@@ -766,7 +851,33 @@ static void MX_GPIO_Init(void) {
 }
 
 /* USER CODE BEGIN 4 */
+void MX_GPIO_LowPower_Init(void) {
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
 
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+
+    GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+
+    GPIO_InitStruct.Pin = GPIO_PIN_0 | GPIO_PIN_1 | GPIO_PIN_4 | GPIO_PIN_5 |
+                          GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_9 | GPIO_PIN_10;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_1 | GPIO_PIN_6 | GPIO_PIN_7 | GPIO_PIN_9;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_14 | GPIO_PIN_15;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = LPD_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(LPD_GPIO_Port, &GPIO_InitStruct);
+    HAL_GPIO_WritePin(LPD_GPIO_Port, LPD_Pin, GPIO_PIN_RESET);
+}
 /* USER CODE END 4 */
 
 /**
