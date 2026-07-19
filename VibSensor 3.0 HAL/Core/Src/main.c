@@ -60,7 +60,7 @@
 #define KX122_IIR_BYPASS          (1 << 7)
 
 #define KX122_CNTL1_VAL           (KX122_CNTL1_RES | KX122_CNTL1_GSEL_8G)
-#define KX122_ODCNTL_VAL          (0x0F)
+#define KX122_ODCNTL_VAL          (0x0C)
 
 #define BUF_CNTL1 0x3A
 #define BUF_CNTL2 0x3B
@@ -855,7 +855,7 @@ void TIM2_Init(void) {
 	htim2.Instance = TIM2;
 	htim2.Init.Prescaler = (uint32_t) (HAL_RCC_GetPCLK1Freq() / 1000000) - 1;
 	htim2.Init.CounterMode = TIM_COUNTERMODE_UP;
-	htim2.Init.Period = 0xFFFFFFFF;
+	htim2.Init.Period = 0xFFFF; 
 	htim2.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
 	if (HAL_TIM_Base_Init(&htim2) != HAL_OK) {
 		Error_Handler();
@@ -902,8 +902,9 @@ uint32_t micros() {
 }
 
 void delayMicroseconds(uint32_t us) {
-	uint32_t start = micros();
-	while ((micros() - start) < us) {
+	/* contador de 16 bits: mascarar a diferenca (us deve ser < 65535) */
+	uint16_t start = (uint16_t) micros();
+	while ((uint16_t) ((uint16_t) micros() - start) < us) {
 		__NOP(); // Prevents optimization that might remove the loop
 	}
 }
@@ -967,11 +968,18 @@ void reset_FRAM_and_start_processing() {
 	 DEBUG_PRINT(buffer);*/
 }
 
+#define GRAVITY_MS2 9.80665f
+#define DC_ALPHA    0.995f   /* passa-alta ~0.8 Hz @ 1024 Hz: remove gravidade/offset */
+#define VEL_LEAK    0.999f   /* integrador com fuga: evita drift acumulado */
+
+static float accel_dc[3] = { 0 };
+static float vel_integ[3] = { 0 };
+
 void read_vibration() {
 	float accel[3];
 	Vibration vibration;
 
-	if (micros() - last_read_timestamp >= sampling_period_us) {
+	if ((uint16_t) (micros() - last_read_timestamp) >= sampling_period_us) {
 		last_read_timestamp = micros();
 
 		KX122_ReadAccelData(&hspi2, accel, &vibration);
@@ -982,19 +990,32 @@ void read_vibration() {
 
 		buffer_add_sample(vibration);
 
-		float velocity_x = vibration.x * (sampling_period_us * 1e6);
-		float velocity_y = vibration.y * (sampling_period_us * 1e6);
-		float velocity_z = vibration.z * (sampling_period_us * 1e6);
+		float a[3] = { vibration.x, vibration.y, vibration.z };
+		float dt = (float) sampling_period_us * 1e-6f;
 
-		data.rms_vel[0] += (velocity_x * velocity_x); //Ax * dT
-		data.rms_accel[1] += (velocity_y * velocity_y); //Ay * dT
-		data.rms_vel[2] += (velocity_z * velocity_z); //Az * dT
+		if (total_samples_registred == 0) {
+			/* semente do filtro DC com a primeira amostra do ciclo */
+			accel_dc[0] = a[0];
+			accel_dc[1] = a[1];
+			accel_dc[2] = a[2];
+			vel_integ[0] = vel_integ[1] = vel_integ[2] = 0.0f;
+		}
+
+		for (int i = 0; i < 3; i++) {
+			/* remove componente DC (gravidade + offset) */
+			accel_dc[i] = DC_ALPHA * accel_dc[i] + (1.0f - DC_ALPHA) * a[i];
+			float a_ac = (a[i] - accel_dc[i]) * GRAVITY_MS2; /* g -> m/s^2 */
+
+			/* integracao retangular com fuga anti-drift -> m/s */
+			vel_integ[i] = vel_integ[i] * VEL_LEAK + a_ac * dt;
+
+			data.rms_vel[i] += vel_integ[i] * vel_integ[i];
+		}
 
 		total_samples_registred++;
 	}
 
 }
-
 volatile uint16_t vibration_item_count = 0;
 
 void format_direct_vibration_buffer() {
@@ -1065,12 +1086,13 @@ uint32_t readMilliseconds = 0;
 void setup() {
 	DEBUG_PRINT("Setup...\r\n");
 
-	//hiwdg.Instance = IWDG;
-	//hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
-	//hiwdg.Init.Reload = 4095;
-	//if (HAL_IWDG_Init(&hiwdg) != HAL_OK) {
-	//	Error_Handler();
-	//}
+	hiwdg.Instance = IWDG;
+	hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+	hiwdg.Init.Window = 4095;
+	hiwdg.Init.Reload = 4095;
+	if (HAL_IWDG_Init(&hiwdg) != HAL_OK) {
+		Error_Handler();
+	}
 
 	//I2C_Scan();
 	//DEBUG_PRINT("\r\n");
@@ -1167,31 +1189,18 @@ int tryCount = 0;
 void readAndSendFRAMData() {
 	if (trySending == 0) {
 		LoRa_gotoMode(&myLoRa, TRANSMIT_MODE);
-		if (current_package >= (2 * package_factor / 3))
-			axis = 2;
-		else if (current_package >= (package_factor / 3))
-			axis = 1;
-		else
-			axis = 0;
-
 		axis = 0;
 
-		int start = TRANSMISSION_DATA_PACKAGE * current_package
-				- TRANSMISSION_DATA_PACKAGE * axis * package_factor / 3;
-
-		int end = (start + TRANSMISSION_DATA_PACKAGE);
+		int start = TRANSMISSION_DATA_PACKAGE * current_package;
+		int end = start + TRANSMISSION_DATA_PACKAGE; /* limite EXCLUSIVO */
 		int realEnd = MIN(end, SAMPLES);
 
-		if (current_package > 0)
-			start += 1;
-
-		for (int i = (start); i <= (end); i++) {
-			uint16_t address = i * sizeof(float)
-					+ SAMPLES * axis * sizeof(float);
+		for (int i = start; i < end; i++) {
+			uint16_t address = i * sizeof(float);
 
 			float value = 0.0;
 
-			if (i <= realEnd)
+			if (i < realEnd)
 				if (address < metadata.nextFreeAddress) {
 					FRAM_ReadFloat(&hi2c1, address, &value);
 				}
@@ -1470,19 +1479,20 @@ void loop() {
 				if (strcmp((char*) nack_buffer, SENSOR_KEY) == 0) {
 					DEBUG_PRINT(
 							"NACK identified... Re-transmitting packages...\r\n");
-
+					/* NACK valido para este sensor: retransmite o ciclo */
+					lora_nack_detected = 0;
+					current_package = 0;
+					current_state = STATE_TRANSMITTING_VP;
+					break;
 				}
 			}
 
-			//lora_nack_detected = 0;
-			//current_state = STATE_TRANSMITTING_VP;
+			/* pacote alheio ou invalido: descarta e segue dormindo */
+			lora_nack_detected = 0;
 		}
 
 		if (HAL_GetTick() - deepsleep_start_timestamp >= 50000) {
-			if(!lora_nack_detected)
-				current_state = STATE_STARTSAMPLING;
-		} else {
-
+			current_state = STATE_STARTSAMPLING;
 		}
 		break;
 	}

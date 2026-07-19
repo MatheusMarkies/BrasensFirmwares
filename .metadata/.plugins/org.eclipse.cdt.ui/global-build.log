@@ -1,21 +1,52 @@
-23:02:12 **** Incremental Build of configuration Release for project NFCAntennaInductanceMeasurement ****
+21:07:36 **** Build of configuration Release for project Mainboard MonoChip ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-arm-none-eabi-gcc -o "NFCAntennaInductanceMeasurement.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\NFCAntennaInductanceMeasurement\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="NFCAntennaInductanceMeasurement.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: NFCAntennaInductanceMeasurement.elf
+In file included from ../Core/Src/main.c:28:
+../Core/Inc/LoRa.h:1:1: warning: multi-line comment [-Wcomment]
+    1 | // -------------------------------------------------- \\
+      | ^
+../Core/Src/main.c: In function 'generateTransmissionDataJSON':
+../Core/Src/main.c:1039:39: warning: format '%s' expects argument of type 'char *', but argument 4 has type 'int' [-Wformat=]
+ 1039 |                         "{\"type\":\"%s\",\"key\":\"%s\",\"rmsAccel\":[%.3f,%.3f,%.3f],\"rmsVel\":[%.3f,%.3f,%.3f],\"temperature\":%.3f,\"battery\":%.3f}",
+      |                                      ~^
+      |                                       |
+      |                                       char *
+      |                                      %d
+ 1040 |                         data->type, data->key, data->rms_accel[0], data->rms_accel[1],
+      |                         ~~~~~~~~~~     
+      |                             |
+      |                             int
+../Core/Src/main.c: In function 'GSM_PDP_Context_Activate':
+../Core/Src/main.c:1240:17: warning: variable 'CGACTisOK' set but not used [-Wunused-but-set-variable]
+ 1240 |         uint8_t CGACTisOK = 0;
+      |                 ^~~~~~~~~
+../Core/Src/main.c: In function 'GSM_Modem_HTTP_Post':
+../Core/Src/main.c:1409:22: warning: variable 'response' set but not used [-Wunused-but-set-variable]
+ 1409 |                 char response[response_size + 1];
+      |                      ^~~~~~~~
+In file included from ../Core/Src/main.c:30:
+../Core/Inc/BrasensFirmware.h: In function 'defaultTransmissionData':
+../Core/Inc/BrasensFirmware.h:37:5: warning: 'strcpy' writing 7 bytes into a region of size 6 overflows the destination [-Wstringop-overflow=]
+   37 |     strcpy(data.key, "000000");
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Inc/BrasensFirmware.h:18:10: note: destination object 'key' of size 6
+   18 |     char key[6];
+      |          ^~~
+../Core/Inc/BrasensFirmware.h: In function 'defaultTransmissionVibrationPackage':
+../Core/Inc/BrasensFirmware.h:50:5: warning: 'strcpy' writing 7 bytes into a region of size 6 overflows the destination [-Wstringop-overflow=]
+   50 |     strcpy(vib.key, "000000");
+      |     ^~~~~~~~~~~~~~~~~~~~~~~~~
+../Core/Inc/BrasensFirmware.h:27:10: note: destination object 'key' of size 6
+   27 |     char key[6];
+      |          ^~~
+arm-none-eabi-gcc -o "Mainboard MonoChip.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\Mainboard MonoChip\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Mainboard MonoChip.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: Mainboard MonoChip.elf
  
-arm-none-eabi-size  NFCAntennaInductanceMeasurement.elf 
-arm-none-eabi-objdump -h -S NFCAntennaInductanceMeasurement.elf  > "NFCAntennaInductanceMeasurement.list"
+arm-none-eabi-size  Mainboard\ MonoChip.elf 
+arm-none-eabi-objdump -h -S Mainboard\ MonoChip.elf  > "Mainboard MonoChip.list"
    text	   data	    bss	    dec	    hex	filename
-  29608	    468	   2388	  32464	   7ed0	NFCAntennaInductanceMeasurement.elf
+  34624	    128	   5776	  40528	   9e50	Mainboard MonoChip.elf
 Finished building: default.size.stdout
  
-Finished building: NFCAntennaInductanceMeasurement.list
- 
-23:02:14 **** Incremental Build of configuration Debug for project NFCAntennaInductanceMeasurement ****
-make -j12 all 
-arm-none-eabi-size  NFCAntennaInductanceMeasurement.elf 
-   text	   data	    bss	    dec	    hex	filename
-  35932	    468	   2388	  38788	   9784	NFCAntennaInductanceMeasurement.elf
-Finished building: default.size.stdout
+Finished building: Mainboard MonoChip.list
  

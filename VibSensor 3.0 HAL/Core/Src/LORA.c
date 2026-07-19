@@ -484,9 +484,12 @@ uint8_t LoRa_receive(LoRa* _LoRa, uint8_t* data, uint8_t length){
 	for(int i=0; i<length; i++)
 		data[i]=0;
 
-	LoRa_gotoMode(_LoRa, STNBY_MODE);
-	read = LoRa_read(_LoRa, RegIrqFlags);
-	if((read & 0x40) != 0){
+		LoRa_gotoMode(_LoRa, STNBY_MODE);
+		read = LoRa_read(_LoRa, RegIrqFlags);
+		LoRa_write(_LoRa, RegIrqFlags, 0xFF);
+
+		if(((read & 0x40) != 0) && ((read & 0x20) == 0)){
+			number_of_bytes = LoRa_read(_LoRa, RegRxNbBytes);
 		LoRa_write(_LoRa, RegIrqFlags, 0xFF);
 		number_of_bytes = LoRa_read(_LoRa, RegRxNbBytes);
 		read = LoRa_read(_LoRa, RegFiFoRxCurrentAddr);

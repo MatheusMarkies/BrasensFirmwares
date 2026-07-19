@@ -18,6 +18,6 @@
 ../Core/Src/LoRa.c:426:9:LoRa_transmit	32	static
 ../Core/Src/LoRa.c:463:6:LoRa_startReceiving	8	static
 ../Core/Src/LoRa.c:479:9:LoRa_receive	24	static
-../Core/Src/LoRa.c:512:5:LoRa_getRSSI	8	static
-../Core/Src/LoRa.c:528:10:LoRa_init	16	static
-../Core/Src/LoRa.c:596:10:crc16	20	static
+../Core/Src/LoRa.c:515:5:LoRa_getRSSI	8	static
+../Core/Src/LoRa.c:531:10:LoRa_init	16	static
+../Core/Src/LoRa.c:599:10:crc16	20	static

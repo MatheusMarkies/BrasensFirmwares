@@ -49,10 +49,6 @@ typedef struct {
 	char type;
 } LoRa_Data;
 
-typedef struct {
-	uint8_t sample_start;
-	char key[6];
-} Sensor_NACK;
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -85,18 +81,43 @@ static void MX_IWDG_Init(void);
 /* USER CODE BEGIN PFP */
 #define COM_PRINT(msg) HAL_UART_Transmit(&huart2, (uint8_t*)msg, strlen(msg), 200)
 
+void setup(void);
+void loop(void);
+void BlinkLed(void);
+void sendReady(void);
+void GSM_RX_Callback(void);
+void GSM_TX_Callback(void);
+void MSP_RX_Callback(void);
+void MSP_TX_Callback(void);
+void CHAR_NOT_FOUND_EXCEPTION(void);
+void BEHAVIOR_Initialize_DataIndices(uint16_t size);
+char BEHAVIOR_GET_Next_Send_Item(void);
+void BEHAVIOR_ADD_Item_To_DataIndices(char item);
+void BEHAVIOR_REMOVE_First_Item_From_DataIndices(void);
+uint16_t BEHAVIOR_Send_Next_Struct_In_FRAM(char next);
+void BEHAVIOR_Reorganize_FRAM(void);
+cJSON* transmission_data_to_json(const Transmission_Data *data);
+cJSON* transmission_vibrationpackage_to_json(
+		const Transmission_VibrationPackage *vibrationPackage);
+char* GSM_Send_HTTP_POST(char *json);
+void GSM_PDP_Context_Activate(char *apn, char *user, char *pwd);
+uint8_t GSM_Disconnect_TCP(void);
+
+#define DEBUG_PRINT(msg) HAL_UART_Transmit(&huart1, (uint8_t*)(msg), strlen(msg), 100)
+
 LoRa myLoRa;
 
 #define LORA_DATA_BUFFER_SIZE 8
 volatile LoRa_Data LoRa_Data_transient_buffer[LORA_DATA_BUFFER_SIZE];
 uint8_t total_LoRa_Data_registred = 0;
 
-#define SENSOR_NACK_BUFFER_SIZE 64
-volatile LoRa_Data Sensor_NACK_transient_buffer[SENSOR_NACK_BUFFER_SIZE];
-uint8_t sensor_NACK_registred = 0;
-
 uint8_t packet_size = 0;
 uint8_t lora_recived_package = 0;
+
+#define LORA_RING_SIZE 16 /* 16 x 61 B ~ 1 KB; cabe com folga apos remover o buffer NACK (M8) */
+volatile LoRa_Data lora_ring[LORA_RING_SIZE];
+volatile uint8_t lora_ring_head = 0; /* escrito APENAS pelo ISR  */
+volatile uint8_t lora_ring_tail = 0; /* escrito APENAS pelo loop */
 
 uint8_t rxBuffer[120];
 Transmission_Data data;
@@ -120,7 +141,7 @@ typedef enum {
 uint8_t MSP_RX_Buffer[500];
 uint8_t MSP_RX_Stream_Data = 0;
 int MSP_Stream_Index = 0;
-uint16_t lastMSPRxTick = 0;
+uint32_t lastMSPRxTick = 0;
 MSPStatus mspStatus = FREE_STATUS;
 
 const uint32_t MSP_TIMEOUT = 10 * 1000;
@@ -152,7 +173,7 @@ uint8_t GSM_RX_Buffer[500];
 uint8_t GSM_RX_Stream_Data = 0;
 int GSM_Stream_Index = 0;
 
-uint16_t lastRxTick = 0;
+uint32_t lastRxTick = 0;
 
 GSMStatus gsmStatus = FREE;
 /* GSM */
@@ -211,6 +232,7 @@ int main(void)
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
 	while (1) {
+		loop();
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -339,10 +361,10 @@ static void MX_IWDG_Init(void)
   /* USER CODE BEGIN IWDG_Init 1 */
 
   /* USER CODE END IWDG_Init 1 */
-  hiwdg.Instance = IWDG;
-  hiwdg.Init.Prescaler = IWDG_PRESCALER_4;
-  hiwdg.Init.Window = 4095;
-  hiwdg.Init.Reload = 4095;
+	  hiwdg.Instance = IWDG;
+	  hiwdg.Init.Prescaler = IWDG_PRESCALER_256;
+	  hiwdg.Init.Window = 4095;
+	  hiwdg.Init.Reload = 4095;
   if (HAL_IWDG_Init(&hiwdg) != HAL_OK)
   {
     Error_Handler();
@@ -643,10 +665,10 @@ uint8_t check_range_value(int value) {
 	return 1;
 }
 
-void processing_data_in_FRAM(LoRa_Data data) {
-	if (data.type == 'P') {
+void processing_data_in_FRAM(LoRa_Data lora_data) {
+	if (lora_data.type == 'P') {
 		Transmission_VibrationPackage receivedPackage;
-		memcpy(&receivedPackage, rxBuffer,
+		memcpy(&receivedPackage, lora_data.rxBuffer,
 				sizeof(Transmission_VibrationPackage));
 
 		char buffer[50];
@@ -669,7 +691,7 @@ void processing_data_in_FRAM(LoRa_Data data) {
 		}
 	} else {
 		Transmission_Data receivedData;
-		memcpy(&receivedData, rxBuffer, sizeof(Transmission_Data));
+		memcpy(&receivedData, lora_data.rxBuffer, sizeof(Transmission_Data));
 		if (FRAM_WriteStruct(&hi2c1, &metadata, metadata.nextFreeAddress,
 				&receivedData, sizeof(Transmission_Data)) == HAL_OK) {
 			DEBUG_PRINT("Data Saved in FRAM\r\n");
@@ -697,59 +719,20 @@ void loop() {
 		}
 	}
 
-	if (lora_recived_package == 1) {
-		if (packet_size > 0) {
-			char package_type = rxBuffer[0];
+	while (lora_ring_tail != lora_ring_head) {
+			LoRa_Data lora_data;
+			memcpy(&lora_data, (const void*) &lora_ring[lora_ring_tail], sizeof(LoRa_Data));
+			lora_ring_tail = (uint8_t) ((lora_ring_tail + 1) % LORA_RING_SIZE);
 
-			if (package_type == 'P'
-					|| packet_size == sizeof(Transmission_VibrationPackage)) {
-
-				if (packet_size == sizeof(Transmission_VibrationPackage)) {
-
-					DEBUG_PRINT("Pacote de Vibração (P) recebido.\r\n");
-
-					BlinkLed();
-
-					LoRa_Data lora_data;
-					memcpy(lora_data.rxBuffer, rxBuffer,
-							sizeof(Transmission_VibrationPackage));
-					lora_data.type = 'P';
-					buffer_add_sample(lora_data);
-				} else {
-					DEBUG_PRINT(
-							"Recebido pacote tipo 'V' com tamanho incorreto.\r\n");
-				}
-
-			} else if (package_type == 'D'
-					|| packet_size == sizeof(Transmission_Data)) {
-
-				if (packet_size == sizeof(Transmission_Data)) {
-					DEBUG_PRINT("Pacote de Dados (D) recebido.\r\n");
-
-					BlinkLed();
-
-					LoRa_Data lora_data;
-					memcpy(lora_data.rxBuffer, rxBuffer,
-							sizeof(Transmission_Data));
-					lora_data.type = 'D';
-					buffer_add_sample(lora_data);
-				} else {
-					DEBUG_PRINT(
-							"Recebido pacote tipo 'D' com tamanho incorreto.\r\n");
-				}
-
-			} else {
-				DEBUG_PRINT("Pacote com tipo desconhecido recebido.\r\n");
-			}
+			BlinkLed();
+			processing_data_in_FRAM(lora_data); /* versao do PATCH M3 (le de lora_data.rxBuffer) */
 		}
-		lora_recived_package = 0;
-	}
 
 	if (total_LoRa_Data_registred > 0) {
-		LoRa_Data data;
-		buffer_remove_sample(&data);
-		processing_data_in_FRAM(data);
-	}
+			LoRa_Data lora_data;
+			buffer_remove_sample(&lora_data);
+			processing_data_in_FRAM(lora_data);
+		}
 
 	//GSM Chip Mainboard
 	if (HAL_GetTick() - last_send_attempt_timestamp
@@ -882,7 +865,7 @@ void BEHAVIOR_Reorganize_FRAM() {
 	uint16_t nextAddress = reorganizeStartAddress;
 	uint16_t oldAddress = 0;
 
-	if (dataIndicesSize > 1) {
+	if (dataIndicesSize > 0) {
 		for (int i = 0; i < dataIndicesSize; i++) {
 			if (dataIndices[i] == 'D') {
 				Transmission_Data data;
@@ -918,10 +901,11 @@ void CHAR_NOT_FOUND_EXCEPTION() {
 
 //Mainboard Serial Protocol
 void MSP_RX_Callback() {
-	MSP_RX_Buffer[MSP_Stream_Index++] = MSP_RX_Stream_Data;
+	if (MSP_Stream_Index < (int) sizeof(MSP_RX_Buffer) - 1)
+		MSP_RX_Buffer[MSP_Stream_Index++] = MSP_RX_Stream_Data;
 	lastMSPRxTick = HAL_GetTick();
 	mspStatus = RECEIVING;
-	HAL_UART_Receive_IT(&huart2, &MSP_RX_Stream_Data, 1);
+	HAL_UART_Receive_IT(&huart1, &MSP_RX_Stream_Data, 1);
 }
 
 void MSP_TX_Callback() {
@@ -975,7 +959,7 @@ void sendReady() {
 	char *cmd = "RD";
 	uint8_t commandBuffer[20] = { 0 };
 	memcpy(commandBuffer, (uint8_t*) cmd, strlen(cmd) + 1);
-	HAL_UART_Transmit_IT(&huart2, commandBuffer, sizeof(commandBuffer));
+	HAL_UART_Transmit_IT(&huart1, commandBuffer, sizeof(commandBuffer));
 }
 
 /* HANDLE BEHAVIOR */
@@ -1072,7 +1056,7 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart) {
 	}
 }
 
-uint16_t sendTick = 0;
+uint32_t sendTick = 0;
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 	if (huart->Instance == huart1.Instance) {
 		MSP_TX_Callback();
@@ -1083,7 +1067,8 @@ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart) {
 }
 
 void GSM_RX_Callback() {
-	GSM_RX_Buffer[GSM_Stream_Index++] = GSM_RX_Stream_Data;
+	if (GSM_Stream_Index < (int) sizeof(GSM_RX_Buffer) - 1)
+		GSM_RX_Buffer[GSM_Stream_Index++] = GSM_RX_Stream_Data;
 	lastRxTick = HAL_GetTick();
 	gsmStatus = RX;
 	HAL_UART_Receive_IT(&huart2, &GSM_RX_Stream_Data, 1);
@@ -1118,6 +1103,7 @@ uint8_t sendAT(char command[], char answer[]) {
 
 	uint32_t previousTick = HAL_GetTick();
 	while (!ATisOK && previousTick + GSM_TIMEOUT > HAL_GetTick()) {
+		HAL_IWDG_Refresh(&hiwdg);
 
 		if (HAL_GetTick() - last_send_at_timestamp >= SEND_AT_INTERVAL_MS) {
 			last_send_at_timestamp = HAL_GetTick();
@@ -1164,6 +1150,7 @@ uint8_t sendATWithTimeOut(char command[], char answer[], uint32_t timeout_ms) {
 
 	uint32_t previousTick = HAL_GetTick();
 	while (!ATisOK && previousTick + timeout_ms > HAL_GetTick()) {
+		HAL_IWDG_Refresh(&hiwdg);
 
 		if (HAL_GetTick() - last_send_at_timestamp >= SEND_AT_INTERVAL_MS) {
 			last_send_at_timestamp = HAL_GetTick();
@@ -1623,9 +1610,23 @@ void SENDING_ACK(char *ack_key) {
 
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
 	if (GPIO_Pin == DIO_Pin) {
-		packet_size = LoRa_receive(&myLoRa, rxBuffer, sizeof(rxBuffer));
-		if (started >= 1)
-			lora_recived_package = 1;
+		uint8_t size = LoRa_receive(&myLoRa, rxBuffer, sizeof(rxBuffer));
+		if (started >= 1 && size > 0) {
+			char t = 0;
+			if (size == sizeof(Transmission_VibrationPackage) && rxBuffer[0] == 'P')
+				t = 'P';
+			else if (size == sizeof(Transmission_Data) && rxBuffer[0] == 'D')
+				t = 'D';
+
+			if (t != 0) {
+				uint8_t next = (uint8_t) ((lora_ring_head + 1) % LORA_RING_SIZE);
+				if (next != lora_ring_tail) { /* cheio: descarta (ARQ recupera) */
+					memcpy((void*) lora_ring[lora_ring_head].rxBuffer, rxBuffer, size);
+					lora_ring[lora_ring_head].type = t;
+					lora_ring_head = next;
+				}
+			}
+		}
 	}
 }
 

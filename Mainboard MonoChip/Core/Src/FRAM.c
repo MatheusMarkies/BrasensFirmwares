@@ -78,27 +78,34 @@ HAL_StatusTypeDef FRAM_ReadFloat(I2C_HandleTypeDef *hi2c, uint16_t memAddress, f
     return FRAM_ReadStruct(hi2c, memAddress, value, sizeof(float));
 }
 
+/* Apaga uma faixa fisicamente (em blocos, sem malloc). Uso pontual/diagnostico. */
 HAL_StatusTypeDef FRAM_EraseData(I2C_HandleTypeDef *hi2c, FRAM_Metadata *metadata, uint16_t memAddress, uint16_t dataSize) {
-    uint8_t *buffer = malloc(dataSize);
-    if (buffer == NULL) return HAL_ERROR;
-    memset(buffer, 0xFF, dataSize);
-    HAL_StatusTypeDef status = FRAM_WriteData(hi2c, NULL, memAddress, buffer, dataSize);
+    uint8_t chunk[64];
+    memset(chunk, 0xFF, sizeof(chunk));
 
-    FRAM_UpdateMetadata(metadata,  memAddress - dataSize,  0);
+    HAL_StatusTypeDef status = HAL_OK;
+    uint16_t addr = memAddress;
+    uint16_t remaining = dataSize;
 
-    free(buffer);
+    while (remaining > 0 && status == HAL_OK) {
+        uint16_t n = (remaining > sizeof(chunk)) ? sizeof(chunk) : remaining;
+        status = FRAM_WriteData(hi2c, NULL, addr, chunk, n);
+        addr += n;
+        remaining -= n;
+    }
+
+    if (status == HAL_OK)
+        FRAM_UpdateMetadata(metadata, memAddress, 0);
+
     return status;
 }
 
+/* "Format" logico: apenas reseta o metadata (semantica de que o sistema ja depende).
+ * FRAM nao precisa de erase fisico; dados antigos sao sobrescritos. */
 HAL_StatusTypeDef FRAM_Format(I2C_HandleTypeDef *hi2c, FRAM_Metadata *metadata) {
-    HAL_StatusTypeDef status = FRAM_EraseData(hi2c, metadata, 0, FRAM_MEMORY_SIZE);
-    if (status == HAL_OK) {
-        FRAM_InitMetadata(metadata);
-    }
-
-    FRAM_UpdateMetadata(metadata,  0,  0);
-
-    return status;
+    (void) hi2c;
+    FRAM_InitMetadata(metadata);
+    return HAL_OK;
 }
 
 uint32_t FRAM_GetTotalMemorySize(void) {
