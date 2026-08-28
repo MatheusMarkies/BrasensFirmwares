@@ -7,7 +7,7 @@
 C_SRCS += \
 ../Core/Src/FRAM.c \
 ../Core/Src/KX122.c \
-../Core/Src/LoRa.c \
+../Core/Src/LORA.c \
 ../Core/Src/MAX17048.c \
 ../Core/Src/MCP9808.c \
 ../Core/Src/main.c \
@@ -21,7 +21,7 @@ C_SRCS += \
 OBJS += \
 ./Core/Src/FRAM.o \
 ./Core/Src/KX122.o \
-./Core/Src/LoRa.o \
+./Core/Src/LORA.o \
 ./Core/Src/MAX17048.o \
 ./Core/Src/MCP9808.o \
 ./Core/Src/main.o \
@@ -35,7 +35,7 @@ OBJS += \
 C_DEPS += \
 ./Core/Src/FRAM.d \
 ./Core/Src/KX122.d \
-./Core/Src/LoRa.d \
+./Core/Src/LORA.d \
 ./Core/Src/MAX17048.d \
 ./Core/Src/MCP9808.d \
 ./Core/Src/main.d \
@@ -54,7 +54,7 @@ Core/Src/%.o Core/Src/%.su Core/Src/%.cyclo: ../Core/Src/%.c Core/Src/subdir.mk
 clean: clean-Core-2f-Src
 
 clean-Core-2f-Src:
-	-$(RM) ./Core/Src/FRAM.cyclo ./Core/Src/FRAM.d ./Core/Src/FRAM.o ./Core/Src/FRAM.su ./Core/Src/KX122.cyclo ./Core/Src/KX122.d ./Core/Src/KX122.o ./Core/Src/KX122.su ./Core/Src/LoRa.cyclo ./Core/Src/LoRa.d ./Core/Src/LoRa.o ./Core/Src/LoRa.su ./Core/Src/MAX17048.cyclo ./Core/Src/MAX17048.d ./Core/Src/MAX17048.o ./Core/Src/MAX17048.su ./Core/Src/MCP9808.cyclo ./Core/Src/MCP9808.d ./Core/Src/MCP9808.o ./Core/Src/MCP9808.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32l0xx_hal_msp.cyclo ./Core/Src/stm32l0xx_hal_msp.d ./Core/Src/stm32l0xx_hal_msp.o ./Core/Src/stm32l0xx_hal_msp.su ./Core/Src/stm32l0xx_it.cyclo ./Core/Src/stm32l0xx_it.d ./Core/Src/stm32l0xx_it.o ./Core/Src/stm32l0xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32l0xx.cyclo ./Core/Src/system_stm32l0xx.d ./Core/Src/system_stm32l0xx.o ./Core/Src/system_stm32l0xx.su ./Core/Src/tim.cyclo ./Core/Src/tim.d ./Core/Src/tim.o ./Core/Src/tim.su
+	-$(RM) ./Core/Src/FRAM.cyclo ./Core/Src/FRAM.d ./Core/Src/FRAM.o ./Core/Src/FRAM.su ./Core/Src/KX122.cyclo ./Core/Src/KX122.d ./Core/Src/KX122.o ./Core/Src/KX122.su ./Core/Src/LORA.cyclo ./Core/Src/LORA.d ./Core/Src/LORA.o ./Core/Src/LORA.su ./Core/Src/MAX17048.cyclo ./Core/Src/MAX17048.d ./Core/Src/MAX17048.o ./Core/Src/MAX17048.su ./Core/Src/MCP9808.cyclo ./Core/Src/MCP9808.d ./Core/Src/MCP9808.o ./Core/Src/MCP9808.su ./Core/Src/main.cyclo ./Core/Src/main.d ./Core/Src/main.o ./Core/Src/main.su ./Core/Src/stm32l0xx_hal_msp.cyclo ./Core/Src/stm32l0xx_hal_msp.d ./Core/Src/stm32l0xx_hal_msp.o ./Core/Src/stm32l0xx_hal_msp.su ./Core/Src/stm32l0xx_it.cyclo ./Core/Src/stm32l0xx_it.d ./Core/Src/stm32l0xx_it.o ./Core/Src/stm32l0xx_it.su ./Core/Src/syscalls.cyclo ./Core/Src/syscalls.d ./Core/Src/syscalls.o ./Core/Src/syscalls.su ./Core/Src/sysmem.cyclo ./Core/Src/sysmem.d ./Core/Src/sysmem.o ./Core/Src/sysmem.su ./Core/Src/system_stm32l0xx.cyclo ./Core/Src/system_stm32l0xx.d ./Core/Src/system_stm32l0xx.o ./Core/Src/system_stm32l0xx.su ./Core/Src/tim.cyclo ./Core/Src/tim.d ./Core/Src/tim.o ./Core/Src/tim.su
 
 .PHONY: clean-Core-2f-Src
 

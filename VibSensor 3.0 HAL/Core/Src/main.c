@@ -1228,7 +1228,7 @@ void readAndSendFRAMData() {
 
 			LoRa_gotoMode(&myLoRa, TRANSMIT_MODE);
 			if (LoRa_transmit(&myLoRa, (uint8_t*) &vibrationPackage,
-					sizeof(vibrationPackage), 100) == 1) {
+			        sizeof(vibrationPackage), 600) == 1) {
 				DEBUG_PRINT("Sucess Transmitting Package!\r\n");
 				current_package++;
 				trySending = 0;
@@ -1239,9 +1239,10 @@ void readAndSendFRAMData() {
 			}
 
 			if (tryCount >= 20) {
-				trySending = 0;
-				//EXECUTAR OPERAÇÕES DE SALVAR BATERIA JA QUE NÃO EXISTE NENHUM GATEWAY POR PERTO
-				current_state = STATE_DEEPSLEEP;
+			    trySending = 0;
+			    tryCount = 0;
+			    current_package++;
+			    current_state = STATE_IDLE;
 			}
 
 			readMilliseconds = micros();
@@ -1453,8 +1454,8 @@ void loop() {
 
 		int trycount = 0;
 		while (1) {
-			if (LoRa_transmit(&myLoRa, (uint8_t*) &data, sizeof(data), 100)
-					== 1) {
+			if (LoRa_transmit(&myLoRa, (uint8_t*) &data, sizeof(data), 600)
+			        == 1) {
 				DEBUG_PRINT("Pacote final enviado com sucesso.\r\n");
 				deepsleep_start_timestamp = HAL_GetTick();
 				LoRa_gotoMode(&myLoRa, RXCONTIN_MODE);

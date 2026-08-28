@@ -1,4 +1,4 @@
-21:33:15 **** Build of configuration Release for project TorquimetroTagTest ****
+12:02:10 **** Incremental Build of configuration Release for project TorquimetroTagTest ****
 make -j12 all 
 arm-none-eabi-size  TorquimetroTagTest.elf 
    text	   data	    bss	    dec	    hex	filename
@@ -6,5 +6,5 @@ arm-none-eabi-size  TorquimetroTagTest.elf
 Finished building: default.size.stdout
  
 
-21:33:15 Build Finished. 0 errors, 0 warnings. (took 418ms)
+12:02:10 Build Finished. 0 errors, 0 warnings. (took 306ms)
 

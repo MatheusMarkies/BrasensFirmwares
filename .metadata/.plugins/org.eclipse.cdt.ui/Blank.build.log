@@ -1,17 +1,10 @@
-22:47:17 **** Incremental Build of configuration Release for project Blank ****
+12:02:04 **** Incremental Build of configuration Release for project Blank ****
 make -j12 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-arm-none-eabi-gcc -o "Blank.elf" @"objects.list"   -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\Blank\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Blank.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: Blank.elf
- 
 arm-none-eabi-size  Blank.elf 
-arm-none-eabi-objdump -h -S Blank.elf  > "Blank.list"
    text	   data	    bss	    dec	    hex	filename
    8836	    104	   2040	  10980	   2ae4	Blank.elf
 Finished building: default.size.stdout
  
-Finished building: Blank.list
- 
 
-22:47:18 Build Finished. 0 errors, 0 warnings. (took 656ms)
+12:02:04 Build Finished. 0 errors, 0 warnings. (took 316ms)
 

@@ -1,0 +1,3 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<session version="1.0">&#x0A;<refactoring comment="Delete resource &apos;Integralab_VibSensor/Core/Inc/LORA.h&apos;" deleteContents="false" description="Delete resource &apos;Integralab_VibSensor/Core/Inc/LORA.h&apos;" element1="/Integralab_VibSensor/Core/Inc/LORA.h" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1787878649012"/>&#x0A;<refactoring comment="Delete resource &apos;Integralab_VibSensor/Core/Src/LORA.c&apos;" deleteContents="false" description="Delete resource &apos;Integralab_VibSensor/Core/Src/LORA.c&apos;" element1="/Integralab_VibSensor/Core/Src/LORA.c" flags="7" id="org.eclipse.ltk.core.refactoring.delete.resources" resources="1" stamp="1787878651300"/>
+</session>

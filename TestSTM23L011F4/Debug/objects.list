@@ -1,5 +1,4 @@
 "./Core/Src/main.o"
-"./Core/Src/st25dv_driver.o"
 "./Core/Src/stm32l0xx_hal_msp.o"
 "./Core/Src/stm32l0xx_it.o"
 "./Core/Src/syscalls.o"

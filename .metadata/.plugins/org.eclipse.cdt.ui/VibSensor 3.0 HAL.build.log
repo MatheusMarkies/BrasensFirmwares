@@ -1,0 +1,10 @@
+12:02:10 **** Incremental Build of configuration Debug for project VibSensor 3.0 HAL ****
+make -j12 all 
+arm-none-eabi-size  VibSensor\ 3.0\ HAL.elf 
+   text	   data	    bss	    dec	    hex	filename
+  57028	    468	   3508	  61004	   ee4c	VibSensor 3.0 HAL.elf
+Finished building: default.size.stdout
+ 
+
+12:02:11 Build Finished. 0 errors, 0 warnings. (took 373ms)
+

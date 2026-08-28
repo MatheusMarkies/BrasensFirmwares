@@ -3,8 +3,8 @@
 ../Core/Src/main.c:133:6:ini	3
 ../Core/Src/main.c:168:13:nfcv_read_mailbox	5
 ../Core/Src/main.c:222:6:stop	1
-../Core/Src/main.c:233:5:main	12
-../Core/Src/main.c:420:6:SystemClock_Config	3
-../Core/Src/main.c:459:13:MX_USART2_UART_Init	2
-../Core/Src/main.c:492:13:MX_GPIO_Init	1
-../Core/Src/main.c:557:6:Error_Handler	1
+../Core/Src/main.c:233:5:main	16
+../Core/Src/main.c:428:6:SystemClock_Config	3
+../Core/Src/main.c:467:13:MX_USART2_UART_Init	2
+../Core/Src/main.c:500:13:MX_GPIO_Init	1
+../Core/Src/main.c:565:6:Error_Handler	1

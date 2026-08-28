@@ -62,6 +62,8 @@ void Error_Handler(void);
 #define NFC_INTERRUPT_EXTI_IRQn EXTI4_15_IRQn
 #define LPD_Pin GPIO_PIN_1
 #define LPD_GPIO_Port GPIOA
+#define ACT_Pin GPIO_PIN_6
+#define ACT_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 

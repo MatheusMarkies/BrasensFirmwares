@@ -7,8 +7,8 @@
 ../Core/Src/FRAM.c:69:19:FRAM_ReadStruct	1
 ../Core/Src/FRAM.c:73:19:FRAM_WriteFloat	1
 ../Core/Src/FRAM.c:77:19:FRAM_ReadFloat	1
-../Core/Src/FRAM.c:81:19:FRAM_EraseData	2
-../Core/Src/FRAM.c:93:19:FRAM_Format	2
-../Core/Src/FRAM.c:104:10:FRAM_GetTotalMemorySize	1
-../Core/Src/FRAM.c:108:6:FRAM_InitMetadata	1
-../Core/Src/FRAM.c:114:6:FRAM_UpdateMetadata	2
+../Core/Src/FRAM.c:82:19:FRAM_EraseData	5
+../Core/Src/FRAM.c:105:19:FRAM_Format	1
+../Core/Src/FRAM.c:111:10:FRAM_GetTotalMemorySize	1
+../Core/Src/FRAM.c:115:6:FRAM_InitMetadata	1
+../Core/Src/FRAM.c:121:6:FRAM_UpdateMetadata	2

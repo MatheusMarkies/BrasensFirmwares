@@ -34,34 +34,34 @@ $(wildcard ../makefile.init) \
 $(wildcard ../makefile.targets) \
 
 
-BUILD_ARTIFACT_NAME := STM32L011_LOWPOWER
+BUILD_ARTIFACT_NAME := STM32L011F4_I2C
 BUILD_ARTIFACT_EXTENSION := elf
 BUILD_ARTIFACT_PREFIX :=
 BUILD_ARTIFACT := $(BUILD_ARTIFACT_PREFIX)$(BUILD_ARTIFACT_NAME)$(if $(BUILD_ARTIFACT_EXTENSION),.$(BUILD_ARTIFACT_EXTENSION),)
 
 # Add inputs and outputs from these tool invocations to the build variables 
 EXECUTABLES += \
-STM32L011_LOWPOWER.elf \
+STM32L011F4_I2C.elf \
 
 MAP_FILES += \
-STM32L011_LOWPOWER.map \
+STM32L011F4_I2C.map \
 
 SIZE_OUTPUT += \
 default.size.stdout \
 
 OBJDUMP_LIST += \
-STM32L011_LOWPOWER.list \
+STM32L011F4_I2C.list \
 
 
 # All Target
 all: main-build
 
 # Main-build Target
-main-build: STM32L011_LOWPOWER.elf secondary-outputs
+main-build: STM32L011F4_I2C.elf secondary-outputs
 
 # Tool invocations
-STM32L011_LOWPOWER.elf STM32L011_LOWPOWER.map: $(OBJS) $(USER_OBJS) D:\BrasensFirmwares\STM32L011_LOWPOWER\STM32L011F4UX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-gcc -o "STM32L011_LOWPOWER.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\STM32L011_LOWPOWER\STM32L011F4UX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32L011_LOWPOWER.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+STM32L011F4_I2C.elf STM32L011F4_I2C.map: $(OBJS) $(USER_OBJS) D:\BrasensFirmwares\STM32L011_LOWPOWER\STM32L011F4UX_FLASH.ld makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-gcc -o "STM32L011F4_I2C.elf" @"objects.list" $(USER_OBJS) $(LIBS) -mcpu=cortex-m0plus -T"D:\BrasensFirmwares\STM32L011_LOWPOWER\STM32L011F4UX_FLASH.ld" --specs=nosys.specs -Wl,-Map="STM32L011F4_I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 	@echo 'Finished building target: $@'
 	@echo ' '
 
@@ -70,14 +70,14 @@ default.size.stdout: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
 	@echo 'Finished building: $@'
 	@echo ' '
 
-STM32L011_LOWPOWER.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
-	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "STM32L011_LOWPOWER.list"
+STM32L011F4_I2C.list: $(EXECUTABLES) makefile objects.list $(OPTIONAL_TOOL_DEPS)
+	arm-none-eabi-objdump -h -S $(EXECUTABLES) > "STM32L011F4_I2C.list"
 	@echo 'Finished building: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) STM32L011_LOWPOWER.elf STM32L011_LOWPOWER.list STM32L011_LOWPOWER.map default.size.stdout
+	-$(RM) STM32L011F4_I2C.elf STM32L011F4_I2C.list STM32L011F4_I2C.map default.size.stdout
 	-@echo ' '
 
 secondary-outputs: $(SIZE_OUTPUT) $(OBJDUMP_LIST)

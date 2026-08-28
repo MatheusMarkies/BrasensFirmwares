@@ -3,21 +3,21 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="true"/>
 	<list key="searchhistory">
-		<item value="_wri"/>
-		<item value="TIM2_CLK_HZ"/>
-		<item value="MX_TIM2_Init"/>
-		<item value="GPIO_NOPULL"/>
-		<item value="HAL_TIM_IC_CaptureCallback"/>
-		<item value="ENGINE_CalculateAngularVelocity"/>
-		<item value="ENGINE_CalculateDwell"/>
-		<item value="INJ_IT_FLAGS"/>
-		<item value="ENGINE_AngleDeltaInCycle"/>
-		<item value="ENGINE_ScheduleNextPhase"/>
-		<item value="engine.crankshaft_angle"/>
-		<item value="ENGINE_UpdateCylinderPhases"/>
-		<item value="ENGINE_Schedule_Spark"/>
-		<item value="CMD_RESULT_TIMEOUT"/>
-		<item value="SERIAL PROTOCOL"/>
+		<item value="readAndSendFRAMData("/>
+		<item value="readAndSendFRAMData"/>
+		<item value="KX122_ReadRegister"/>
+		<item value="KX122_CS_PIN"/>
+		<item value="KX122_CS_PORT"/>
+		<item value="HAL_SPI_Init"/>
+		<item value="hspi2"/>
+		<item value="HAL_SPI_Transmit"/>
+		<item value="KX122_ReadRegisters"/>
+		<item value="HAL_SPI_Receive"/>
+		<item value="total_samples_processed &lt; SAMPLES"/>
+		<item value="deepsleep_start_timestamp"/>
+		<item value="DEBUG_PRINT"/>
+		<item value="STATE_TRANSMITTING_VP"/>
+		<item value="KX122_ReadBufferData"/>
 	</list>
 	<list key="replacehistory">
 		<item value="printf"/>

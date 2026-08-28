@@ -50,6 +50,8 @@ static uint16_t wakeup_cycles = 10; //CHARGING_INTERVAL_MS / (8 * 1000);
 #define SAMPLES_FOR_TARING 10
 #define SAMPLES_FOR_READING 10
 
+#define DEBUG_LOG
+
 int32_t strain_uE = 0;
 int32_t voltage_uV = 0;
 
@@ -76,7 +78,25 @@ typedef enum {
 
 /* Private macro -------------------------------------------------------------*/
 /* USER CODE BEGIN PM */
+#define ACT_Pin        GPIO_PIN_7
+#define ACT_GPIO_Port  GPIOA
 
+static void ACT_Init(void) {
+    GPIO_InitTypeDef g = {0};
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+
+    /* escreve ANTES de virar saída, para não dar um pulso de ligado */
+    HAL_GPIO_WritePin(ACT_GPIO_Port, ACT_Pin, GPIO_PIN_SET);
+
+    g.Pin   = ACT_Pin;
+    g.Mode  = GPIO_MODE_OUTPUT_PP;
+    g.Pull  = GPIO_NOPULL;
+    g.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(ACT_GPIO_Port, &g);
+}
+
+#define MEAS_ON()   HAL_GPIO_WritePin(ACT_GPIO_Port, ACT_Pin, GPIO_PIN_RESET)
+#define MEAS_OFF()  HAL_GPIO_WritePin(ACT_GPIO_Port, ACT_Pin, GPIO_PIN_SET)
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
@@ -335,7 +355,8 @@ int32_t platform_i2c_read(uint8_t addr, uint16_t reg, uint8_t *data,
 }
 
 void platform_delay(uint32_t ms) {
-	HAL_Delay(ms);
+    uint32_t loops = (SystemCoreClock / 4000U) * ms;
+    while (loops--) { __NOP(); }
 }
 
 st25dv_io_t st25_driver = { .i2c_write = platform_i2c_write, .i2c_read =
@@ -462,7 +483,9 @@ void LongToStr(int32_t num, char *str) {
 int main(void) {
 
 	/* USER CODE BEGIN 1 */
-
+	__HAL_RCC_SYSCFG_CLK_ENABLE();
+	  SYSCFG->CFGR1 &= ~(SYSCFG_CFGR1_MEM_MODE);
+	  SCB->VTOR = FLASH_BASE;
 	/* USER CODE END 1 */
 
 	/* MCU Configuration--------------------------------------------------------*/
@@ -471,14 +494,17 @@ int main(void) {
 	HAL_Init();
 
 	/* USER CODE BEGIN Init */
-
+	__HAL_RCC_PWR_CLK_ENABLE();
+	HAL_PWR_EnableBkUpAccess();
+	__HAL_RCC_BACKUPRESET_FORCE();
+	__HAL_RCC_BACKUPRESET_RELEASE();
 	/* USER CODE END Init */
 
 	/* Configure the system clock */
 	SystemClock_Config();
 
 	/* USER CODE BEGIN SysInit */
-	MX_GPIO_LowPower_Init();
+	//MX_GPIO_LowPower_Init();
 #ifdef DEBUG_LOG
 	MX_LPUART1_UART_Init();
 	uart_initialized = 1;
@@ -486,14 +512,17 @@ int main(void) {
 	/* USER CODE END SysInit */
 
 	/* Initialize all configured peripherals */
-	//MX_GPIO_Init();
-
-	//MX_I2C1_Init();
+	MX_GPIO_Init();
+	ACT_Init();
+	MX_I2C1_Init();
 	MX_RTC_Init();
 	/* USER CODE BEGIN 2 */
 	DEBUG_PRINT("--- Iniciando! ---\r\n");
-	//I2C_Scanner(&hi2c1);
-	//Setup_NFC();
+
+	 MEAS_ON();
+
+	I2C_Scanner(&hi2c1);
+	Setup_NFC();
 
 	int32_t offset = 0;
 	int32_t average = 0;
@@ -503,14 +532,14 @@ int main(void) {
 
 	DEBUG_PRINT("Starting...\r\n");
 
-    __HAL_RCC_I2C1_CLK_DISABLE();
-    __HAL_RCC_LPUART1_CLK_DISABLE();
+   // __HAL_RCC_I2C1_CLK_DISABLE();
+   // __HAL_RCC_LPUART1_CLK_DISABLE();
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
 	while (1) {
-		switch (state) {
+		/*switch (state) {
 		case CHARGING:
 			rtc_start_wakeup(CHARGING_INTERVAL_TICKS);
 			enter_stop_mode();
@@ -635,7 +664,7 @@ int main(void) {
 			HAL_Delay(READING_SAMPLING_INTERVAL_MS);
 			break;
 
-		}
+		}*/
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
@@ -707,7 +736,7 @@ static void MX_I2C1_Init(void) {
 
 	/* USER CODE END I2C1_Init 1 */
 	hi2c1.Instance = I2C1;
-	hi2c1.Init.Timing = 0x00000608;
+	hi2c1.Init.Timing = 0x00503D5A;
 	hi2c1.Init.OwnAddress1 = 0;
 	hi2c1.Init.AddressingMode = I2C_ADDRESSINGMODE_7BIT;
 	hi2c1.Init.DualAddressMode = I2C_DUALADDRESS_DISABLE;
