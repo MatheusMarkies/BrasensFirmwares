@@ -27,13 +27,14 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
  ../Core/Inc/stm32f1xx_nucleo_conf.h ../Core/Inc/stm32f1xx_nucleo_errno.h \
  ../Core/Inc/stm32f1xx_nucleo_errno.h ../Core/Inc/RTE_Components.h \
  ../X-CUBE-NFC12/Target/st_errno.h ../Core/Inc/utils.h \
- ../Middlewares/ST/rfal/Inc/rfal_nfc.h \
+ ../Middlewares/ST/rfal/Inc/rfal_rf.h \
  ../X-CUBE-NFC12/Target/rfal_platform.h ../X-CUBE-NFC12/Target/timer.h \
  ../X-CUBE-NFC12/Target/nfc_conf.h ../X-CUBE-NFC12/Target/demo.h \
  ../X-CUBE-NFC12/Target/st_errno.h \
  ../Middlewares/ST/rfal/Inc/rfal_utils.h \
- ../Middlewares/ST/rfal/Inc/rfal_rf.h \
  ../Drivers/BSP/Components/st25r500/rfal_features.h \
+ ../Middlewares/ST/rfal/Inc/rfal_nfc.h \
+ ../Middlewares/ST/rfal/Inc/rfal_rf.h \
  ../Middlewares/ST/rfal/Inc/rfal_nfca.h \
  ../Middlewares/ST/rfal/Inc/rfal_t1t.h \
  ../Middlewares/ST/rfal/Inc/rfal_nfcb.h \
@@ -79,15 +80,16 @@ Core/Src/main.o: ../Core/Src/main.c ../Core/Inc/main.h \
 ../Core/Inc/RTE_Components.h:
 ../X-CUBE-NFC12/Target/st_errno.h:
 ../Core/Inc/utils.h:
-../Middlewares/ST/rfal/Inc/rfal_nfc.h:
+../Middlewares/ST/rfal/Inc/rfal_rf.h:
 ../X-CUBE-NFC12/Target/rfal_platform.h:
 ../X-CUBE-NFC12/Target/timer.h:
 ../X-CUBE-NFC12/Target/nfc_conf.h:
 ../X-CUBE-NFC12/Target/demo.h:
 ../X-CUBE-NFC12/Target/st_errno.h:
 ../Middlewares/ST/rfal/Inc/rfal_utils.h:
-../Middlewares/ST/rfal/Inc/rfal_rf.h:
 ../Drivers/BSP/Components/st25r500/rfal_features.h:
+../Middlewares/ST/rfal/Inc/rfal_nfc.h:
+../Middlewares/ST/rfal/Inc/rfal_rf.h:
 ../Middlewares/ST/rfal/Inc/rfal_nfca.h:
 ../Middlewares/ST/rfal/Inc/rfal_t1t.h:
 ../Middlewares/ST/rfal/Inc/rfal_nfcb.h:

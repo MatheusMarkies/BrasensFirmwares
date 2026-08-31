@@ -3,21 +3,21 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="true"/>
 	<list key="searchhistory">
+		<item value="MX_GPIO_LowPower_Init"/>
+		<item value="Setup_NFC"/>
+		<item value="ReadMailbox"/>
+		<item value="rfalNfcvPollerInitialize"/>
+		<item value="_write"/>
+		<item value="rtc_start_wakeup_ms"/>
+		<item value="ST25DV_GPO_Enable_Dyn"/>
+		<item value="rtc"/>
+		<item value="CHARGING"/>
+		<item value="enter_stop_mode"/>
+		<item value="SAMPLES_FOR_READING"/>
+		<item value="i2c_initialized"/>
+		<item value="MEAS_ON"/>
 		<item value="readAndSendFRAMData("/>
 		<item value="readAndSendFRAMData"/>
-		<item value="KX122_ReadRegister"/>
-		<item value="KX122_CS_PIN"/>
-		<item value="KX122_CS_PORT"/>
-		<item value="HAL_SPI_Init"/>
-		<item value="hspi2"/>
-		<item value="HAL_SPI_Transmit"/>
-		<item value="KX122_ReadRegisters"/>
-		<item value="HAL_SPI_Receive"/>
-		<item value="total_samples_processed &lt; SAMPLES"/>
-		<item value="deepsleep_start_timestamp"/>
-		<item value="DEBUG_PRINT"/>
-		<item value="STATE_TRANSMITTING_VP"/>
-		<item value="KX122_ReadBufferData"/>
 	</list>
 	<list key="replacehistory">
 		<item value="printf"/>
@@ -32,6 +32,7 @@
 		<item key="isRegEx" value="false"/>
 		<item key="selection" value="HAL_NVIC_SetPriority"/>
 		<list key="findhistory">
+			<item value="globalCommProtectCnt"/>
 			<item value="HAL_NVIC_SetPriority"/>
 			<item value="USER CODE BEGIN Init"/>
 			<item value="USER CODE BEGIN 2"/>
@@ -46,7 +47,6 @@
 			<item value="hea"/>
 			<item value="ST25R300_ReadRSSI"/>
 			<item value="printf"/>
-			<item value="DEBUG_PRINT"/>
 		</list>
 		<list key="replacehistory">
 			<item value="DEBUG_PRINT"/>

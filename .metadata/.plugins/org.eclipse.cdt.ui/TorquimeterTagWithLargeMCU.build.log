@@ -1,4 +1,4 @@
-19:15:54 **** Build of configuration Release for project TorquimeterTagWithLargeMCU ****
+09:16:16 **** Build of configuration Release for project TorquimeterTagWithLargeMCU ****
 make -j12 all 
 arm-none-eabi-size  TorquimeterTagWithLargeMCU.elf 
    text	   data	    bss	    dec	    hex	filename
@@ -6,5 +6,5 @@ arm-none-eabi-size  TorquimeterTagWithLargeMCU.elf
 Finished building: default.size.stdout
  
 
-19:15:55 Build Finished. 0 errors, 0 warnings. (took 712ms)
+09:16:16 Build Finished. 0 errors, 0 warnings. (took 681ms)
 

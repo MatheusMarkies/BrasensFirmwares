@@ -1,81 +1,189 @@
-23:14:01 **** Incremental Build of configuration Release for project Integralab_VibSensor ****
+15:48:27 **** Incremental Build of configuration Release for project TestSTM32L053I2C ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-../Core/Src/main.c: In function 'KX122_Init':
-../Core/Src/main.c:517:13: warning: unused variable 'i' [-Wunused-variable]
-  517 |         int i;
-      |             ^
-../Core/Src/main.c: In function 'KX122_StartBuffer':
-../Core/Src/main.c:583:52: warning: pointer targets in passing argument 3 of 'KX122_ReadRegister' differ in signedness [-Wpointer-sign]
-  583 |         rc = KX122_ReadRegister(hspi, KX122_CNTL1, &cntlreg);
-      |                                                    ^~~~~~~~
-      |                                                    |
-      |                                                    int8_t * {aka signed char *}
-../Core/Src/main.c:106:39: note: expected 'uint8_t *' {aka 'unsigned char *'} but argument is of type 'int8_t *' {aka 'signed char *'}
-  106 |                 uint8_t reg, uint8_t *data);
-      |                              ~~~~~~~~~^~~~
-../Core/Src/main.c: In function 'KX122_ReadBufferData':
-../Core/Src/main.c:628:29: warning: passing argument 1 of 'KX122_GetBufferSize' from incompatible pointer type [-Wincompatible-pointer-types]
-  628 |         KX122_GetBufferSize(&hi2c1, bufferSize);
-      |                             ^~~~~~
-      |                             |
-      |                             I2C_HandleTypeDef * {aka struct __I2C_HandleTypeDef *}
-../Core/Src/main.c:615:58: note: expected 'SPI_HandleTypeDef *' {aka 'struct __SPI_HandleTypeDef *'} but argument is of type 'I2C_HandleTypeDef *' {aka 'struct __I2C_HandleTypeDef *'}
-  615 | HAL_StatusTypeDef KX122_GetBufferSize(SPI_HandleTypeDef *hspi, uint8_t *data) {
-      |                                       ~~~~~~~~~~~~~~~~~~~^~~~
-../Core/Src/main.c:628:37: warning: passing argument 2 of 'KX122_GetBufferSize' makes pointer from integer without a cast [-Wint-conversion]
-  628 |         KX122_GetBufferSize(&hi2c1, bufferSize);
-      |                                     ^~~~~~~~~~
-      |                                     |
-      |                                     uint8_t {aka unsigned char}
-../Core/Src/main.c:615:73: note: expected 'uint8_t *' {aka 'unsigned char *'} but argument is of type 'uint8_t' {aka 'unsigned char'}
-  615 | HAL_StatusTypeDef KX122_GetBufferSize(SPI_HandleTypeDef *hspi, uint8_t *data) {
-      |                                                                ~~~~~~~~~^~~~
-../Core/Src/main.c: In function 'readTemperature':
-../Core/Src/main.c:782:9: warning: implicit declaration of function 'MCP9808_Wake' [-Wimplicit-function-declaration]
-  782 |         MCP9808_Wake(hi2c);
-      |         ^~~~~~~~~~~~
-../Core/Src/main.c:783:9: warning: implicit declaration of function 'MCP9808_ReadTemperature' [-Wimplicit-function-declaration]
-  783 |         MCP9808_ReadTemperature(hi2c, temperature);
-      |         ^~~~~~~~~~~~~~~~~~~~~~~
-../Core/Src/main.c:784:9: warning: implicit declaration of function 'MCP9808_Shutdown' [-Wimplicit-function-declaration]
-  784 |         MCP9808_Shutdown(hi2c);
-      |         ^~~~~~~~~~~~~~~~
-../Core/Src/main.c: In function 'reset_FRAM_and_start_processing':
-../Core/Src/main.c:833:15: warning: unused variable 'accel' [-Wunused-variable]
-  833 |         float accel[3];
-      |               ^~~~~
-../Core/Src/main.c: In function 'setup':
-../Core/Src/main.c:987:13: warning: implicit declaration of function 'MCP9808_Init' [-Wimplicit-function-declaration]
-  987 |         if (MCP9808_Init(&hi2c1) != HAL_ERROR)
-      |             ^~~~~~~~~~~~
-../Core/Src/main.c:1004:38: warning: passing argument 1 of 'KX122_CheckCommunication' from incompatible pointer type [-Wincompatible-pointer-types]
- 1004 |         if (KX122_CheckCommunication(&hi2c1) != HAL_ERROR)
-      |                                      ^~~~~~
-      |                                      |
-      |                                      I2C_HandleTypeDef * {aka struct __I2C_HandleTypeDef *}
-../Core/Src/main.c:727:63: note: expected 'SPI_HandleTypeDef *' {aka 'struct __SPI_HandleTypeDef *'} but argument is of type 'I2C_HandleTypeDef *' {aka 'struct __I2C_HandleTypeDef *'}
-  727 | HAL_StatusTypeDef KX122_CheckCommunication(SPI_HandleTypeDef *hspi) {
-      |                                            ~~~~~~~~~~~~~~~~~~~^~~~
-../Core/Src/main.c: At top level:
-../Core/Src/main.c:109:26: warning: 'KX122_ReadBuffer' declared 'static' but never defined [-Wunused-function]
-  109 | static HAL_StatusTypeDef KX122_ReadBuffer(SPI_HandleTypeDef *hspi,
-      |                          ^~~~~~~~~~~~~~~~
-arm-none-eabi-gcc -o "Integralab_VibSensor.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\Integralab_VibSensor\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="Integralab_VibSensor.map" -Wl,--gc-sections -static -u _printf_float --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: Integralab_VibSensor.elf
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
  
-arm-none-eabi-size  Integralab_VibSensor.elf 
-arm-none-eabi-objdump -h -S Integralab_VibSensor.elf  > "Integralab_VibSensor.list"
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
    text	   data	    bss	    dec	    hex	filename
-  41048	    472	   2736	  44256	   ace0	Integralab_VibSensor.elf
+  15480	    124	   2188	  17792	   4580	TestSTM32L053I2C.elf
 Finished building: default.size.stdout
  
-Finished building: Integralab_VibSensor.list
+Finished building: TestSTM32L053I2C.list
  
-23:14:06 **** Incremental Build of configuration Release for project Integralab_VibSensor ****
+15:48:45 **** Incremental Build of configuration Debug for project TorquimeterReader ****
 make -j12 all 
-arm-none-eabi-size  Integralab_VibSensor.elf 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TorquimeterReader.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterReader.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TorquimeterReader.elf
+ 
+arm-none-eabi-size  TorquimeterReader.elf 
+arm-none-eabi-objdump -h -S TorquimeterReader.elf  > "TorquimeterReader.list"
    text	   data	    bss	    dec	    hex	filename
-  41048	    472	   2736	  44256	   ace0	Integralab_VibSensor.elf
+  47920	    108	   5428	  53456	   d0d0	TorquimeterReader.elf
 Finished building: default.size.stdout
+ 
+Finished building: TorquimeterReader.list
+ 
+16:00:14 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  23532	    124	   2188	  25844	   64f4	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+16:01:15 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+   text	   data	    bss	    dec	    hex	filename
+  23532	    124	   2188	  25844	   64f4	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+16:04:18 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  26208	    124	   2188	  28520	   6f68	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+16:06:45 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  26208	    124	   2188	  28520	   6f68	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+16:07:44 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  26224	    124	   2188	  28536	   6f78	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+16:08:22 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+   text	   data	    bss	    dec	    hex	filename
+  26224	    124	   2188	  28536	   6f78	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+16:09:32 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+   text	   data	    bss	    dec	    hex	filename
+  26224	    124	   2188	  28536	   6f78	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+16:15:30 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  26328	    124	   2188	  28640	   6fe0	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+16:17:34 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+   text	   data	    bss	    dec	    hex	filename
+  26328	    124	   2188	  28640	   6fe0	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+16:30:48 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  26352	    124	   2188	  28664	   6ff8	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+16:31:14 **** Incremental Build of configuration Debug for project TorquimeterReader ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TorquimeterReader.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterReader.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TorquimeterReader.elf
+ 
+arm-none-eabi-size  TorquimeterReader.elf 
+arm-none-eabi-objdump -h -S TorquimeterReader.elf  > "TorquimeterReader.list"
+   text	   data	    bss	    dec	    hex	filename
+  47916	    108	   5428	  53452	   d0cc	TorquimeterReader.elf
+Finished building: default.size.stdout
+ 
+Finished building: TorquimeterReader.list
+ 
+16:42:56 **** Incremental Build of configuration Debug for project TorquimeterReader ****
+make -j12 all 
+arm-none-eabi-size  TorquimeterReader.elf 
+   text	   data	    bss	    dec	    hex	filename
+  47916	    108	   5428	  53452	   d0cc	TorquimeterReader.elf
+Finished building: default.size.stdout
+ 
+16:44:25 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  26340	    124	   2188	  28652	   6fec	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+17:45:37 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  26388	    124	   2188	  28700	   701c	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
  

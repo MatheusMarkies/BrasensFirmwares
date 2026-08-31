@@ -1,4 +1,4 @@
-19:15:48 **** Build of configuration Release for project STM32L011F4_I2C ****
+09:16:06 **** Build of configuration Release for project STM32L011F4_I2C ****
 make -j12 all 
 arm-none-eabi-size  STM32L011F4_I2C.elf 
    text	   data	    bss	    dec	    hex	filename
@@ -6,5 +6,5 @@ arm-none-eabi-size  STM32L011F4_I2C.elf
 Finished building: default.size.stdout
  
 
-19:15:49 Build Finished. 0 errors, 0 warnings. (took 613ms)
+09:16:06 Build Finished. 0 errors, 0 warnings. (took 726ms)
 
