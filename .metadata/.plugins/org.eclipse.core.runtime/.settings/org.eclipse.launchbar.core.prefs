@@ -18,5 +18,6 @@ org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:NFCAntennaInductanceMeasurement
 org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:STM32L011_LOWPOWER\ Release/activeLaunchMode=run
 org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TestH7Processor\ Release\ (1)/activeLaunchMode=run
 org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TestH7Processor\ Release/activeLaunchMode=debug
+org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TestSTM32L053I2C\ Debug/activeLaunchMode=run
 org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TorquimeterTag\ Debug/activeLaunchMode=run
 org.eclipse.cdt.dsf.gdb.gdbRemotedescriptorType\:TorquimetroTag\ Debug/activeLaunchMode=run

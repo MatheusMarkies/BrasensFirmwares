@@ -170,40 +170,40 @@ static char mbText[257];
  * Reaching the END of the message is what makes the tag pulse RF_GET_MSG:
  * a partial read leaves it stuck in SENDING until its own timeout. */
 static ReturnCode ReadMailbox(const uint8_t *uid) {
-    ReturnCode err;
-    uint16_t rcvLen = 0U;
-    uint16_t msgLen;
-    uint16_t offset;
-    uint8_t rawLen = 0U;
+	ReturnCode err;
+	uint16_t rcvLen = 0U;
+	uint16_t msgLen;
+	uint16_t offset;
+	uint8_t rawLen = 0U;
 
-    // Endereçamento exigido pela biblioteca RFAL
-    uint8_t flags = (RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS);
+	// Endereçamento exigido pela biblioteca RFAL
+	uint8_t flags = (RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS);
 
-    // 1. Lê o tamanho da mensagem armazenada
-    err = rfalST25xVPollerReadMessageLength(flags, uid, &rawLen);
-    if (err != ERR_NONE) {
-        return err; // Silenciado para não poluir o terminal durante o polling
-    }
+	// 1. Lê o tamanho da mensagem armazenada
+	err = rfalST25xVPollerReadMessageLength(flags, uid, &rawLen);
+	if (err != ERR_NONE) {
+		return err; // Silenciado para não poluir o terminal durante o polling
+	}
 
-    // 2. Lê a mensagem completa
-    err = rfalST25xVPollerReadMessage(flags, uid, 0x00U, 0x00U, mbBuffer,
-            sizeof(mbBuffer), &rcvLen);
-    if (err != ERR_NONE) {
-        return err;
-    }
+	// 2. Lê a mensagem completa
+	err = rfalST25xVPollerReadMessage(flags, uid, 0x00U, 0x00U, mbBuffer,
+			sizeof(mbBuffer), &rcvLen);
+	if (err != ERR_NONE) {
+		return err;
+	}
 
-    offset = ((rcvLen > 0U) && (mbBuffer[0] == 0x00U)) ? 1U : 0U;
-    msgLen = (rcvLen > offset) ? (rcvLen - offset) : 0U;
+	offset = ((rcvLen > 0U) && (mbBuffer[0] == 0x00U)) ? 1U : 0U;
+	msgLen = (rcvLen > offset) ? (rcvLen - offset) : 0U;
 
-    if (msgLen > (sizeof(mbText) - 1U)) {
-        msgLen = sizeof(mbText) - 1U;
-    }
+	if (msgLen > (sizeof(mbText) - 1U)) {
+		msgLen = sizeof(mbText) - 1U;
+	}
 
-    memcpy(mbText, &mbBuffer[offset], msgLen);
-    mbText[msgLen] = '\0';
+	memcpy(mbText, &mbBuffer[offset], msgLen);
+	mbText[msgLen] = '\0';
 
-    platformLog("[%lu ms] MENSAGEM RECEBIDA: %s\r\n", HAL_GetTick(), mbText);
-    return ERR_NONE;
+	platformLog("[%lu ms] MENSAGEM RECEBIDA: %s\r\n", HAL_GetTick(), mbText);
+	return ERR_NONE;
 }
 /* USER CODE END 0 */
 
@@ -341,48 +341,50 @@ int main(void) {
 		{
 		    static uint32_t lastReadTick = 0;
 		    static uint8_t lostCount = 0;
-		    static uint8_t lastCtrl = 0xFF;
-		    uint8_t mbCtrlVal = 0;
-		    uint8_t reqFlags = RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS;
 
-		    // APAGADO: rfalFieldOnAndStartGT(); <-- Esta era a linha fatal
 		    platformLedOn(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN);
 
-		    if (HAL_GetTick() - lastReadTick >= 50) {
+		    // Polling espaçado em 250ms evita colisões agressivas com o tráfego I2C
+		    if (HAL_GetTick() - lastReadTick >= 250) {
 		        lastReadTick = HAL_GetTick();
 
-		        ReturnCode ctrlErr = rfalST25xVPollerReadDynamicConfiguration(reqFlags, currentUID, 0x0D, &mbCtrlVal);
+		        uint8_t reqFlags = RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS;
+		        uint8_t rawLen = 0;
 
-		        if (ctrlErr == ERR_NONE) {
+		        // BYPASS DIRETO: Usa o comando ABh para requisitar o tamanho do payload
+		        ReturnCode lenErr = rfalST25xVPollerReadMessageLength(reqFlags, currentUID, &rawLen);
+
+		        if (lenErr == ERR_NONE) {
 		            lostCount = 0;
 
-		            if (mbCtrlVal != lastCtrl) {
-		                platformLog("[%lu ms] MB_CTRL = %02X\r\n", HAL_GetTick(), mbCtrlVal);
-		                lastCtrl = mbCtrlVal;
-		            }
+		            uint16_t rcvLen = 0;
+		            // Sabendo o tamanho, aciona o comando ACh para puxar os bytes exatos
+		            ReturnCode msgErr = rfalST25xVPollerReadMessage(reqFlags, currentUID, 0x00, rawLen, mbBuffer, sizeof(mbBuffer), &rcvLen);
 
-		            if (mbCtrlVal & 0x02) {
-		                ReturnCode e = ReadMailbox(currentUID);
-		                if (e != ERR_NONE) {
-		                    platformLog("[%lu ms] ReadMailbox err=%d\r\n", HAL_GetTick(), e);
-		                }
+		            if (msgErr == ERR_NONE) {
+		                mbBuffer[rcvLen] = '\0';
+		                // O payload real sempre começa no índice 1 da biblioteca RFAL
+		                platformLog("[%lu ms] MENSAGEM LIDA: %s\r\n", HAL_GetTick(), &mbBuffer[1]);
+		            } else {
+		                platformLog("[%lu ms] Erro ReadMessage: %d\r\n", HAL_GetTick(), msgErr);
 		            }
-		        } else {
-		            if (lostCount == 0) {
-		                platformLog("[%lu ms] 1a falha RF err=%d\r\n", HAL_GetTick(), ctrlErr);
-		            }
+		        }
+		        else if (lenErr == ERR_TIMEOUT) {
+		            // Colisão momentânea na antena durante a gravação I2C. Ignora e tenta de novo.
 		            lostCount++;
-
 		            if (lostCount > 15) {
-		                platformLog("[%lu ms] Conexao Fisica Perdida Definitivamente!\r\n", HAL_GetTick());
+		                platformLog("[%lu ms] Conexao Fisica Perdida! (Timeout)\r\n", HAL_GetTick());
 		                rfalNfcDeactivate(RFAL_NFC_DEACTIVATE_DISCOVERY);
 		                state = DEMO_ST_START_DISCOVERY;
 		                lostCount = 0;
-		                lastCtrl = 0xFF;
 		            }
 		        }
+		        else {
+		            // Tag respondeu, mas rejeitou a leitura (Erro 0x0F = Mailbox Vazio)
+		            lostCount = 0;
+		        }
 		    }
-		    break; // ATENÇÃO: O HAL_Delay(50) foi removido daqui!
+		    break;
 		}
 
 		case DEMO_ST_NOTINIT:
