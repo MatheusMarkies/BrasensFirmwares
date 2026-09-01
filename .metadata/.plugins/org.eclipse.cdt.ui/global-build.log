@@ -1,39 +1,74 @@
-19:58:20 **** Incremental Build of configuration Release for project TestSTM32L053I2C ****
+22:26:56 **** Incremental Build of configuration Release for project TorquimeterReader ****
 make -j12 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-../Core/Src/main.c:572:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
-  572 | static bool mb_was_collected(void) {
-      |             ^~~~~~~~~~~~~~~~
-../Core/Src/main.c:78:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
-   78 | static uint8_t i2c_initialized = 0;
-      |                ^~~~~~~~~~~~~~~
-arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
-Finished building target: TestSTM32L053I2C.elf
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+In file included from ../Middlewares/ST/rfal/Inc/rfal_rf.h:27,
+                 from ../Core/Src/main.c:31:
+../Core/Src/main.c: In function 'main':
+../Core/Src/main.c:307:20: error: 'nfcDevice' undeclared (first use in this function); did you mean 'rfalNfcDevice'?
+  307 |                    nfcDevice->nfcidLen);
+      |                    ^~~~~~~~~
+../X-CUBE-NFC12/Target/rfal_platform.h:105:64: note: in definition of macro 'platformLog'
+  105 | #define platformLog(...)                              logUsart(__VA_ARGS__)                         /*!< Log  method                                 */
+      |                                                                ^~~~~~~~~~~
+../Core/Src/main.c:307:20: note: each undeclared identifier is reported only once for each function it appears in
+  307 |                    nfcDevice->nfcidLen);
+      |                    ^~~~~~~~~
+../X-CUBE-NFC12/Target/rfal_platform.h:105:64: note: in definition of macro 'platformLog'
+  105 | #define platformLog(...)                              logUsart(__VA_ARGS__)                         /*!< Log  method                                 */
+      |                                                                ^~~~~~~~~~~
+../Core/Src/main.c:309:25: error: redefinition of 'rawLen'
+  309 |                 uint8_t rawLen = 0;
+      |                         ^~~~~~
+../Core/Src/main.c:297:38: note: previous definition of 'rawLen' with type 'uint8_t' {aka 'unsigned char'}
+  297 |                 uint8_t  mbCtrl = 0, rawLen = 0;
+      |                                      ^~~~~~
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:172:19: warning: 'ReadMailbox' defined but not used [-Wunused-function]
+  172 | static ReturnCode ReadMailbox(const uint8_t *uid) {
+      |                   ^~~~~~~~~~~
+make: *** [Core/Src/subdir.mk:40: Core/Src/main.o] Error 1
+"make -j12 all" terminated with exit code 2. Build might be incomplete.
+22:28:21 **** Incremental Build of configuration Debug for project TorquimeterReader ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:172:19: warning: 'ReadMailbox' defined but not used [-Wunused-function]
+  172 | static ReturnCode ReadMailbox(const uint8_t *uid) {
+      |                   ^~~~~~~~~~~
+arm-none-eabi-gcc -o "TorquimeterReader.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterReader.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TorquimeterReader.elf
  
-arm-none-eabi-size  TestSTM32L053I2C.elf 
-arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+arm-none-eabi-size  TorquimeterReader.elf 
+arm-none-eabi-objdump -h -S TorquimeterReader.elf  > "TorquimeterReader.list"
    text	   data	    bss	    dec	    hex	filename
-  18044	    124	   2188	  20356	   4f84	TestSTM32L053I2C.elf
+  47868	    104	   5424	  53396	   d094	TorquimeterReader.elf
 Finished building: default.size.stdout
  
-Finished building: TestSTM32L053I2C.list
+Finished building: TorquimeterReader.list
  
-19:58:27 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+22:32:35 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-../Core/Src/main.c:572:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
-  572 | static bool mb_was_collected(void) {
+../Core/Src/main.c: In function 'TORQUIMETER_Measure':
+../Core/Src/main.c:569:41: warning: unused variable 'msg_len' [-Wunused-variable]
+  569 |                                 uint8_t msg_len = 12;
+      |                                         ^~~~~~~
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:838:13: warning: 'MX_RTC_Init' defined but not used [-Wunused-function]
+  838 | static void MX_RTC_Init(void) {
+      |             ^~~~~~~~~~~
+../Core/Src/main.c:609:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  609 | static bool mb_was_collected(void) {
       |             ^~~~~~~~~~~~~~~~
-../Core/Src/main.c:78:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
-   78 | static uint8_t i2c_initialized = 0;
-      |                ^~~~~~~~~~~~~~~
+../Core/Src/main.c:146:13: warning: 'GPO_Init' defined but not used [-Wunused-function]
+  146 | static void GPO_Init(void) {
+      |             ^~~~~~~~
 arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 Finished building target: TestSTM32L053I2C.elf
  
 arm-none-eabi-size  TestSTM32L053I2C.elf 
 arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
    text	   data	    bss	    dec	    hex	filename
-  26528	    124	   2188	  28840	   70a8	TestSTM32L053I2C.elf
+  24940	    124	   2188	  27252	   6a74	TestSTM32L053I2C.elf
 Finished building: default.size.stdout
  
 Finished building: TestSTM32L053I2C.list

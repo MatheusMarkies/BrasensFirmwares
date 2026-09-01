@@ -1,4 +1,4 @@
-19:22:48 **** Incremental Build of configuration Debug for project TorquimeterReader ****
+22:28:21 **** Incremental Build of configuration Debug for project TorquimeterReader ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
 ../Core/Src/main.c:172:19: warning: 'ReadMailbox' defined but not used [-Wunused-function]
@@ -10,11 +10,11 @@ Finished building target: TorquimeterReader.elf
 arm-none-eabi-size  TorquimeterReader.elf 
 arm-none-eabi-objdump -h -S TorquimeterReader.elf  > "TorquimeterReader.list"
    text	   data	    bss	    dec	    hex	filename
-  47508	    104	   5168	  52780	   ce2c	TorquimeterReader.elf
+  47868	    104	   5424	  53396	   d094	TorquimeterReader.elf
 Finished building: default.size.stdout
  
 Finished building: TorquimeterReader.list
  
 
-19:22:49 Build Finished. 0 errors, 1 warnings. (took 1s.229ms)
+22:28:22 Build Finished. 0 errors, 1 warnings. (took 1s.274ms)
 

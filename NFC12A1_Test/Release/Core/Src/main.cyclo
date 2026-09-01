@@ -1,8 +1,0 @@
-../Core/Src/main.c:116:13:notif	4
-../Core/Src/main.c:96:9:BSP_NFC0XCOMM_SendRecv	5
-../Core/Src/main.c:140:6:ini	3
-../Core/Src/main.c:229:6:stop	1
-../Core/Src/main.c:507:6:SystemClock_Config	3
-../Core/Src/main.c:298:5:main	23
-../Core/Src/main.c:637:5:_write	1
-../Core/Src/main.c:649:6:Error_Handler	1

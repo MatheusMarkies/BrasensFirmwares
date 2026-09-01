@@ -291,11 +291,13 @@ int main(void) {
 
 	/* Infinite loop */
 	/* USER CODE BEGIN WHILE */
+	/* Infinite loop */
+	/* USER CODE BEGIN WHILE */
 	while (1) {
 		static rfalNfcDevice *nfcDevice;
 		rfalNfcState currentState;
 
-		rfalNfcWorker(); // Mantém a stack RFAL rodando
+		rfalNfcWorker();                     /* nunca tirar do loop */
 
 		switch (state) {
 		case DEMO_ST_START_DISCOVERY:
@@ -313,78 +315,70 @@ int main(void) {
 
 				if (nfcDevice->type == RFAL_NFC_LISTEN_TYPE_NFCV) {
 					platformLedOn(PLATFORM_LED_V_PORT, PLATFORM_LED_V_PIN);
-					platformLedOn(PLATFORM_LED_FIELD_PORT,
-							PLATFORM_LED_FIELD_PIN); // Indica Campo ON
+					platformLedOn(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN);
 
-					// 1. Salva o UID para usar nas próximas leituras
-					ST_MEMCPY(currentUID, nfcDevice->nfcid,
-							nfcDevice->nfcidLen);
+					ST_MEMCPY(currentUID, nfcDevice->nfcid, nfcDevice->nfcidLen);
 
-					platformLog(
-							"Tag Detectada! Iniciando Monitoramento Continuo...\r\n");
-					platformLog("\r\n");
-					// 2. NÃO DESATIVA! Muda para estado CONECTADO
+					platformLog("Tag ativada. UID: %02X %02X %02X %02X %02X %02X %02X %02X (len=%d)\r\n",
+						currentUID[0], currentUID[1], currentUID[2], currentUID[3],
+						currentUID[4], currentUID[5], currentUID[6], currentUID[7],
+						(int) nfcDevice->nfcidLen);
+
 					failCount = 0;
 					state = DEMO_ST_CONNECTED;
-
-					// Pequeno delay inicial para estabilizar o Harvesting do MCU
-					//HAL_Delay(10);
 				} else {
-					// Se não for NFC-V, ignora e busca de novo
 					rfalNfcDeactivate(RFAL_NFC_DEACTIVATE_DISCOVERY);
 					state = DEMO_ST_START_DISCOVERY;
 				}
 			}
 			break;
 
-		case DEMO_ST_CONNECTED:
-		{
-		    static uint32_t lastReadTick = 0;
-		    static uint8_t lostCount = 0;
+		case DEMO_ST_CONNECTED: {
+			static uint32_t lastReadTick = 0;
 
-		    platformLedOn(PLATFORM_LED_FIELD_PORT, PLATFORM_LED_FIELD_PIN);
+			currentState = rfalNfcGetState();
+			if (!rfalNfcIsDevActivated(currentState)) {
+				platformLog("SEM ATIVACAO rfalNfcState=%d -> redescobrir\r\n", (int) currentState);
+				rfalNfcDeactivate(RFAL_NFC_DEACTIVATE_DISCOVERY);
+				state = DEMO_ST_START_DISCOVERY;
+				break;
+			}
 
-		    // Polling espaçado em 250ms evita colisões agressivas com o tráfego I2C
-		    if (HAL_GetTick() - lastReadTick >= 250) {
-		        lastReadTick = HAL_GetTick();
+			if ((HAL_GetTick() - lastReadTick) < 500U) {
+				break;
+			}
+			lastReadTick = HAL_GetTick();
 
-		        uint8_t reqFlags = RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS;
-		        uint8_t rawLen = 0;
+			{
+				uint8_t  flags  = (RFAL_NFCV_REQ_FLAG_DEFAULT | RFAL_NFCV_REQ_FLAG_ADDRESS);
+				uint8_t  mbCtrl = 0;
+				uint8_t  rawLen = 0;
+				uint16_t rcvLen = 0;
+				ReturnCode e;
 
-		        // BYPASS DIRETO: Usa o comando ABh para requisitar o tamanho do payload
-		        ReturnCode lenErr = rfalST25xVPollerReadMessageLength(reqFlags, currentUID, &rawLen);
+				e = rfalST25xVPollerReadDynamicConfiguration(flags, currentUID, 0x0DU, &mbCtrl);
+				platformLog("MB_CTRL=0x%02X e=%d | ", mbCtrl, e);
 
-		        if (lenErr == ERR_NONE) {
-		            lostCount = 0;
+				e = rfalST25xVPollerReadMessageLength(flags, currentUID, &rawLen);
+				platformLog("MB_LEN=%u e=%d | ", rawLen, e);
 
-		            uint16_t rcvLen = 0;
-		            // Sabendo o tamanho, aciona o comando ACh para puxar os bytes exatos
-		            ReturnCode msgErr = rfalST25xVPollerReadMessage(reqFlags, currentUID, 0x00, rawLen, mbBuffer, sizeof(mbBuffer), &rcvLen);
+				mbBuffer[0] = 0xAA;
+				mbBuffer[1] = 0xAA;
+				e = rfalST25xVPollerReadMessage(flags, currentUID, 0x00U, 0x00U,
+						mbBuffer, sizeof(mbBuffer), &rcvLen);
+				platformLog("ReadMsg e=%d len=%u resp=[%02X %02X]\r\n",
+						e, rcvLen, mbBuffer[0], mbBuffer[1]);
 
-		            if (msgErr == ERR_NONE) {
-		                mbBuffer[rcvLen] = '\0';
-		                // O payload real sempre começa no índice 1 da biblioteca RFAL
-		                platformLog("[%lu ms] MENSAGEM LIDA: %s\r\n", HAL_GetTick(), &mbBuffer[1]);
-		            } else {
-		                platformLog("[%lu ms] Erro ReadMessage: %d\r\n", HAL_GetTick(), msgErr);
-		            }
-		        }
-		        else if (lenErr == ERR_TIMEOUT) {
-		            // Colisão momentânea na antena durante a gravação I2C. Ignora e tenta de novo.
-		            lostCount++;
-		            if (lostCount > 15) {
-		                platformLog("[%lu ms] Conexao Fisica Perdida! (Timeout)\r\n", HAL_GetTick());
-		                rfalNfcDeactivate(RFAL_NFC_DEACTIVATE_DISCOVERY);
-		                state = DEMO_ST_START_DISCOVERY;
-		                lostCount = 0;
-		            }
-		        }
-		        else {
-		            // Tag respondeu, mas rejeitou a leitura (Erro 0x0F = Mailbox Vazio)
-		            lostCount = 0;
-		        }
-		    }
-		    break;
+				if ((e == ERR_NONE) && (rcvLen > 1U)) {
+					uint16_t off = (mbBuffer[0] == 0x00U) ? 1U : 0U;
+					uint16_t n   = rcvLen - off;
+					if (n > (sizeof(mbText) - 1U)) { n = sizeof(mbText) - 1U; }
+					memcpy(mbText, &mbBuffer[off], n);
+					mbText[n] = '\0';
+					platformLog(">>> MENSAGEM: %s\r\n", mbText);
+				}
+			}
+			break;
 		}
 
 		case DEMO_ST_NOTINIT:
