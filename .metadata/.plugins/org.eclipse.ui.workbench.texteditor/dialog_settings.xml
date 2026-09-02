@@ -3,23 +3,25 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="true"/>
 	<list key="searchhistory">
-		<item value="MX_GPIO_LowPower_Init"/>
-		<item value="Setup_NFC"/>
-		<item value="ReadMailbox"/>
-		<item value="rfalNfcvPollerInitialize"/>
-		<item value="_write"/>
-		<item value="rtc_start_wakeup_ms"/>
-		<item value="ST25DV_GPO_Enable_Dyn"/>
-		<item value="rtc"/>
-		<item value="CHARGING"/>
+		<item value="I2C_Scanner"/>
+		<item value="isTared"/>
+		<item value="#ifdef DEBUG"/>
+		<item value="DEBUG"/>
 		<item value="enter_stop_mode"/>
-		<item value="SAMPLES_FOR_READING"/>
-		<item value="i2c_initialized"/>
-		<item value="MEAS_ON"/>
-		<item value="readAndSendFRAMData("/>
-		<item value="readAndSendFRAMData"/>
+		<item value="CHARGING"/>
+		<item value="printf("/>
+		<item value="mb_was_collected"/>
+		<item value="GPO_Init"/>
+		<item value="Set_MSI_Range"/>
+		<item value="CHARGING_INTERVAL_MS"/>
+		<item value="HAL_Delay"/>
+		<item value="MEAS_OFF"/>
+		<item value="platform_i2c_write"/>
+		<item value="_write"/>
 	</list>
 	<list key="replacehistory">
+		<item value="DEBUG_PRINT("/>
+		<item value="LOG_PRINT("/>
 		<item value="printf"/>
 		<item value="LOG"/>
 		<item value="hi2c2"/>

@@ -1,31 +1,26 @@
-22:32:35 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+17:16:24 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-../Core/Src/main.c: In function 'TORQUIMETER_Measure':
-../Core/Src/main.c:569:41: warning: unused variable 'msg_len' [-Wunused-variable]
-  569 |                                 uint8_t msg_len = 12;
-      |                                         ^~~~~~~
-../Core/Src/main.c: At top level:
-../Core/Src/main.c:838:13: warning: 'MX_RTC_Init' defined but not used [-Wunused-function]
-  838 | static void MX_RTC_Init(void) {
-      |             ^~~~~~~~~~~
-../Core/Src/main.c:609:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
-  609 | static bool mb_was_collected(void) {
-      |             ^~~~~~~~~~~~~~~~
-../Core/Src/main.c:146:13: warning: 'GPO_Init' defined but not used [-Wunused-function]
-  146 | static void GPO_Init(void) {
-      |             ^~~~~~~~
+../Core/Src/main.c:433:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  433 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:398:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  398 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:84:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   84 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
 arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 Finished building target: TestSTM32L053I2C.elf
  
 arm-none-eabi-size  TestSTM32L053I2C.elf 
 arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
    text	   data	    bss	    dec	    hex	filename
-  24940	    124	   2188	  27252	   6a74	TestSTM32L053I2C.elf
+  25436	    124	   2220	  27780	   6c84	TestSTM32L053I2C.elf
 Finished building: default.size.stdout
  
 Finished building: TestSTM32L053I2C.list
  
 
-22:32:36 Build Finished. 0 errors, 4 warnings. (took 967ms)
+17:16:26 Build Finished. 0 errors, 3 warnings. (took 1s.757ms)
 

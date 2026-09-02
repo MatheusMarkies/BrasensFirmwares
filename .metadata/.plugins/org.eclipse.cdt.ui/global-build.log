@@ -1,34 +1,181 @@
-22:26:56 **** Incremental Build of configuration Release for project TorquimeterReader ****
+17:35:28 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
 make -j12 all 
-arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -Os -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-In file included from ../Middlewares/ST/rfal/Inc/rfal_rf.h:27,
-                 from ../Core/Src/main.c:31:
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'prov_is_done':
+../Core/Src/main.c:60:21: error: invalid suffix "VA1u" on integer constant
+   60 | #define PROV_MAGIC  0x5725DVA1u
+      |                     ^~~~~~~~~~~
+../Core/Src/main.c:129:53: note: in expansion of macro 'PROV_MAGIC'
+  129 |         return (*(volatile uint32_t*) PROV_ADDR) == PROV_MAGIC;
+      |                                                     ^~~~~~~~~~
+../Core/Src/main.c: In function 'prov_mark_done':
+../Core/Src/main.c:60:21: error: invalid suffix "VA1u" on integer constant
+   60 | #define PROV_MAGIC  0x5725DVA1u
+      |                     ^~~~~~~~~~~
+../Core/Src/main.c:134:79: note: in expansion of macro 'PROV_MAGIC'
+  134 |         HAL_FLASHEx_DATAEEPROM_Program(FLASH_TYPEPROGRAMDATA_WORD, PROV_ADDR, PROV_MAGIC);
+      |                                                                               ^~~~~~~~~~
+../Core/Src/main.c: In function 'prov_is_done':
+../Core/Src/main.c:130:1: warning: control reaches end of non-void function [-Wreturn-type]
+  130 | }
+      | ^
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:893:13: warning: 'MX_USART1_UART_Init' defined but not used [-Wunused-function]
+  893 | static void MX_USART1_UART_Init(void) {
+      |             ^~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:591:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  591 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:406:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  406 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:389:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  389 | static uint8_t nfc_armed = 0;   /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+make: *** [Core/Src/subdir.mk:37: Core/Src/main.o] Error 1
+"make -j12 all" terminated with exit code 2. Build might be incomplete.
+17:36:46 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:893:13: warning: 'MX_USART1_UART_Init' defined but not used [-Wunused-function]
+  893 | static void MX_USART1_UART_Init(void) {
+      |             ^~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:591:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  591 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:406:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  406 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:389:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  389 | static uint8_t nfc_armed = 0;   /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  21924	    124	   2220	  24268	   5ecc	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+17:44:06 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:591:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  591 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:406:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  406 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:389:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  389 | static uint8_t nfc_armed = 0;   /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  29292	    124	   2220	  31636	   7b94	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+17:49:02 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:591:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  591 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:406:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  406 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:389:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  389 | static uint8_t nfc_armed = 0;   /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  29324	    124	   2220	  31668	   7bb4	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+18:00:01 **** Incremental Build of configuration Debug for project TorquimeterReader ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
 ../Core/Src/main.c: In function 'main':
-../Core/Src/main.c:307:20: error: 'nfcDevice' undeclared (first use in this function); did you mean 'rfalNfcDevice'?
-  307 |                    nfcDevice->nfcidLen);
-      |                    ^~~~~~~~~
-../X-CUBE-NFC12/Target/rfal_platform.h:105:64: note: in definition of macro 'platformLog'
-  105 | #define platformLog(...)                              logUsart(__VA_ARGS__)                         /*!< Log  method                                 */
-      |                                                                ^~~~~~~~~~~
-../Core/Src/main.c:307:20: note: each undeclared identifier is reported only once for each function it appears in
-  307 |                    nfcDevice->nfcidLen);
-      |                    ^~~~~~~~~
-../X-CUBE-NFC12/Target/rfal_platform.h:105:64: note: in definition of macro 'platformLog'
-  105 | #define platformLog(...)                              logUsart(__VA_ARGS__)                         /*!< Log  method                                 */
-      |                                                                ^~~~~~~~~~~
-../Core/Src/main.c:309:25: error: redefinition of 'rawLen'
-  309 |                 uint8_t rawLen = 0;
-      |                         ^~~~~~
-../Core/Src/main.c:297:38: note: previous definition of 'rawLen' with type 'uint8_t' {aka 'unsigned char'}
-  297 |                 uint8_t  mbCtrl = 0, rawLen = 0;
-      |                                      ^~~~~~
+../Core/Src/main.c:381:47: error: 'lostCount' undeclared (first use in this function)
+  381 |                                         if (++lostCount > 10) {
+      |                                               ^~~~~~~~~
+../Core/Src/main.c:381:47: note: each undeclared identifier is reported only once for each function it appears in
 ../Core/Src/main.c: At top level:
 ../Core/Src/main.c:172:19: warning: 'ReadMailbox' defined but not used [-Wunused-function]
   172 | static ReturnCode ReadMailbox(const uint8_t *uid) {
       |                   ^~~~~~~~~~~
 make: *** [Core/Src/subdir.mk:40: Core/Src/main.o] Error 1
 "make -j12 all" terminated with exit code 2. Build might be incomplete.
-22:28:21 **** Incremental Build of configuration Debug for project TorquimeterReader ****
+18:00:07 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:604:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  604 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:420:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  420 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:400:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  400 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  29384	    124	   2220	  31728	   7bf0	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+18:02:17 **** Incremental Build of configuration Debug for project TorquimeterReader ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:172:19: warning: 'ReadMailbox' defined but not used [-Wunused-function]
+  172 | static ReturnCode ReadMailbox(const uint8_t *uid) {
+      |                   ^~~~~~~~~~~
+arm-none-eabi-gcc -o "TorquimeterReader.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterReader.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TorquimeterReader.elf
+ 
+arm-none-eabi-size  TorquimeterReader.elf 
+arm-none-eabi-objdump -h -S TorquimeterReader.elf  > "TorquimeterReader.list"
+   text	   data	    bss	    dec	    hex	filename
+  47952	    104	   5432	  53488	   d0f0	TorquimeterReader.elf
+Finished building: default.size.stdout
+ 
+Finished building: TorquimeterReader.list
+ 
+18:03:57 **** Incremental Build of configuration Debug for project TorquimeterReader ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
 ../Core/Src/main.c:172:19: warning: 'ReadMailbox' defined but not used [-Wunused-function]
@@ -45,30 +192,476 @@ Finished building: default.size.stdout
  
 Finished building: TorquimeterReader.list
  
-22:32:35 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+18:04:26 **** Incremental Build of configuration Debug for project TorquimeterReader ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m3 -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32F103xB -DST25R500 -c -I../Core/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc -I../Drivers/STM32F1xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32F1xx/Include -I../Drivers/CMSIS/Include -I../X-CUBE-NFC12/Target -I../Middlewares/ST/rfal/Inc -I../Drivers/BSP/Components/st25r500 -I../Middlewares/ST/rfal/Src -I../Drivers/BSP/NFC12A1 -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:172:19: warning: 'ReadMailbox' defined but not used [-Wunused-function]
+  172 | static ReturnCode ReadMailbox(const uint8_t *uid) {
+      |                   ^~~~~~~~~~~
+arm-none-eabi-gcc -o "TorquimeterReader.elf" @"objects.list"   -mcpu=cortex-m3 -T"D:\BrasensFirmwares\NFC12A1_Test\STM32F103RBTX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TorquimeterReader.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TorquimeterReader.elf
+ 
+arm-none-eabi-size  TorquimeterReader.elf 
+arm-none-eabi-objdump -h -S TorquimeterReader.elf  > "TorquimeterReader.list"
+   text	   data	    bss	    dec	    hex	filename
+  47952	    104	   5432	  53488	   d0f0	TorquimeterReader.elf
+Finished building: default.size.stdout
+ 
+Finished building: TorquimeterReader.list
+ 
+18:07:34 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
 make -j12 all 
 arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
-../Core/Src/main.c: In function 'TORQUIMETER_Measure':
-../Core/Src/main.c:569:41: warning: unused variable 'msg_len' [-Wunused-variable]
-  569 |                                 uint8_t msg_len = 12;
-      |                                         ^~~~~~~
-../Core/Src/main.c: At top level:
-../Core/Src/main.c:838:13: warning: 'MX_RTC_Init' defined but not used [-Wunused-function]
-  838 | static void MX_RTC_Init(void) {
-      |             ^~~~~~~~~~~
-../Core/Src/main.c:609:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
-  609 | static bool mb_was_collected(void) {
+../Core/Src/main.c:920:13: warning: 'MX_USART1_UART_Init' defined but not used [-Wunused-function]
+  920 | static void MX_USART1_UART_Init(void) {
+      |             ^~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:604:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  604 | static bool mb_was_collected(void) {
       |             ^~~~~~~~~~~~~~~~
-../Core/Src/main.c:146:13: warning: 'GPO_Init' defined but not used [-Wunused-function]
-  146 | static void GPO_Init(void) {
-      |             ^~~~~~~~
+../Core/Src/main.c:420:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  420 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:400:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  400 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
 arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
 Finished building target: TestSTM32L053I2C.elf
  
 arm-none-eabi-size  TestSTM32L053I2C.elf 
 arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
    text	   data	    bss	    dec	    hex	filename
-  24940	    124	   2188	  27252	   6a74	TestSTM32L053I2C.elf
+  21984	    124	   2220	  24328	   5f08	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+18:09:27 **** Incremental Build of configuration Debug for project TorquimeterReader ****
+make -j12 all 
+arm-none-eabi-size  TorquimeterReader.elf 
+   text	   data	    bss	    dec	    hex	filename
+  47952	    104	   5432	  53488	   d0f0	TorquimeterReader.elf
+Finished building: default.size.stdout
+ 
+18:16:20 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21984	    124	   2220	  24328	   5f08	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+18:17:49 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:604:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  604 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:420:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  420 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:400:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  400 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  29384	    124	   2220	  31728	   7bf0	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+19:51:11 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:917:13: warning: 'MX_USART1_UART_Init' defined but not used [-Wunused-function]
+  917 | static void MX_USART1_UART_Init(void) {
+      |             ^~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:600:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  600 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:416:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  416 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:396:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  396 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  21968	    124	   2220	  24312	   5ef8	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+20:06:06 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+   text	   data	    bss	    dec	    hex	filename
+  21968	    124	   2220	  24312	   5ef8	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+20:11:18 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:600:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  600 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:416:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  416 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:396:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  396 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  29412	    124	   2220	  31756	   7c0c	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+20:16:03 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:600:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  600 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:416:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  416 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:396:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  396 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  29412	    124	   2220	  31756	   7c0c	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+20:17:11 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+   text	   data	    bss	    dec	    hex	filename
+  29412	    124	   2220	  31756	   7c0c	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+20:23:10 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:917:13: warning: 'MX_USART1_UART_Init' defined but not used [-Wunused-function]
+  917 | static void MX_USART1_UART_Init(void) {
+      |             ^~~~~~~~~~~~~~~~~~~
+../Core/Src/main.c:600:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  600 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:416:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  416 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:396:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  396 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  21968	    124	   2220	  24312	   5ef8	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+15:48:15 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+arm-none-eabi-gcc "../Core/Src/stm32l0xx_hal_msp.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32l0xx_hal_msp.d" -MT"Core/Src/stm32l0xx_hal_msp.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/stm32l0xx_hal_msp.o"
+arm-none-eabi-gcc "../Core/Src/stm32l0xx_it.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/stm32l0xx_it.d" -MT"Core/Src/stm32l0xx_it.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/stm32l0xx_it.o"
+../Core/Src/main.c:607:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  607 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:420:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  420 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:396:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  396 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  24920	    124	   2220	  27264	   6a80	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+15:50:17 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:607:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  607 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:420:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  420 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:396:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  396 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  29052	    124	   2220	  31396	   7aa4	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+15:51:48 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+   text	   data	    bss	    dec	    hex	filename
+  29052	    124	   2220	  31396	   7aa4	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+15:56:50 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:607:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  607 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:420:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  420 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:396:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  396 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  24920	    124	   2220	  27264	   6a80	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+15:58:28 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+   text	   data	    bss	    dec	    hex	filename
+  24920	    124	   2220	  27264	   6a80	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+16:02:11 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:612:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  612 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:425:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  425 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:396:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  396 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:82:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   82 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  29284	    124	   2220	  31628	   7b8c	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+16:08:28 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:614:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  614 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:427:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  427 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:398:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  398 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:84:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   84 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  29444	    124	   2220	  31788	   7c2c	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+16:18:33 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c: In function 'MX_GPIO_Init':
+../Core/Src/main.c:995:39: error: 'g' undeclared (first use in this function)
+  995 |         HAL_GPIO_Init(GPO_GPIO_Port, &g);
+      |                                       ^
+../Core/Src/main.c:995:39: note: each undeclared identifier is reported only once for each function it appears in
+../Core/Src/main.c: At top level:
+../Core/Src/main.c:609:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  609 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:422:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  422 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:390:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  390 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:84:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   84 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+make: *** [Core/Src/subdir.mk:37: Core/Src/main.o] Error 1
+"make -j12 all" terminated with exit code 2. Build might be incomplete.
+16:18:52 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:610:13: warning: 'mb_was_collected' defined but not used [-Wunused-function]
+  610 | static bool mb_was_collected(void) {
+      |             ^~~~~~~~~~~~~~~~
+../Core/Src/main.c:423:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  423 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:391:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  391 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:84:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   84 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  29560	    124	   2220	  31904	   7ca0	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+16:47:33 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:433:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  433 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:398:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  398 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:84:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   84 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  30024	    124	   2220	  32368	   7e70	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+16:53:32 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:433:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  433 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:398:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  398 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:84:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   84 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  25436	    124	   2220	  27780	   6c84	TestSTM32L053I2C.elf
+Finished building: default.size.stdout
+ 
+Finished building: TestSTM32L053I2C.list
+ 
+17:16:24 **** Incremental Build of configuration Debug for project TestSTM32L053I2C ****
+make -j12 all 
+arm-none-eabi-gcc "../Core/Src/main.c" -mcpu=cortex-m0plus -std=gnu11 -g3 -DDEBUG -DUSE_HAL_DRIVER -DSTM32L053xx -c -I../Core/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc -I../Drivers/STM32L0xx_HAL_Driver/Inc/Legacy -I../Drivers/CMSIS/Device/ST/STM32L0xx/Include -I../Drivers/CMSIS/Include -O0 -ffunction-sections -fdata-sections -Wall -fstack-usage -fcyclomatic-complexity -MMD -MP -MF"Core/Src/main.d" -MT"Core/Src/main.o" --specs=nano.specs -mfloat-abi=soft -mthumb -o "Core/Src/main.o"
+../Core/Src/main.c:433:13: warning: 'NFC_Arm' defined but not used [-Wunused-function]
+  433 | static bool NFC_Arm(void) {
+      |             ^~~~~~~
+../Core/Src/main.c:398:16: warning: 'nfc_armed' defined but not used [-Wunused-variable]
+  398 | static uint8_t nfc_armed = 0; /* RAM: zera sozinho a cada perda de VCC */
+      |                ^~~~~~~~~
+../Core/Src/main.c:84:16: warning: 'i2c_initialized' defined but not used [-Wunused-variable]
+   84 | static uint8_t i2c_initialized = 0;
+      |                ^~~~~~~~~~~~~~~
+arm-none-eabi-gcc -o "TestSTM32L053I2C.elf" @"objects.list"   -mcpu=cortex-m0plus -T"C:\Users\Matheus Markies\Documents\TestSTM32L053I2C\STM32L053C8TX_FLASH.ld" --specs=nosys.specs -Wl,-Map="TestSTM32L053I2C.map" -Wl,--gc-sections -static --specs=nano.specs -mfloat-abi=soft -mthumb -Wl,--start-group -lc -lm -Wl,--end-group
+Finished building target: TestSTM32L053I2C.elf
+ 
+arm-none-eabi-size  TestSTM32L053I2C.elf 
+arm-none-eabi-objdump -h -S TestSTM32L053I2C.elf  > "TestSTM32L053I2C.list"
+   text	   data	    bss	    dec	    hex	filename
+  25436	    124	   2220	  27780	   6c84	TestSTM32L053I2C.elf
 Finished building: default.size.stdout
  
 Finished building: TestSTM32L053I2C.list
