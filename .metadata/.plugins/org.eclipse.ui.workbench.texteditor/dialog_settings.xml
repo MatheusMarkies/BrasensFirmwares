@@ -3,6 +3,13 @@
 	<item key="hasShownOverlayPopupBefore" value="true"/>
 	<item key="replaceBarOpen" value="true"/>
 	<list key="searchhistory">
+		<item value="peripherals_wake"/>
+		<item value="HAL_GPIO_EXTI_IRQHandler"/>
+		<item value="GPO_Init"/>
+		<item value="SENDING"/>
+		<item value="ST25DV_MB_Enable_Dyn"/>
+		<item value="NFC_Provision"/>
+		<item value="HAL_GPIO_EXTI"/>
 		<item value="I2C_Scanner"/>
 		<item value="isTared"/>
 		<item value="#ifdef DEBUG"/>
@@ -11,13 +18,6 @@
 		<item value="CHARGING"/>
 		<item value="printf("/>
 		<item value="mb_was_collected"/>
-		<item value="GPO_Init"/>
-		<item value="Set_MSI_Range"/>
-		<item value="CHARGING_INTERVAL_MS"/>
-		<item value="HAL_Delay"/>
-		<item value="MEAS_OFF"/>
-		<item value="platform_i2c_write"/>
-		<item value="_write"/>
 	</list>
 	<list key="replacehistory">
 		<item value="DEBUG_PRINT("/>
